@@ -115,7 +115,9 @@ database, and pushes a static copy of the dashboard to a branch named `site`. Ve
 3. Optional: GitHub → Settings → Secrets and variables → Actions → add `ANTHROPIC_API_KEY` for the AI brief.
 4. [vercel.com](https://vercel.com) → **Add New… → Project** → import this repository →
    Framework preset **Other**, leave the build command empty → **Deploy**.
-5. Vercel project → **Settings → Git → Production Branch** → `site`, then redeploy.
+5. Vercel project → **Settings → Git → Production Branch** → `site`. Don't press "Redeploy" (it rebuilds the
+   code branch); instead run the workflow again (step 2) or wait for the next run, and Vercel deploys `site`.
+   While Vercel still shows the code branch you'll see a setup page with these instructions instead of a 404.
 
 From then on, every run pushes to `site` and Vercel publishes it automatically (~48 deploys a day, within the
 free Hobby limit). The page is read-only: to add or change topics or source ratings, edit `topics.json` /

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PlagueWeb setup</title>
+  <style>
+    :root { --bg: #f6f7f9; --panel: #fff; --text: #1b1f24; --muted: #667085; --border: #e3e6eb; --accent: #b42318; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #111418; --panel: #1a1f25; --text: #e6e8eb; --muted: #98a2b3; --border: #2b323b; --accent: #f97066; } }
+    body { margin: 0; font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    main { max-width: 640px; margin: 3rem auto; padding: 0 16px; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; }
+    h1 { font-size: 1.4rem; margin-top: 0; }
+    code { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 0 .3rem; }
+    li { margin-bottom: .5rem; }
+    .muted { color: var(--muted); font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Almost there: Vercel is showing the code branch</h1>
+    <p>The dashboard lives on the <code>site</code> branch, which GitHub Actions updates every 30 minutes.
+      This deployment was built from the code branch instead.</p>
+    <ol>
+      <li>Vercel → this project → <strong>Settings → Git</strong> (in some versions: <strong>Settings → Environments → Production</strong>).</li>
+      <li>Set <strong>Production Branch</strong> to <code>site</code> and save.</li>
+      <li>Don't use “Redeploy” — it rebuilds this same code-branch version. Instead wait for the next update
+        (every 30 minutes), or on GitHub open <strong>Actions → Collect and publish → Run workflow</strong>.
+        A new production deployment from <code>site</code> appears within a minute.</li>
+    </ol>
+    <p class="muted">Or open <strong>Deployments</strong> in Vercel, find one whose branch is <code>site</code>, and choose
+      <strong>Promote to Production</strong>.</p>
+  </main>
+</body>
+</html>
