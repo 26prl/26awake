@@ -315,9 +315,14 @@ class UpgradeAndExportTests(unittest.TestCase):
         data = json.loads((out / "data" / f"topic-{topic['id']}.json").read_text(encoding="utf-8"))
         self.assertTrue((out / "index.html").exists())
         self.assertIsNone(site["schedule"])
-        with mock.patch.dict("os.environ", {"TRACKER_SCHEDULE_MINUTES": "37,7"}):
-            site = json.loads((export_site(store, out) / "data" / "site.json").read_text(encoding="utf-8"))
+        self.assertIsNone(site["live"])
+        env = {"TRACKER_SCHEDULE_MINUTES": "37,7", "TRACKER_LIVE_REPO": "me/repo", "TRACKER_LIVE_BRANCH": "data"}
+        with mock.patch.dict("os.environ", env):
+            check = {"started_at": "2026-10-07T18:00:00+00:00", "finished_at": "2026-10-07T18:01:00+00:00", "added": 3, "errors": 0}
+            site = json.loads((export_site(store, out, check) / "data" / "site.json").read_text(encoding="utf-8"))
         self.assertEqual(site["schedule"]["minutes"], [7, 37])
+        self.assertEqual(site["live"], {"repo": "me/repo", "branch": "data"})
+        self.assertEqual(site["last_check"]["added"], 3)
         self.assertEqual(site["topics"][0]["stats"]["total"], 1)
         self.assertEqual(data["articles"][0]["trust"], "official")
         self.assertEqual(len(data["timeline"]), 90)

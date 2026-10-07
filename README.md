@@ -42,7 +42,8 @@ and a background collector checks each topic every `interval_minutes` (default 3
 | `--sync-topics` | apply `topics.json` to an existing database (update by name, add new) |
 | `--export DIR` | write a static copy of the dashboard to `DIR` (combine with `--once`) |
 | `--no-collector` | serve the dashboard without fetching |
-| `TRACKER_SCHEDULE_MINUTES` | for `--export` run by cron: the cron minutes (e.g. `7,37`), so the static page can count down to the next update |
+| `TRACKER_SCHEDULE_MINUTES` | for `--export` run by cron: the cron minutes (e.g. `0,6,12,…`), so the static page can count down to the next check |
+| `TRACKER_LIVE_REPO`, `TRACKER_LIVE_BRANCH` | for `--export`: public GitHub repo and branch the page reads fresh data from between deployments |
 
 ## Where the data comes from
 
@@ -125,35 +126,39 @@ Use **+ New topic** in the UI, or put it in `topics.json`:
 
 ## Deploying
 
-The tracker needs to **run continuously** (to collect every 11 minutes) and **keep its database**.
+The tracker needs to **run continuously** (to check every 6 minutes) and **keep its database**.
 Vercel can't do either: functions stop after each request and have no persistent disk. Two options:
 
-### Option A — Vercel (free): GitHub Actions collects, Vercel serves
+### Option A — Vercel (free): GitHub Actions collects, pages update themselves live
 
-`.github/workflows/collect.yml` runs every 11 minutes on GitHub's servers, collects the news, keeps the
-database, and pushes a static copy of the dashboard to a branch named `site`. Vercel serves that branch.
+`.github/workflows/collect.yml` runs every 6 minutes on GitHub's servers and collects the news. Each check
+pushes its results to a branch named **`data`**; the static dashboard goes to a branch named **`site`**, which
+Vercel serves.
 
-1. Merge this code into the repository's **default branch** (GitHub only runs scheduled workflows from there).
-2. GitHub → **Actions** → *Collect and publish* → **Run workflow** once. This creates the `site` branch.
+Open pages count down to the next check, show a glowing progress bar while it runs, then fetch the new data
+straight from the `data` branch on GitHub and update everything in place — no reload, and no Vercel deployment
+per check. This needs a **public** repository (pages read GitHub without logging in, within GitHub's limit of
+60 requests an hour per visitor; when that runs out the page falls back to the deployed copy for 15 minutes).
+`site` is only republished when the site's files change, or once an hour as a fallback (about 24 deployments a
+day, well inside Vercel's free 100), and the `data` branch tells Vercel not to deploy it.
+
+1. Merge this code into the repository's **default branch** (GitHub only runs scheduled workflows from there),
+   and make the repository public.
+2. GitHub → **Actions** → *Collect and publish* → **Run workflow** once. This creates the `site` and `data` branches.
 3. Optional: GitHub → Settings → Secrets and variables → Actions → add `ANTHROPIC_API_KEY` for the AI brief.
 4. [vercel.com](https://vercel.com) → **Add New… → Project** → import this repository →
    Framework preset **Other**, leave the build command empty → **Deploy**.
 5. Vercel project → **Settings → Git → Production Branch** → `site`. Don't press "Redeploy" (it rebuilds the
-   code branch); instead run the workflow again (step 2) or wait for the next run, and Vercel deploys `site`.
+   code branch); instead run the workflow again (step 2), and Vercel deploys `site`.
    While Vercel still shows the code branch you'll see a setup page with these instructions instead of a 404.
 
-From then on the workflow checks every 11 minutes and pushes to `site` only when there is something to show:
-new articles, changed site files, or once an hour. That keeps Vercel under its free limit of 100 deployments a
-day. The page is read-only: to add or change topics or source ratings, edit `topics.json` / `trust.json` on the
-default branch — the next published run applies them (`--sync-topics`). GitHub's cron is often a few minutes
-late, and GitHub pauses scheduled workflows in repositories with no activity for 60 days.
-
-**GitHub Actions minutes:** public repositories run Actions for free without limit. A private repository gets
-2,000 free minutes a month, and every run counts as at least one minute: checking every 11 minutes needs about
-4,300 a month, so in a private repository the checks stop around mid-month. Make the repository public
-(Settings → General → Danger Zone → Change visibility), or change the cron line in
-`.github/workflows/collect.yml` to `"7,37 * * * *"` (every 30 minutes, ~1,450 minutes a month) and set
-`TRACKER_SCHEDULE_MINUTES` to `"7,37"`.
+The page is read-only: to add or change topics or source ratings, edit `topics.json` / `trust.json` on the
+default branch — the next check applies them (`--sync-topics`). GitHub's scheduler often starts runs a few
+minutes late and can skip runs when it is busy; the page then says the check is late and the next one catches
+up. GitHub also pauses scheduled workflows in repositories with no activity for 60 days. To change the
+interval, edit the cron line and `TRACKER_SCHEDULE_MINUTES` in the workflow together (GitHub's minimum is 5
+minutes). Public repositories run Actions for free; a private one would use up its 2,000 free minutes a month
+at this rate.
 
 GitHub Pages works the same way: Settings → Pages → Deploy from branch → `site` / root.
 

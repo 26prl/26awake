@@ -1,15 +1,15 @@
-# Collects news every 11 minutes and publishes the static dashboard to the `site` branch.
-# Point Vercel (or GitHub Pages) at the `site` branch — see README "Deploying".
+# Checks the news every 6 minutes.
 #
-# To stay inside Vercel's free deployment limit, a run only publishes when something changed:
-# new articles, changed site files, or at least once an hour (so time-based numbers stay fresh).
+# Every check pushes its results to the `data` branch. Open pages fetch that branch straight from GitHub
+# (the repository must be public) and update themselves without reloading, so Vercel does not need to
+# redeploy for new articles. The `site` branch, which Vercel deploys, is only republished when the site's
+# own files change, and once an hour as a fallback — about 24 deployments a day, inside Vercel's free limit.
 name: Collect and publish
 
 on:
   schedule:
-    # Minutes 0, 11, 22, 33, 44, 55 (the 55 → 00 step is 5 minutes; cron cannot do an exact 11-minute cycle).
-    # Keep TRACKER_SCHEDULE_MINUTES below in sync so the page can count down to the next check.
-    - cron: "*/11 * * * *"
+    # Every 6 minutes. Keep TRACKER_SCHEDULE_MINUTES below in sync so pages know when to expect a check.
+    - cron: "*/6 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -22,9 +22,10 @@ concurrency:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      PUSH_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
     steps:
       - uses: actions/checkout@v4
 
@@ -36,43 +37,61 @@ jobs:
         if: env.ANTHROPIC_API_KEY != ''
         run: pip install -r requirements.txt
 
-      - name: Restore the database from the last run
+      - name: Restore the database from the last check
         run: |
           mkdir -p data
-          if git fetch --depth=1 origin site 2>/dev/null; then
-            git show origin/site:.data/tracker.db > data/tracker.db || rm -f data/tracker.db
-          fi
+          for branch in data site; do
+            if git fetch --depth=1 origin "$branch" 2>/dev/null && git show "origin/$branch:.data/tracker.db" > data/tracker.db; then
+              echo "restored from $branch"; break
+            fi
+            rm -f data/tracker.db
+          done
+          git fetch --depth=1 origin site 2>/dev/null || true
 
       - name: Collect and export
-        id: collect
         env:
-          TRACKER_SCHEDULE_MINUTES: "0,11,22,33,44,55"
-          TRACKER_PUBLISH_DELAY_MINUTES: "3"
-        run: |
-          python -m tracker --sync-topics --once --export public | tee run.log
-          echo "added=$(grep -oP '^TOTAL_ADDED=\K\d+' run.log || echo 0)" >> "$GITHUB_OUTPUT"
+          TRACKER_SCHEDULE_MINUTES: "0,6,12,18,24,30,36,42,48,54"
+          TRACKER_PUBLISH_DELAY_MINUTES: "2"
+          TRACKER_LIVE_REPO: ${{ github.repository }}
+          TRACKER_LIVE_BRANCH: data
+        run: python -m tracker --sync-topics --once --export public
 
-      - name: Decide whether to publish
+      - name: Push this check's data (pages pick it up live)
+        run: |
+          out="$RUNNER_TEMP/databranch"
+          mkdir -p "$out/.data"
+          cp -r public/data "$out/data"
+          cp data/tracker.db "$out/.data/tracker.db"
+          echo '{ "git": { "deploymentEnabled": false } }' > "$out/vercel.json"
+          cd "$out"
+          git init -q -b data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Check $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -qf "$PUSH_URL" data
+
+      - name: Decide whether to redeploy the site
         id: decide
         run: |
           reason=""
-          if [ "${{ steps.collect.outputs.added }}" != "0" ]; then reason="${{ steps.collect.outputs.added }} new articles"; fi
           if git rev-parse -q --verify origin/site >/dev/null; then
             age=$(( $(date +%s) - $(git log -1 --format=%ct origin/site) ))
-            if [ -z "$reason" ] && [ "$age" -gt 3300 ]; then reason="hourly refresh"; fi
             mkdir -p "$RUNNER_TEMP/prev" && git archive origin/site | tar -x -C "$RUNNER_TEMP/prev"
-            if [ -z "$reason" ] && ! diff -rq --exclude=data --exclude=.data --exclude=vercel.json --exclude=.nojekyll \
+            if ! diff -rq --exclude=data --exclude=.data --exclude=vercel.json --exclude=.nojekyll \
                  "$RUNNER_TEMP/prev" public >/dev/null; then
               reason="site files changed"
+            elif [ "$age" -gt 3300 ]; then
+              reason="hourly refresh"
             fi
           else
             reason="first publish"
           fi
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -z "$reason" ]; then reason="manual run"; fi
           echo "reason=$reason" >> "$GITHUB_OUTPUT"
-          echo "Publish: ${reason:-skipped, nothing new}"
+          echo "Redeploy: ${reason:-no, pages update live from the data branch}"
 
-      - name: Publish to the site branch
+      - name: Publish the site branch
         if: steps.decide.outputs.reason != ''
         run: |
           mkdir -p public/.data
@@ -84,6 +103,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -qm "Data update $(date -u +%Y-%m-%dT%H:%MZ): ${{ steps.decide.outputs.reason }}"
-          # A single fresh commit each time keeps the branch small; the history lives in the database.
-          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" site
+          git commit -qm "Site update $(date -u +%Y-%m-%dT%H:%MZ): ${{ steps.decide.outputs.reason }}"
+          git push -qf "$PUSH_URL" site

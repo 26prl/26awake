@@ -19,13 +19,13 @@
 <body>
   <main class="card">
     <h1>Almost there: Vercel is showing the code branch</h1>
-    <p>The dashboard lives on the <code>site</code> branch, which GitHub Actions updates every 11 minutes.
+    <p>The dashboard lives on the <code>site</code> branch, which GitHub Actions updates every few minutes.
       This deployment was built from the code branch instead.</p>
     <ol>
       <li>Vercel → this project → <strong>Settings → Git</strong> (in some versions: <strong>Settings → Environments → Production</strong>).</li>
       <li>Set <strong>Production Branch</strong> to <code>site</code> and save.</li>
       <li>Don't use “Redeploy” — it rebuilds this same code-branch version. Instead wait for the next update
-        (every 11 minutes), or on GitHub open <strong>Actions → Collect and publish → Run workflow</strong>.
+        (a few minutes), or on GitHub open <strong>Actions → Collect and publish → Run workflow</strong>.
         A new production deployment from <code>site</code> appears within a minute.</li>
     </ol>
     <p class="muted">Or open <strong>Deployments</strong> in Vercel, find one whose branch is <code>site</code>, and choose

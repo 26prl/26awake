@@ -97,14 +97,21 @@ const apiSource = {
 
 const staticSource = (() => {
   let site = null;
+  let base = ""; // "" = files deployed with the page; otherwise a GitHub raw URL of a newer snapshot
+  let sha = null;
   const cache = {};
   const load = async (url) => { const r = await fetch(url, { cache: "no-cache" }); if (!r.ok) throw new Error(r.statusText); return r.json(); };
-  const topicData = async (id) => (cache[id] ??= await load(`data/topic-${id}.json`));
+  const topicData = async (id) => (cache[id] ??= await load(`${base}data/topic-${id}.json`));
   return {
+    load,
     async init() { site = await load("data/site.json"); return site; },
     site: () => site,
-    async hasNewData() { const s = await load("data/site.json"); return s.generated_at !== site.generated_at; },
-    reset() { for (const k of Object.keys(cache)) delete cache[k]; return this.init(); },
+    sha: () => sha,
+    // Switch to another snapshot whose site.json was already fetched; topic files load lazily from `newBase`.
+    use(newSite, newBase, newSha) {
+      site = newSite; base = newBase; sha = newSha;
+      for (const k of Object.keys(cache)) delete cache[k];
+    },
     topics: async () => site.topics,
     trust: async () => site.trust,
     timeline: async (id, days) => (await topicData(id)).timeline.slice(-days),
@@ -125,6 +132,44 @@ const staticSource = (() => {
     },
   };
 })();
+
+// Fresh data between deployments: every check pushes to a GitHub branch (site.json → live), which
+// pages read directly. GitHub allows 60 unauthenticated API calls an hour per visitor, so calls are
+// rationed and the page falls back to the deployed files when the limit is hit.
+const live = {
+  pausedUntil: 0,
+  config: () => staticSource.site()?.live,
+  available() { return !!this.config() && Date.now() >= this.pausedUntil; },
+  // Latest commit on the data branch: { sha, date }.
+  async head() {
+    const cfg = this.config();
+    if (!this.available()) return null;
+    try {
+      const r = await fetch(`https://api.github.com/repos/${cfg.repo}/commits/${encodeURIComponent(cfg.branch)}`,
+        { headers: { Accept: "application/vnd.github+json" }, cache: "no-store" });
+      if (r.status === 403 || r.status === 429) { this.pausedUntil = Date.now() + 15 * 60_000; return null; }
+      if (!r.ok) return null;
+      const j = await r.json();
+      return { sha: j.sha, date: new Date(j.commit.committer.date) };
+    } catch {
+      return null;
+    }
+  },
+  // Load the snapshot at `head` if it is newer than what the page shows. Returns true when it switched.
+  async pull(head) {
+    if (!head || head.sha === staticSource.sha()) return false;
+    const cfg = this.config();
+    const base = `https://raw.githubusercontent.com/${cfg.repo}/${head.sha}/`;
+    try {
+      const fresh = await staticSource.load(`${base}data/site.json`);
+      if (fresh.generated_at < staticSource.site().generated_at) return false;
+      staticSource.use(fresh, base, head.sha);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+};
 
 let ds = apiSource;
 
@@ -686,7 +731,7 @@ $("#btn-analyze").onclick = async () => {
   loadAnalysis();
 };
 
-// ---- update timer -------------------------------------------------------------------
+// ---- update cycle: countdown → glowing progress bar → refresh in place -------------------
 
 function fmtCountdown(ms) {
   const s = Math.max(0, Math.round(ms / 1000));
@@ -695,92 +740,175 @@ function fmtCountdown(ms) {
   return h ? `${h}:${mmss}` : mmss;
 }
 
-const CHECK_WINDOW_MS = 4 * 60_000; // how long to show "checking" after each scheduled update time
-const BACKGROUND_CHECK_MS = 2 * 60_000; // GitHub often starts runs late: keep looking quietly between checks
+const CHECK_WINDOW_MS = 4 * 60_000; // how long to wait for a check's results after its scheduled minute
+const POLL_START_MS = 40_000;       // a check takes about a minute, so don't ask GitHub straight away
+const POLL_EVERY_MS = 35_000;       // at most ~6 GitHub calls per check, inside its 60-an-hour allowance
+const sync = { phase: "idle", slot: 0, startedAt: 0, lastPoll: 0, doneSlot: 0, busy: false, wasCollecting: false };
 
-// Scheduled check times (UTC minutes past the hour) from `now - 2h` to `now + 2h`, each shifted by the
-// time the job needs to run and publish.
-function publishTimes(sched, now) {
-  const out = [];
-  const t = new Date(now - 2 * 3600_000);
+// The scheduled check minutes just before and after `now`.
+function slotsAround(minutes, now) {
+  const t = new Date(now);
   t.setUTCSeconds(0, 0);
-  for (let i = 0; i < 4 * 60; i++) {
-    t.setUTCMinutes(t.getUTCMinutes() + 1);
-    if (sched.minutes.includes(t.getUTCMinutes())) {
-      out.push({ slot: new Date(t), at: new Date(t.getTime() + sched.publish_delay_minutes * 60_000) });
-    }
+  let prev = null, next = null;
+  for (let i = 0; i <= 60 && !prev; i++) {
+    const c = new Date(t.getTime() - i * 60_000);
+    if (minutes.includes(c.getUTCMinutes())) prev = c;
   }
-  return out;
+  for (let i = 1; i <= 61 && !next; i++) {
+    const c = new Date(t.getTime() + i * 60_000);
+    if (minutes.includes(c.getUTCMinutes())) next = c;
+  }
+  return { prev, next };
 }
 
-// What the header shows: { at: Date|null, checking: bool, collecting: bool, lastUpdate: iso }.
-function nextUpdate() {
+function setBar(fraction, done = false) {
+  const bar = $("#sync-bar");
+  bar.classList.toggle("on", fraction !== null);
+  bar.classList.toggle("done", done);
+  if (fraction !== null) bar.firstElementChild.style.width = `${Math.round(fraction * 1000) / 10}%`;
+  bar.setAttribute("aria-valuenow", fraction === null ? 0 : Math.round(fraction * 100));
+}
+
+function toast(text, tone = "") {
+  const t = $("#toast");
+  t.textContent = text;
+  t.className = `toast show ${tone}`;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => { t.className = `toast ${tone}`; }, 5000);
+}
+
+function startCheck(slot) {
+  Object.assign(sync, { phase: "checking", slot, startedAt: Date.now(), lastPoll: 0 });
+}
+
+async function finishCheck(kind) {
+  const slot = sync.slot;
+  sync.phase = "done";
+  sync.doneSlot = slot;
+  if (kind === "late") {
+    setBar(null);
+    toast("GitHub hasn't run this check yet — the next one will catch up.", "muted");
+    return;
+  }
+  setBar(1, true);
+  await renderAll();
+  const info = state.mode === "static" ? staticSource.site()?.last_check : { added: state.current?.last_run_added, errors: 0 };
+  const added = info?.added ?? 0;
+  toast(added ? `✓ ${added} new article${added > 1 ? "s" : ""} — page updated` : "✓ Checked — no new articles", added ? "good" : "");
+  if (added) for (const id of ["#latest-card", "#counts-card"]) {
+    $(id).classList.remove("flash");
+    void $(id).offsetWidth;
+    $(id).classList.add("flash");
+  }
+  setTimeout(() => { if (sync.phase === "done") setBar(null); }, 1200);
+}
+
+// Static site: is the data for the check at `sync.slot` online yet? Live branch first, deployed files as fallback.
+async function pollStatic() {
+  if (live.available()) {
+    const head = await live.head();
+    if (head && head.date.getTime() >= sync.slot - 5_000) {
+      await live.pull(head);
+      return true;
+    }
+    if (head || !live.available()) return false;
+  }
+  try {
+    const fresh = await staticSource.load("data/site.json");
+    if (fresh.generated_at > staticSource.site().generated_at && new Date(fresh.generated_at).getTime() >= sync.slot) {
+      staticSource.use(fresh, "", null);
+      return true;
+    }
+  } catch { /* offline: try again on the next poll */ }
+  return false;
+}
+
+function headerStatus() {
   const now = Date.now();
   if (state.mode === "static") {
     const site = staticSource.site();
+    const last = site?.last_check?.finished_at || site?.generated_at;
     const sched = site?.schedule;
-    if (!sched) return { at: null, lastUpdate: site?.generated_at };
-    const times = publishTimes(sched, now);
-    const prev = times.filter((x) => x.at.getTime() <= now).pop();
-    const next = times.find((x) => x.at.getTime() > now);
-    // Runs that find nothing new don't republish, so only wait briefly for each scheduled check.
-    const waiting = prev && now - prev.at.getTime() < CHECK_WINDOW_MS && new Date(site.generated_at) < prev.slot;
-    return { at: next?.at || null, checking: waiting, lastUpdate: site.generated_at };
+    if (!sched) return { last };
+    const { prev, next } = slotsAround(sched.minutes, now);
+    const due = prev && now - prev.getTime() < CHECK_WINDOW_MS && sync.doneSlot !== prev.getTime();
+    return { last, due, slot: prev?.getTime(), next };
   }
   const t = state.current;
-  if (!t) return { at: null };
-  if (t.collecting) return { at: null, collecting: true, lastUpdate: t.last_run_at };
-  if (!t.enabled) return { at: null, disabled: true, lastUpdate: t.last_run_at };
-  const at = t.last_run_at ? new Date(new Date(t.last_run_at).getTime() + t.interval_minutes * 60_000) : new Date();
-  return { at, checking: at.getTime() <= now, lastUpdate: t.last_run_at };
+  if (!t) return {};
+  if (!t.enabled) return { last: t.last_run_at, paused: true };
+  const at = t.last_run_at ? new Date(new Date(t.last_run_at).getTime() + t.interval_minutes * 60_000) : new Date(now);
+  return { last: t.last_run_at, due: t.collecting || at.getTime() <= now, slot: at.getTime(), next: at };
 }
-
-let lastDueCheck = 0;
 
 function tick() {
-  const n = nextUpdate();
-  $("#updated").textContent = n.lastUpdate ? `Updated ${ago(n.lastUpdate)}` : "";
+  const now = Date.now();
+  const h = headerStatus();
+  $("#updated").textContent = h.last ? `Updated ${ago(h.last)}` : "";
   const next = $("#next-update");
   const pulse = el("span", { className: "pulse" });
-  next.classList.remove("due");
-  if (n.collecting || n.checking) {
-    next.replaceChildren(pulse, n.collecting ? "Updating now…" : "Checking for news…");
+
+  if (h.due && (sync.phase !== "checking" || (state.mode === "static" && sync.slot !== h.slot))) startCheck(h.slot);
+  if (!h.due && sync.phase === "checking") finishCheck(state.mode === "static" ? "late" : "done");
+
+  if (sync.phase === "checking") {
+    const elapsed = now - (state.mode === "static" ? sync.slot : sync.startedAt);
+    const fraction = 0.92 * (1 - Math.exp(-elapsed / 45_000)); // eases towards 92% until results arrive
+    setBar(fraction);
     next.classList.add("due");
-  } else if (n.disabled) {
-    next.replaceChildren("Updates paused");
-  } else if (n.at) {
-    next.replaceChildren(pulse, `Next check in ${fmtCountdown(n.at.getTime() - Date.now())}`);
-    next.title = `Around ${n.at.toLocaleTimeString()}. If nothing new is found, the page stays as it is.`;
-  } else {
-    next.replaceChildren();
-  }
-  const every = n.collecting || n.checking ? (state.mode === "static" ? 30_000 : 15_000)
-    : state.mode === "static" ? BACKGROUND_CHECK_MS : Infinity;
-  if (!document.hidden && Date.now() - lastDueCheck > every) {
-    lastDueCheck = Date.now();
-    checkForNewData();
-  }
-}
-
-async function checkForNewData() {
-  try {
-    if (state.mode === "static") {
-      if (await staticSource.hasNewData()) await refreshAll();
-    } else {
-      await refreshAll();
+    next.replaceChildren(pulse, `Checking for news… ${Math.round(fraction * 100)}%`);
+    next.title = "Collecting from Google News, GDELT and WHO";
+    const every = state.mode === "static" ? POLL_EVERY_MS : 10_000;
+    const ready = state.mode === "static" ? now - Math.max(sync.slot, sync.startedAt - POLL_START_MS) >= POLL_START_MS : true;
+    if (ready && !sync.busy && !document.hidden && now - sync.lastPoll >= every) {
+      sync.lastPoll = now;
+      sync.busy = true;
+      (async () => {
+        try {
+          if (state.mode === "static") {
+            if (await pollStatic()) await finishCheck("done");
+          } else {
+            await loadTopics(); // refreshes `collecting`
+            const c = !!state.current?.collecting;
+            if (sync.wasCollecting && !c) await finishCheck("done");
+            sync.wasCollecting = c;
+          }
+        } finally {
+          sync.busy = false;
+        }
+      })();
     }
-  } catch (e) {
-    console.error(e);
+    return;
   }
+
+  next.classList.remove("due");
+  if (h.paused) next.replaceChildren("Updates paused");
+  else if (h.next) {
+    next.replaceChildren(pulse, `Next check in ${fmtCountdown(h.next.getTime() - now)}`);
+    next.title = `Around ${h.next.toLocaleTimeString()}`;
+  } else next.replaceChildren();
 }
 
-async function refreshAll() {
+// Re-render everything from the current data source, keeping the page (no reload).
+async function renderAll() {
   try {
-    if (state.mode === "static") await staticSource.reset();
     await loadTopics();
     if (state.current) await loadTopicData();
   } catch (e) {
     console.error(e);
+  }
+}
+const refreshAll = renderAll;
+
+// On first load, jump straight to the newest data on GitHub if it is newer than the deployed copy.
+async function catchUpLive() {
+  if (state.mode !== "static" || !live.available()) return;
+  const head = await live.head();
+  if (await live.pull(head)) await renderAll();
+  const sched = staticSource.site()?.schedule;
+  if (head && sched) {
+    const { prev } = slotsAround(sched.minutes, Date.now());
+    if (prev && head.date.getTime() >= prev.getTime() - 5_000) sync.doneSlot = prev.getTime();
   }
 }
 
@@ -792,7 +920,8 @@ async function refreshAll() {
   } catch (e) {
     $("#main").prepend(el("div", { className: "alert", textContent: `Cannot load tracker data: ${e.message}` }));
   }
+  await catchUpLive();
   tick();
   setInterval(tick, 1000);
-  if (state.mode === "api") setInterval(() => { if (!document.hidden) refreshAll(); }, POLL_MS);
+  if (state.mode === "api") setInterval(() => { if (!document.hidden && sync.phase !== "checking") refreshAll(); }, POLL_MS);
 })();

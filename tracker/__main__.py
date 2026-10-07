@@ -11,7 +11,7 @@ from pathlib import Path
 from .collector import Collector, normalize_topic
 from .export import export_site
 from .server import serve
-from .store import Store
+from .store import Store, now_iso
 from .trust import TrustRegistry
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -68,16 +68,20 @@ def main() -> None:
     collector = Collector(store)
 
     if args.once or args.export:
+        last_check = None
         if args.once:
-            total_added = 0
+            started = now_iso()
+            total_added = total_errors = 0
             for topic in store.list_topics():
                 if topic.get("enabled", True):
                     result = collector.collect(topic)
                     total_added += result.get("added", 0)
+                    total_errors += result.get("errors", 0)
                     print(topic["name"], result)
-            print(f"TOTAL_ADDED={total_added}")  # read by the GitHub workflow to decide whether to publish
+            print(f"TOTAL_ADDED={total_added}")  # read by the GitHub workflow
+            last_check = {"started_at": started, "finished_at": now_iso(), "added": total_added, "errors": total_errors}
         if args.export:
-            print("exported to", export_site(store, args.export))
+            print("exported to", export_site(store, args.export, last_check))
         return
 
     token = os.environ.get("TRACKER_TOKEN") or None

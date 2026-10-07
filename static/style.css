@@ -343,3 +343,34 @@ body.no-stickers .sticker-slot { display: none; }
   .slot-inline .sticker-bubble::before { top: -8px; left: 50%; margin: 0 0 0 -7px; border: 7px solid transparent; border-top: 0;
     border-bottom-color: var(--text); }
 }
+
+/* live update: glowing progress bar, toast, and a glow on refreshed panels */
+.sync-bar { position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 2000; pointer-events: none;
+  opacity: 0; transition: opacity .5s ease; }
+.sync-bar.on { opacity: 1; }
+.sync-fill { height: 100%; width: 0; border-radius: 0 3px 3px 0; transition: width .9s ease;
+  background: linear-gradient(90deg, var(--accent) 0%, #ff8a5c 35%, #ffd166 50%, #ff8a5c 65%, var(--accent) 100%);
+  background-size: 200% 100%; animation: sync-shimmer 1.4s linear infinite;
+  box-shadow: 0 0 6px var(--accent), 0 0 14px var(--accent), 0 0 28px rgb(255 120 80 / .55); }
+.sync-bar.done .sync-fill { background: var(--c-official); animation: none; transition: width .35s ease;
+  box-shadow: 0 0 8px var(--c-official), 0 0 22px var(--c-official); }
+@keyframes sync-shimmer { from { background-position: 200% 0; } to { background-position: 0 0; } }
+
+.toast { position: fixed; right: 16px; bottom: 16px; z-index: 2000; max-width: min(360px, calc(100vw - 32px));
+  background: var(--panel); color: var(--text); border: 1px solid var(--border); border-left: 4px solid var(--c-unknown);
+  border-radius: 10px; padding: .7rem 1rem; font-weight: 600; font-size: .9rem; box-shadow: 0 8px 24px rgb(0 0 0 / .18);
+  opacity: 0; transform: translateY(12px); transition: opacity .3s ease, transform .3s ease; pointer-events: none; }
+.toast.show { opacity: 1; transform: none; }
+.toast.good { border-left-color: var(--c-official); }
+.toast.muted { color: var(--muted); font-weight: 500; }
+
+.card.flash { animation: card-glow 2.2s ease-out; }
+@keyframes card-glow {
+  0% { box-shadow: 0 0 0 2px var(--c-official), 0 0 22px rgb(18 183 106 / .45); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sync-fill { animation: none; }
+  .card.flash { animation: none; }
+  .toast { transition: none; }
+}

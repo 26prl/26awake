@@ -24,8 +24,8 @@ def schedule_from_env() -> dict | None:
     minutes = sorted({int(m) % 60 for m in raw.split(",") if m.strip().isdigit()})
     if not minutes:
         return None
-    # Time for the job to run and the host to publish the new files.
-    delay = int(os.environ.get("TRACKER_PUBLISH_DELAY_MINUTES", "4"))
+    # Typical time from the scheduled minute until the new data is online.
+    delay = int(os.environ.get("TRACKER_PUBLISH_DELAY_MINUTES", "2"))
     return {"minutes": minutes, "publish_delay_minutes": delay}
 
 
@@ -33,7 +33,16 @@ def _dump(path: Path, payload) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
 
-def export_site(store: Store, out_dir: str | Path) -> Path:
+def live_from_env() -> dict | None:
+    """Where open pages can fetch fresh data between deployments: the GitHub branch the workflow pushes
+    every check to (TRACKER_LIVE_REPO=owner/repo, TRACKER_LIVE_BRANCH). The repository must be public."""
+    repo = os.environ.get("TRACKER_LIVE_REPO", "").strip()
+    if not repo:
+        return None
+    return {"repo": repo, "branch": os.environ.get("TRACKER_LIVE_BRANCH", "data").strip() or "data"}
+
+
+def export_site(store: Store, out_dir: str | Path, last_check: dict | None = None) -> Path:
     out = Path(out_dir)
     data = out / "data"
     if data.exists():
@@ -63,6 +72,8 @@ def export_site(store: Store, out_dir: str | Path) -> Path:
         {
             "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
             "schedule": schedule_from_env(),
+            "live": live_from_env(),
+            "last_check": last_check,
             "trust": store.trust.legend(),
             "topics": topics,
         },
