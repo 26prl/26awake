@@ -1,4 +1,4 @@
-# Checks the news every 6 minutes.
+# Checks the news every 10 minutes.
 #
 # Every check pushes its results to the `data` branch. Open pages fetch that branch straight from GitHub
 # (the repository must be public) and update themselves without reloading, so Vercel does not need to
@@ -8,10 +8,10 @@ name: Collect and publish
 
 on:
   schedule:
-    # Every 6 minutes. Keep TRACKER_SCHEDULE_MINUTES below in sync so pages know when to expect a check.
+    # Every 10 minutes. Keep TRACKER_SCHEDULE_MINUTES below in sync so pages know when to expect a check.
     # GitHub's own scheduler is often late or skips runs, so an outside scheduler (cron-job.org) also starts
-    # this workflow every 6 minutes through the API — see README "Reliable automatic checks".
-    - cron: "*/6 * * * *"
+    # this workflow every 10 minutes through the API — see README "Reliable automatic checks".
+    - cron: "*/10 * * * *"
   workflow_dispatch:
     inputs:
       redeploy:
@@ -75,7 +75,7 @@ jobs:
       - name: Collect and export
         if: steps.guard.outputs.skip != 'true'
         env:
-          TRACKER_SCHEDULE_MINUTES: "0,6,12,18,24,30,36,42,48,54"
+          TRACKER_SCHEDULE_MINUTES: "0,10,20,30,40,50"
           TRACKER_PUBLISH_DELAY_MINUTES: "2"
           TRACKER_LIVE_REPO: ${{ github.repository }}
           TRACKER_LIVE_BRANCH: data

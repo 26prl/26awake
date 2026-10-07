@@ -42,7 +42,7 @@ and a background collector checks each topic every `interval_minutes` (default 3
 | `--sync-topics` | apply `topics.json` to an existing database (update by name, add new) |
 | `--export DIR` | write a static copy of the dashboard to `DIR` (combine with `--once`) |
 | `--no-collector` | serve the dashboard without fetching |
-| `TRACKER_SCHEDULE_MINUTES` | for `--export` run by cron: the cron minutes (e.g. `0,6,12,…`), so the static page can count down to the next check |
+| `TRACKER_SCHEDULE_MINUTES` | for `--export` run by cron: the cron minutes (e.g. `0,10,20,…`), so the static page can count down to the next check |
 | `TRACKER_LIVE_REPO`, `TRACKER_LIVE_BRANCH` | for `--export`: public GitHub repo and branch the page reads fresh data from between deployments |
 
 ## Where the data comes from
@@ -126,12 +126,12 @@ Use **+ New topic** in the UI, or put it in `topics.json`:
 
 ## Deploying
 
-The tracker needs to **run continuously** (to check every 6 minutes) and **keep its database**.
+The tracker needs to **run continuously** (to check every 10 minutes) and **keep its database**.
 Vercel can't do either: functions stop after each request and have no persistent disk. Two options:
 
 ### Option A — Vercel (free): GitHub Actions collects, pages update themselves live
 
-`.github/workflows/collect.yml` runs every 6 minutes on GitHub's servers and collects the news. Each check
+`.github/workflows/collect.yml` runs every 10 minutes on GitHub's servers and collects the news. Each check
 pushes its results to a branch named **`data`**; the static dashboard goes to a branch named **`site`**, which
 Vercel serves.
 
@@ -163,7 +163,7 @@ at this rate.
 #### Reliable automatic checks (cron-job.org)
 
 GitHub's built-in scheduler is "best effort": runs are often late, sometimes skipped, and new schedules can take
-hours to start. For checks that really happen every 6 minutes, let a free outside scheduler start the workflow
+hours to start. For checks that really happen every 10 minutes, let a free outside scheduler start the workflow
 through GitHub's API (GitHub's own schedule stays on as a backup; a second run within 3 minutes skips itself).
 
 1. **Create a token** that can only start this workflow: GitHub → avatar → Settings → Developer settings →
@@ -172,7 +172,7 @@ through GitHub's API (GitHub's own schedule stays on as a backup; a second run w
    else). Pick an expiration, generate, and copy the token. Keep it secret.
 2. **Create the job** at [cron-job.org](https://cron-job.org) (free account) → *Create cronjob*:
    - URL: `https://api.github.com/repos/OWNER/REPO/actions/workflows/collect.yml/dispatches`
-   - Schedule: every 6 minutes — custom, minutes `0,6,12,18,24,30,36,42,48,54`, every hour, every day
+   - Schedule: every 10 minutes — custom, minutes `0,10,20,30,40,50`, every hour, every day
    - Advanced → Request method **POST**, headers
      `Accept: application/vnd.github+json`, `Authorization: Bearer YOUR_TOKEN`,
      `X-GitHub-Api-Version: 2022-11-28`, `Content-Type: application/json`,
