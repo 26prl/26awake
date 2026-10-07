@@ -160,6 +160,27 @@ interval, edit the cron line and `TRACKER_SCHEDULE_MINUTES` in the workflow toge
 minutes). Public repositories run Actions for free; a private one would use up its 2,000 free minutes a month
 at this rate.
 
+#### Reliable automatic checks (cron-job.org)
+
+GitHub's built-in scheduler is "best effort": runs are often late, sometimes skipped, and new schedules can take
+hours to start. For checks that really happen every 6 minutes, let a free outside scheduler start the workflow
+through GitHub's API (GitHub's own schedule stays on as a backup; a second run within 3 minutes skips itself).
+
+1. **Create a token** that can only start this workflow: GitHub → avatar → Settings → Developer settings →
+   Personal access tokens → **Fine-grained tokens** → Generate new token. Repository access: *Only select
+   repositories* → this repository. Permissions → Repository permissions → **Actions: Read and write** (nothing
+   else). Pick an expiration, generate, and copy the token. Keep it secret.
+2. **Create the job** at [cron-job.org](https://cron-job.org) (free account) → *Create cronjob*:
+   - URL: `https://api.github.com/repos/OWNER/REPO/actions/workflows/collect.yml/dispatches`
+   - Schedule: every 6 minutes — custom, minutes `0,6,12,18,24,30,36,42,48,54`, every hour, every day
+   - Advanced → Request method **POST**, headers
+     `Accept: application/vnd.github+json`, `Authorization: Bearer YOUR_TOKEN`,
+     `X-GitHub-Api-Version: 2022-11-28`, `Content-Type: application/json`,
+     and request body `{"ref":"DEFAULT_BRANCH"}` (the repository's default branch name)
+   - Save, then *Test run*: the answer should be **204 No Content**, and a new run appears under GitHub → Actions.
+
+When the token expires, cron-job.org shows failed runs (401) — generate a new token and paste it into the job.
+
 GitHub Pages works the same way: Settings → Pages → Deploy from branch → `site` / root.
 
 ### Option B — Full app on a server (live editing, refresh button)

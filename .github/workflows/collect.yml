@@ -9,8 +9,15 @@ name: Collect and publish
 on:
   schedule:
     # Every 6 minutes. Keep TRACKER_SCHEDULE_MINUTES below in sync so pages know when to expect a check.
+    # GitHub's own scheduler is often late or skips runs, so an outside scheduler (cron-job.org) also starts
+    # this workflow every 6 minutes through the API — see README "Reliable automatic checks".
     - cron: "*/6 * * * *"
   workflow_dispatch:
+    inputs:
+      redeploy:
+        description: "Also redeploy the site on Vercel"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -27,17 +34,34 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       PUSH_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
     steps:
+      - name: Skip if another trigger already ran this check
+        id: guard
+        run: |
+          # Both GitHub's scheduler and the outside scheduler start runs; the second one within 3 minutes stops here.
+          if [ "${{ inputs.redeploy }}" != "true" ]; then
+            when=$(curl -fsS -H "Authorization: Bearer ${{ github.token }}" \
+              "https://api.github.com/repos/${{ github.repository }}/branches/data" \
+              | python3 -c "import json,sys; print(json.load(sys.stdin)['commit']['commit']['committer']['date'])" 2>/dev/null || true)
+            if [ -n "$when" ] && [ $(( $(date +%s) - $(date -d "$when" +%s) )) -lt 180 ]; then
+              echo "A check finished at $when; skipping this one."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.guard.outputs.skip != 'true'
 
       - uses: actions/setup-python@v5
+        if: steps.guard.outputs.skip != 'true'
         with:
           python-version: "3.12"
 
       - name: Install the Claude SDK (only used when ANTHROPIC_API_KEY is set)
-        if: env.ANTHROPIC_API_KEY != ''
+        if: steps.guard.outputs.skip != 'true' && env.ANTHROPIC_API_KEY != ''
         run: pip install -r requirements.txt
 
       - name: Restore the database from the last check
+        if: steps.guard.outputs.skip != 'true'
         run: |
           mkdir -p data
           for branch in data site; do
@@ -49,6 +73,7 @@ jobs:
           git fetch --depth=1 origin site 2>/dev/null || true
 
       - name: Collect and export
+        if: steps.guard.outputs.skip != 'true'
         env:
           TRACKER_SCHEDULE_MINUTES: "0,6,12,18,24,30,36,42,48,54"
           TRACKER_PUBLISH_DELAY_MINUTES: "2"
@@ -57,6 +82,7 @@ jobs:
         run: python -m tracker --sync-topics --once --export public
 
       - name: Push this check's data (pages pick it up live)
+        if: steps.guard.outputs.skip != 'true'
         run: |
           out="$RUNNER_TEMP/databranch"
           mkdir -p "$out/.data"
@@ -72,6 +98,7 @@ jobs:
           git push -qf "$PUSH_URL" data
 
       - name: Decide whether to redeploy the site
+        if: steps.guard.outputs.skip != 'true'
         id: decide
         run: |
           reason=""
@@ -87,12 +114,12 @@ jobs:
           else
             reason="first publish"
           fi
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -z "$reason" ]; then reason="manual run"; fi
+          if [ "${{ inputs.redeploy }}" = "true" ] && [ -z "$reason" ]; then reason="redeploy requested"; fi
           echo "reason=$reason" >> "$GITHUB_OUTPUT"
           echo "Redeploy: ${reason:-no, pages update live from the data branch}"
 
       - name: Publish the site branch
-        if: steps.decide.outputs.reason != ''
+        if: steps.guard.outputs.skip != 'true' && steps.decide.outputs.reason != ''
         run: |
           mkdir -p public/.data
           cp data/tracker.db public/.data/tracker.db
