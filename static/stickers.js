@@ -1,7 +1,7 @@
 "use strict";
 // GIF stickers placed around the dashboard, listed in static/stickers.json:
 //   { "stickers": [ { "slot": "sidebar", "src": "gifs/marmot.gif", "alt": "…", "captions": ["…"], "size": "md" } ] }
-// Slots: header, sidebar, latest, map, footer. Sizes: xs, sm, md (default). Click a sticker for its next caption.
+// Slots: header, sidebar, latest, trust, map, official, articles, footer. Sizes: xs, sm, md (default). Click a sticker for its next caption.
 // With no stickers.json (or an empty list) nothing is shown.
 
 (() => {

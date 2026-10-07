@@ -87,7 +87,7 @@
         <div class="card" id="latest-card">
           <div class="card-head">
             <h3>Latest updates <span id="latest-sub" class="muted small"></span></h3>
-            <span class="sticker-slot slot-latest" data-sticker-slot="latest"></span>
+            <span class="sticker-slot slot-latest slot-inline" data-sticker-slot="latest"></span>
           </div>
           <ul id="latest" class="articles compact"></ul>
         </div>
@@ -103,6 +103,7 @@
         <div class="card">
           <div class="card-head">
             <h3>What can be trusted <span class="muted small">stories from the last 14 days, grouped by how well they are confirmed</span></h3>
+            <span class="sticker-slot slot-inline" data-sticker-slot="trust"></span>
           </div>
           <div id="levels" class="levels"></div>
           <div id="stories"></div>
@@ -153,13 +154,17 @@
         </div>
 
         <div class="card">
-          <h3>Official updates</h3>
+          <div class="card-head">
+            <h3>Official updates</h3>
+            <span class="sticker-slot slot-inline" data-sticker-slot="official"></span>
+          </div>
           <ul id="official" class="articles compact"></ul>
         </div>
 
         <div class="card">
           <div class="card-head">
             <h3>All articles <span id="a-count" class="muted"></span></h3>
+            <span class="sticker-slot slot-inline" data-sticker-slot="articles"></span>
             <div class="filters">
               <input id="search" type="search" placeholder="Filter headlines…" aria-label="Filter headlines">
               <select id="trust-filter" aria-label="Source trust">

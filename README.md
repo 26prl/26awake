@@ -88,8 +88,9 @@ not reading comprehension, so treat the result as approximate and follow the lin
 
 ## GIF stickers
 
-The page has five spots for GIFs: `header`, `sidebar`, `latest` (next to Latest updates), `map` (under the map)
-and `footer`. They stay empty until GIFs are listed in `static/stickers.json`. Put the files in `static/gifs/`
+The page has eight spots for GIFs: `header`, `sidebar`, `latest` (next to Latest updates), `trust` (next to
+What can be trusted), `map` (under the map), `official` (next to Official updates), `articles` (next to All
+articles) and `footer`. The case-count panel deliberately has none. They stay empty until GIFs are listed in `static/stickers.json`. Put the files in `static/gifs/`
 and copy `stickers.example.json` to `static/stickers.json`: each entry has a `slot`, a `src` (file path or URL),
 an `alt` description, optional `captions` (clicking cycles through them) and `size` (`xs`, `sm`, `md`).
 Visitors can hide them with **Hide stickers** in the sidebar. Only use GIFs you have the right to publish.
