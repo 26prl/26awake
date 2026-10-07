@@ -159,7 +159,7 @@ docker run -d -p 8000:8000 -v plagueweb-data:/data \
 | PUT / DELETE | `/api/topics/{id}` | update / delete |
 | POST | `/api/topics/{id}/refresh` | collect now |
 | GET | `/api/topics/{id}/articles?q=&lang=&trust=&since=&limit=&offset=` | feed; `trust=trusted` or e.g. `trust=official,expert` |
-| GET | `/api/topics/{id}/insights` | stories with confidence, trend, regions, figures, official updates |
+| GET | `/api/topics/{id}/insights` | stories with confidence, case counts, trend, regions (with coordinates), official updates |
 | GET | `/api/topics/{id}/analysis` · POST `/analyze` | latest AI brief · generate a new one |
 | GET | `/api/topics/{id}/timeline?days=30` | mentions per day, split by trust tier |
 | GET | `/api/topics/{id}/breakdown` | top sources and languages |
