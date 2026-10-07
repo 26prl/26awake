@@ -4,7 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PlagueWeb Tracker</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -55,6 +57,30 @@
           <div class="stat"><span class="label">Latest official report</span><span id="s-official" class="value small">–</span><span id="s-run" class="sub"></span></div>
         </div>
 
+        <div class="card" id="counts-card">
+          <div class="card-head">
+            <h3>Case count <span id="counts-sub" class="muted small"></span></h3>
+          </div>
+          <div id="count-tiles" class="count-tiles"></div>
+          <div class="count-details">
+            <div>
+              <h4>Where the numbers come from</h4>
+              <ul id="count-sources" class="mini-list"></ul>
+            </div>
+            <div>
+              <h4>Official position <span class="muted small">as reported by trusted and state media</span></h4>
+              <ul id="count-denials" class="mini-list"></ul>
+            </div>
+          </div>
+          <details id="count-unverified-box" class="hidden">
+            <summary>Higher figures that are <strong>not verified</strong></summary>
+            <ul id="count-unverified" class="mini-list"></ul>
+          </details>
+          <p class="muted small method">Counted automatically from headlines. A number is shown only if an official
+            health authority reported it, or at least two independent reputable outlets did; tabloids, unknown sites and
+            single reports never raise it. “Suspected” means not confirmed by a laboratory. Follow the links before relying on it.</p>
+        </div>
+
         <div class="card" id="latest-card">
           <div class="card-head">
             <h3>Latest updates <span id="latest-sub" class="muted small"></span></h3>
@@ -62,7 +88,7 @@
           <ul id="latest" class="articles compact"></ul>
         </div>
 
-        <div class="card" id="ai-card">
+        <div class="card hidden" id="ai-card">
           <div class="card-head">
             <h3>Situation brief <span class="muted small">AI analysis of the last 14 days</span></h3>
             <button id="btn-analyze" class="btn ghost hidden">Generate brief</button>
@@ -103,13 +129,21 @@
 
         <div class="grid">
           <div class="card">
-            <h3>Regions mentioned <span class="muted small">last 14 days</span></h3>
-            <table class="facets"><thead><tr><th>Region</th><th>All</th><th>Trusted</th><th>Official</th><th>Last</th></tr></thead>
-              <tbody id="facets"></tbody></table>
+            <div class="card-head">
+              <h3>Map <span class="muted small">regions in the news, last 30 days</span></h3>
+            </div>
+            <div id="map" class="map" role="region" aria-label="Map of regions mentioned"></div>
+            <div class="chips map-legend">
+              <span class="chip"><span class="swatch seg-official"></span>Official reports</span>
+              <span class="chip"><span class="swatch seg-reputable"></span>Trusted reports</span>
+              <span class="chip"><span class="swatch seg-unknown"></span>Unverified only</span>
+              <span class="chip"><span class="swatch ring"></span>Death reported (verified)</span>
+            </div>
           </div>
           <div class="card">
-            <h3>Figures reported by trusted sources <span class="muted small">extracted automatically — check the source</span></h3>
-            <ul id="figures" class="figures"></ul>
+            <h3>Regions <span class="muted small">last 30 days</span></h3>
+            <table class="facets"><thead><tr><th>Region</th><th>Articles</th><th>Trusted</th><th title="Verified suspected or confirmed infections">Infected</th><th>Deaths</th></tr></thead>
+              <tbody id="facets"></tbody></table>
           </div>
         </div>
 
@@ -158,8 +192,8 @@
       <label>Must match <small>one group per line; each line = comma-separated alternatives, all lines must hit</small>
         <textarea name="match" rows="3" placeholder="чум, plague&#10;росси, russia"></textarea></label>
       <label>Exclude <small>comma-separated</small> <input name="exclude" placeholder="plague inc"></label>
-      <label>Regions / facets to count <small>one per line, as <code>Name: keyword, keyword</code></small>
-        <textarea name="facets" rows="3" placeholder="Altai Republic: алта, altai&#10;Tuva: тыв, tuva"></textarea></label>
+      <label>Regions <small>one per line, as <code>Name: keyword, keyword @ latitude, longitude</code> (coordinates put it on the map)</small>
+        <textarea name="facets" rows="3" placeholder="Altai Republic: алта, altai @ 51.0, 86.5&#10;Tuva: тыв, tuva @ 51.72, 94.45"></textarea></label>
       <label>Check every (minutes) <input name="interval_minutes" type="number" min="5" value="30"></label>
       <label class="inline"><input name="enabled" type="checkbox" checked> Enabled</label>
       <p id="form-error" class="error"></p>

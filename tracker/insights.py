@@ -1,11 +1,12 @@
 """Deterministic analysis of collected articles: story clusters with a confidence level,
-trend, region (facet) breakdown and figures reported by trusted sources."""
+trend, region (facet) breakdown with map coordinates, and verified case counts (see counts.py)."""
 
 from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta, timezone
 
+from . import counts
 from .trust import SCORES, TIERS, TRUSTED
 
 _WORD = re.compile(r"[^\W\d_]{4,}", re.U)
@@ -13,14 +14,6 @@ STOPWORDS = {
     "that", "this", "with", "from", "have", "were", "after", "into", "about", "says", "said", "over", "amid",
     "новости", "после", "также", "может", "были", "было", "будет", "этом", "года", "году", "которые",
 }
-
-# "12 cases", "3 случая", "двое заболевших" is not handled — digits only, to stay precise.
-_NUMBER_PATTERNS = [
-    (re.compile(r"(\d[\d\s,.]{0,8})\s*(?:new\s+|confirmed\s+|suspected\s+)?(cases?|deaths?|dead|patients?|"
-                r"people|infected|hospitali[sz]ed)\b", re.I), "en"),
-    (re.compile(r"(\d[\d\s]{0,8})\s*(случа[йяев]{1,2}|заболевш\w*|заразивш\w*|умерш\w*|погибш\w*|смерт\w*|"
-                r"человек\w*|пациент\w*|госпитализ\w*|контактн\w*)", re.I), "ru"),
-]
 
 CONFIDENCE = {
     "confirmed": "Reported by an official health authority",
@@ -112,62 +105,47 @@ def trend(timeline: list[dict]) -> dict:
     return {"direction": direction, "recent_daily_avg": round(recent_avg, 1), "previous_daily_avg": round(before_avg, 1)}
 
 
-def facets(topic: dict, articles: list[dict]) -> list[dict]:
-    """Count mentions of each configured facet (e.g. region) across all vs. trusted articles."""
+def facet_defs(topic: dict) -> dict[str, dict]:
+    """Facets as {name: {keywords, lat, lon}}; older topics stored a plain keyword list."""
+    out = {}
+    for name, value in (topic.get("facets") or {}).items():
+        facet = value if isinstance(value, dict) else {"keywords": value}
+        out[name] = {"keywords": facet.get("keywords", []), "lat": facet.get("lat"), "lon": facet.get("lon")}
+    return out
+
+
+def facets(topic: dict, articles: list[dict], region_counts: dict | None = None) -> list[dict]:
+    """Mentions of each configured facet (e.g. region) across all vs. trusted articles, with map
+    coordinates and the verified counts attributed to that region."""
     out = []
-    for name, keywords in (topic.get("facets") or {}).items():
-        kws = [k.lower() for k in keywords]
+    for name, facet in facet_defs(topic).items():
+        kws = [k.lower() for k in facet["keywords"]]
         hits = [a for a in articles if any(k in f"{a['title']} {a.get('summary', '')}".lower() for k in kws)]
         if not hits:
             continue
         trusted = [a for a in hits if a["trust"] in TRUSTED]
+        best = max(hits, key=lambda a: (SCORES.get(a["trust"], 0), a["published_at"]))
         out.append(
             {
                 "name": name,
+                "lat": facet["lat"],
+                "lon": facet["lon"],
                 "count": len(hits),
                 "trusted": len(trusted),
                 "official": sum(a["trust"] == "official" for a in hits),
                 "last_seen": max(a["published_at"] for a in hits),
+                "top": {k: best[k] for k in ("title", "url", "source", "trust", "published_at")},
+                "counts": (region_counts or {}).get(name),
             }
         )
     out.sort(key=lambda f: (-f["trusted"], -f["count"]))
     return out
 
 
-def reported_figures(articles: list[dict], limit: int = 12) -> list[dict]:
-    """Numbers like '3 cases' / '2 случая' found in trusted headlines and summaries."""
-    out, seen = [], set()
-    for a in sorted(articles, key=lambda x: x["published_at"], reverse=True):
-        if a["trust"] not in TRUSTED:
-            continue
-        text = f"{a['title']}. {a.get('summary', '')}"
-        for pattern, _lang in _NUMBER_PATTERNS:
-            for m in pattern.finditer(text):
-                raw = re.sub(r"[\s,.]", "", m.group(1))
-                if not raw.isdigit() or len(raw) > 7 or (len(raw) == 4 and raw.startswith(("19", "20"))):
-                    continue  # skip years and junk
-                start = max(0, m.start() - 60)
-                snippet = text[start : m.end() + 60].strip()
-                key = (raw, m.group(2).lower()[:5], a.get("domain"))
-                if key in seen:
-                    continue
-                seen.add(key)
-                out.append(
-                    {
-                        "value": int(raw),
-                        "what": m.group(2).lower(),
-                        "snippet": ("…" if start else "") + snippet + "…",
-                        "source": a["source"],
-                        "trust": a["trust"],
-                        "url": a["url"],
-                        "published_at": a["published_at"],
-                    }
-                )
-    return out[:limit]
-
-
 def build(store, topic: dict, days: int = 14) -> dict:
-    articles = store.recent(topic["id"], days=days)
+    window = store.recent(topic["id"], days=counts.WINDOW_DAYS, limit=5000)
+    case_counts = counts.build(window, facet_defs(topic))
+    articles = [a for a in window if a["published_at"] >= _since(days)]
     timeline = store.timeline(topic["id"], days=30)
     clusters = cluster(articles)
     official = [a for a in articles if a["trust"] == "official"][:8]
@@ -182,10 +160,15 @@ def build(store, topic: dict, days: int = 14) -> dict:
         "stories": clusters[:40],
         "official_updates": official,
         "latest": store.latest_found(topic["id"], limit=10, since=topic.get("last_run_started")),
-        "facets": facets(topic, articles),
-        "figures": reported_figures(articles),
+        "facets": facets(topic, window, case_counts["regions"]),
+        "facets_window_days": counts.WINDOW_DAYS,
+        "counts": case_counts,
         "tier_counts": store.tier_counts(topic["id"]),
     }
+
+
+def _since(days: int) -> str:
+    return (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
 
 def is_stale(iso: str | None, hours: float) -> bool:

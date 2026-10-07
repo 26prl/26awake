@@ -3,16 +3,19 @@
 A small self-hosted website that keeps watching the internet for the topics you define
 (for example, **plague cases in Russia**), rates every source for trustworthiness, and shows:
 
+* **Case count** — approximate numbers of infected, deaths, lab-confirmed cases and people in quarantine,
+  taken **only from verified reports**: a figure counts if an official health authority reported it, or at
+  least two independent reputable outlets did. Suspected vs. lab-confirmed and official denials are shown
+  next to the numbers; bigger figures from tabloids or single reports are listed separately as unverified.
+* **Map** — regions in the news, coloured by how well their reports are verified, with per-region counts.
 * **What can be trusted** — stories grouped as *confirmed* (official health authority),
   *corroborated* (several independent reputable outlets), *single trusted source* or *unverified*.
 * **Statistics** — mentions per day split by source trust, trend (rising / stable / falling),
   share of trusted coverage, spike alerts, regions mentioned, top sources, languages.
-* **Figures reported by trusted sources** — numbers such as "2 cases" / "14 контактных" pulled
-  from official and reputable reports, each linked to its source.
 * **Official updates** — WHO, Rospotrebnadzor and other health authorities.
 * **Latest updates** — the articles found most recently, with how many were new in the last update,
   and a **countdown to the next update** in the header.
-* **AI situation brief** (optional) — Claude reads the last 14 days of articles and writes a summary that
+* **AI situation brief** (optional, paid; off unless you add an API key — everything else is free) — Claude reads the last 14 days of articles and writes a summary that
   keeps confirmed facts apart from unverified claims, with a citation for each point.
 
 The tracker uses the Python standard library only (3.10+). The AI brief additionally needs `pip install anthropic`.
@@ -73,6 +76,16 @@ existing articles are re-rated when the tracker restarts.
 
 These ratings are a starting point, not a verdict on any outlet; check the links before relying on a report.
 
+### How the case count works
+
+`tracker/counts.py` reads the headlines (and summaries, when a source provides them) of the last 30 days and
+picks out statements such as "lab worker dies", "2 cases", "второй случай", "dozens quarantined", and denials
+like "no plague cases" or "Роспотребнадзор опроверг". For each figure it takes the highest number that is
+backed by an official/expert source or by at least two different trusted outlets. "Suspected" means no
+laboratory confirmation; "officially disputed" means trusted or state media report that the authorities deny it.
+Sentences about history ("Black Death") or worldwide yearly statistics are ignored. It is pattern matching,
+not reading comprehension, so treat the result as approximate and follow the links.
+
 ## Defining a topic
 
 Use **+ New topic** in the UI, or put it in `topics.json`:
@@ -86,7 +99,7 @@ Use **+ New topic** in the UI, or put it in `topics.json`:
   "feeds":   [],
   "match":   [["чум", "plague", "бубон"], ["росси", "russia", "алта", "altai", "тыв", "tuva"]],
   "exclude": ["чумовой", "plague inc"],
-  "facets":  { "Altai Republic": ["алта", "altai"], "Tuva": ["тыв", "tuva"] },
+  "facets":  { "Tuva": { "keywords": ["тыв", "tuva"], "lat": 51.72, "lon": 94.45 } },
   "interval_minutes": 30
 }
 ```
@@ -94,7 +107,8 @@ Use **+ New topic** in the UI, or put it in `topics.json`:
 * `match` — keyword groups. **Every group must hit** at least one of its keywords
   (case-insensitive substring), so word stems like `чум` cover `чума / чумы / чумой`.
 * `exclude` — drop an article if any of these appear (filters slang like *«чумовой»* or games).
-* `facets` — named keyword lists counted in the "Regions mentioned" table.
+* `facets` — regions: `{"Tuva": {"keywords": ["тыв", "tuva"], "lat": 51.72, "lon": 94.45}}`. Keywords are counted in
+  the regions table; coordinates put the region on the map.
 * WHO and feeds require `match` rules, otherwise every item would be kept.
 
 `topics.json` is read into a new, empty database. To push edits from the file into an existing database

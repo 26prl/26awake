@@ -270,17 +270,6 @@ class InsightTests(unittest.TestCase):
         level = {c["title"].split()[0]: c["level"] for c in stories}
         self.assertEqual(level, {"В": "confirmed", "Russia": "corroborated", "Plague": "unverified"})
 
-    def test_figures_only_from_trusted(self):
-        from tracker.insights import reported_figures
-
-        arts = [
-            self.art(1, "Роспотребнадзор: 2 случая чумы в Туве", "rospotrebnadzor.ru", "official"),
-            self.art(2, "1000 deaths from plague!!!", "tabloid.example", "low"),
-            self.art(3, "Plague in 2026: 3 cases confirmed", "reuters.com", "reputable"),
-        ]
-        figs = {(f["value"], f["source"]) for f in reported_figures(arts)}
-        self.assertEqual(figs, {(2, "rospotrebnadzor.ru"), (3, "reuters.com")})
-
     def test_trend(self):
         from tracker.insights import trend
 
@@ -415,3 +404,75 @@ class HttpRetryTests(unittest.TestCase):
 
         with mock.patch("urllib.request.urlopen", fake_urlopen), self.assertRaises(urllib.error.HTTPError):
             sources.http_get("https://example.com/x")
+
+
+class CountTests(unittest.TestCase):
+    """Built from real headlines collected for the 2026 Irkutsk lab-worker case."""
+
+    def art(self, i, title, domain, trust, day="2026-10-06"):
+        return {"id": i, "title": title, "url": f"https://{domain}/{i}", "source": domain, "domain": domain,
+                "trust": trust, "summary": "", "published_at": f"{day}T10:00:00+00:00"}
+
+    def test_extract(self):
+        from tracker.counts import extract
+
+        def first(text, metric, tier="reputable"):
+            return next((c for c in extract(text, tier) if c["metric"] == metric), None)
+
+        c = first("Russian lab worker dies of suspected plague in Siberia; US monitoring case", "deaths")
+        self.assertEqual((c["value"], c["qualifier"]), (1, "suspected"))
+        self.assertEqual(first("WHO questions Russia on reported second plague lab death", "deaths")["value"], 2)
+        self.assertEqual(first("Второй случай чумы в России? В лаборатории, вероятно, заболел еще один сотрудник", "cases")["value"], 2)
+        self.assertEqual(first("Роспотребнадзор: 2 случая чумы зарегистрированы в Туве", "cases", "official")["qualifier"], "confirmed")
+        self.assertEqual(first("12 new plague cases confirmed in Altai", "cases")["value"], 12)
+        self.assertEqual(first("Dozens quarantined in Siberia after plague institute lab worker dies", "quarantined")["vague"], "dozens")
+        # Denials are recorded, and never counted as a case.
+        claims = extract("Россия сообщила ВОЗ об отсутствии случаев чумы в Иркутске", "reputable")
+        self.assertEqual([(c["metric"], c["denial"]) for c in claims], [("cases", True)])
+        self.assertTrue(first("Russia says no plague found in contacts of Siberian lab worker who died", "cases")["denial"])
+        # History and global statistics are ignored.
+        self.assertEqual(extract("The Black Death killed 25 million people in Europe", "reputable"), [])
+        self.assertEqual(extract("Plague infects 2,000 people worldwide each year", "reputable"), [])
+
+    def test_only_verified_figures_count(self):
+        from tracker.counts import build
+
+        arts = [
+            self.art(1, "Russian lab worker dies of suspected plague in Siberia", "reuters.com", "reputable"),
+            self.art(2, "Russia reports suspected plague death of lab worker", "apnews.com", "reputable"),
+            self.art(3, "WHO questions Russia on reported second plague lab death", "nbcnews.com", "reputable"),
+            self.art(4, "Чума в России: подозревают госпитализацию почти 200 пациентов", "blog.example", "unknown"),
+            self.art(5, "Второй случай чумы? Вероятно, заболел еще один сотрудник", "meduza.io", "reputable"),
+            self.art(6, "WHO seeks details about reported second illness", "forbes.com", "reputable"),
+            self.art(7, "Россия сообщила ВОЗ об отсутствии случаев чумы в Иркутске", "dw.com", "reputable"),
+            self.art(8, "50 people died of plague in Moscow, insiders say", "tabloid.example", "low"),
+        ]
+        with mock.patch("tracker.counts.datetime") as dt:
+            from datetime import datetime as real_dt, timezone as tz
+            dt.now.return_value = real_dt(2026, 10, 7, tzinfo=tz.utc)
+            r = build(arts, {"Irkutsk": {"keywords": ["иркутск"]}})
+        self.assertEqual(r["deaths"]["value"], 1)            # the second death has one source only
+        self.assertTrue(r["deaths"]["suspected_only"])
+        self.assertEqual(r["cases"]["value"], 2)             # second suspected case: two reputable outlets
+        self.assertEqual(r["cases"]["confirmed"]["value"], 0)
+        self.assertTrue(r["cases"]["disputed"])
+        self.assertEqual(r["cases"]["unverified_max"], 200)
+        self.assertEqual(r["deaths"]["unverified_max"], 50)
+        self.assertEqual(r["regions"]["Irkutsk"]["denials"], 1)
+
+    def test_official_source_alone_verifies(self):
+        from tracker.counts import build
+
+        arts = [self.art(1, "Роспотребнадзор: 2 случая чумы зарегистрированы в Туве", "rospotrebnadzor.ru", "official", "2026-10-06")]
+        with mock.patch("tracker.counts.datetime") as dt:
+            from datetime import datetime as real_dt, timezone as tz
+            dt.now.return_value = real_dt(2026, 10, 7, tzinfo=tz.utc)
+            r = build(arts)
+        self.assertEqual((r["cases"]["value"], r["cases"]["confirmed"]["value"]), (2, 2))
+
+    def test_facets_with_coordinates(self):
+        t = normalize_topic({"name": "x", "queries": ["a"], "facets": {"Tuva": {"keywords": ["tuva"], "lat": "51.7", "lon": 94.4}, "Old": ["kw"]}})
+        self.assertEqual(t["facets"]["Tuva"], {"keywords": ["tuva"], "lat": 51.7, "lon": 94.4})
+        self.assertEqual(t["facets"]["Old"]["lat"], None)
+        with self.assertRaises(ValidationError):
+            normalize_topic({"name": "x", "queries": ["a"], "facets": {"Bad": {"keywords": ["k"], "lat": 99, "lon": 1}}})

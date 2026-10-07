@@ -62,54 +62,137 @@
       "a plague tale"
     ],
     "facets": {
-      "Altai Republic": [
-        "алта",
-        "altai"
-      ],
-      "Tuva": [
-        "тыв",
-        "тува",
-        "туве",
-        "tuva"
-      ],
-      "Buryatia": [
-        "бурят",
-        "buryat"
-      ],
-      "Dagestan": [
-        "дагестан",
-        "dagestan"
-      ],
-      "Kalmykia": [
-        "калмык",
-        "kalmyk"
-      ],
-      "Astrakhan": [
-        "астрахан",
-        "astrakhan"
-      ],
-      "Stavropol": [
-        "ставрополь",
-        "stavropol"
-      ],
-      "Siberia (general)": [
-        "сибир",
-        "siberia"
-      ],
-      "Mongolia": [
-        "монгол",
-        "mongolia"
-      ],
-      "Kazakhstan": [
-        "казахстан",
-        "kazakhstan"
-      ],
-      "China": [
-        "китай",
-        "китае",
-        "china",
-        "inner mongolia"
-      ]
+      "Irkutsk region": {
+        "keywords": [
+          "иркутск",
+          "irkutsk",
+          "шелехов",
+          "shelekhov"
+        ],
+        "lat": 52.29,
+        "lon": 104.28
+      },
+      "Novosibirsk": {
+        "keywords": [
+          "новосибирск",
+          "novosibirsk"
+        ],
+        "lat": 55.03,
+        "lon": 82.92
+      },
+      "Khanty-Mansi (Yugra)": {
+        "keywords": [
+          "хмао",
+          "ханты",
+          "югр",
+          "сургут",
+          "khanty",
+          "yugra",
+          "surgut"
+        ],
+        "lat": 61.0,
+        "lon": 69.02
+      },
+      "Altai Republic": {
+        "keywords": [
+          "алта",
+          "altai"
+        ],
+        "lat": 51.0,
+        "lon": 86.5
+      },
+      "Tuva": {
+        "keywords": [
+          "тыв",
+          "тува",
+          "туве",
+          "tuva"
+        ],
+        "lat": 51.72,
+        "lon": 94.45
+      },
+      "Buryatia": {
+        "keywords": [
+          "бурят",
+          "buryat"
+        ],
+        "lat": 51.83,
+        "lon": 107.58
+      },
+      "Saratov": {
+        "keywords": [
+          "саратов",
+          "saratov"
+        ],
+        "lat": 51.53,
+        "lon": 46.03
+      },
+      "Dagestan": {
+        "keywords": [
+          "дагестан",
+          "dagestan"
+        ],
+        "lat": 42.98,
+        "lon": 47.5
+      },
+      "Kalmykia": {
+        "keywords": [
+          "калмык",
+          "kalmyk"
+        ],
+        "lat": 46.31,
+        "lon": 44.26
+      },
+      "Astrakhan": {
+        "keywords": [
+          "астрахан",
+          "astrakhan"
+        ],
+        "lat": 46.35,
+        "lon": 48.04
+      },
+      "Stavropol": {
+        "keywords": [
+          "ставрополь",
+          "stavropol"
+        ],
+        "lat": 45.04,
+        "lon": 41.97
+      },
+      "Siberia (unspecified)": {
+        "keywords": [
+          "сибир",
+          "siberia"
+        ],
+        "lat": 60.0,
+        "lon": 100.0
+      },
+      "Mongolia": {
+        "keywords": [
+          "монгол",
+          "mongolia"
+        ],
+        "lat": 47.92,
+        "lon": 106.92
+      },
+      "Kazakhstan": {
+        "keywords": [
+          "казахстан",
+          "kazakhstan"
+        ],
+        "lat": 51.17,
+        "lon": 71.43
+      },
+      "China": {
+        "keywords": [
+          "китай",
+          "китае",
+          "china",
+          "inner mongolia"
+        ],
+        "lat": 39.9,
+        "lon": 116.4
+      }
     },
     "interval_minutes": 30
   }

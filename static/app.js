@@ -176,6 +176,7 @@ async function selectTopic(id) {
     $("#search").value = "";
     $("#lang-filter").value = "";
   }
+  if (state.current?.id !== id) mapFitted = false;
   state.current = t;
   history.replaceState(null, "", `#${id}`);
   document.querySelectorAll("#topic-list li").forEach((li, i) => li.classList.toggle("active", state.topics[i].id === id));
@@ -317,24 +318,18 @@ async function loadInsights() {
   if (!nodes.length) nodes.push(el("p", { className: "muted", textContent: "No stories in the last 14 days." }));
   $("#stories").replaceChildren(...nodes);
 
-  // Regions
+  // Regions table + map
   $("#facets").replaceChildren(...ins.facets.map((f) => el("tr", {},
     el("td", { textContent: f.name }), el("td", { textContent: f.count }),
     el("td", { textContent: f.trusted, className: f.trusted ? "strong" : "muted" }),
-    el("td", { textContent: f.official, className: f.official ? "strong" : "muted" }),
-    el("td", { textContent: ago(f.last_seen), className: "muted" }))));
+    el("td", { textContent: f.counts?.cases || "–", className: f.counts?.cases ? "strong" : "muted" }),
+    el("td", { textContent: f.counts?.deaths || "–", className: f.counts?.deaths ? "strong danger-text" : "muted" }))));
   if (!ins.facets.length) {
     $("#facets").append(el("tr", {}, el("td", { colSpan: 5, className: "muted",
-      textContent: (state.current.facets && Object.keys(state.current.facets).length) ? "No region mentioned recently." : "Add regions in Edit → Regions / facets." })));
+      textContent: (state.current.facets && Object.keys(state.current.facets).length) ? "No region mentioned recently." : "Add regions in Edit → Regions." })));
   }
-
-  // Figures
-  $("#figures").replaceChildren(...ins.figures.map((f) => el("li", {},
-    el("div", {}, el("strong", { textContent: `${f.value} ${f.what}` }), " ", tierBadge(f.trust), " ",
-      el("a", { href: f.url, target: "_blank", rel: "noopener noreferrer", textContent: f.source }),
-      el("span", { className: "muted", textContent: ` · ${fmtDay(f.published_at)}` })),
-    el("p", { className: "muted", textContent: f.snippet }))));
-  if (!ins.figures.length) $("#figures").append(el("li", { className: "muted", textContent: "No numbers found in trusted reports yet." }));
+  renderMap(ins.facets);
+  renderCounts(ins.counts);
 
   // Latest updates: what the tracker found most recently
   const t = state.current;
@@ -358,6 +353,128 @@ async function loadInsights() {
   if (!ins.official_updates.length) $("#official").append(el("li", { className: "muted", textContent: "No official reports in the last 14 days." }));
 }
 
+// ---- case counts (verified reporting only) --------------------------------------------
+
+const QUAL_TEXT = { confirmed: "lab-confirmed", suspected: "suspected", reported: "reported" };
+
+function sourceLink(x) {
+  return el("li", {}, tierBadge(x.trust), " ",
+    el("a", { href: x.url, target: "_blank", rel: "noopener noreferrer", textContent: x.title }),
+    el("span", { className: "muted", textContent: ` · ${x.source} · ${fmtDay(x.published_at)}` }));
+}
+
+function countTile(label, value, sub, opts = {}) {
+  return el("div", { className: `count-tile${opts.tone ? ` tone-${opts.tone}` : ""}` },
+    el("span", { className: "label", textContent: label }),
+    el("span", { className: "value", textContent: value }),
+    el("div", { className: "chips" }, ...(opts.chips || []).map(([cls, text, title]) => el("span", { className: `qchip ${cls}`, textContent: text, title: title || "" }))),
+    el("span", { className: "sub", textContent: sub }));
+}
+
+function renderCounts(c) {
+  if (!c) return;
+  const d = c.deaths, k = c.cases;
+  const backing = (m) => m.reported.n_sources
+    ? `${m.reported.official ? "includes an official source · " : ""}${m.reported.n_sources} trusted source${m.reported.n_sources > 1 ? "s" : ""}`
+    : "no verified reports";
+  const chipsFor = (m) => {
+    const chips = [];
+    if (m.value) chips.push(m.suspected_only ? ["q-suspected", "suspected", "Not confirmed by a laboratory"] : ["q-confirmed", "lab-confirmed", ""]);
+    if (m.value && m.disputed) chips.push(["q-disputed", "officially disputed", "Authorities deny or have not confirmed plague"]);
+    return chips;
+  };
+  $("#counts-sub").textContent = `approximate · verified reports from the last ${c.window_days} days`;
+  $("#count-tiles").replaceChildren(
+    countTile("Infected", k.value ? `~${k.value}` : "0", backing(k), { chips: chipsFor(k), tone: k.value ? "warn" : "" }),
+    countTile("Deaths", d.value ? `${d.value}` : "0", backing(d), { chips: chipsFor(d), tone: d.value ? "bad" : "" }),
+    countTile("Lab-confirmed cases", `${k.confirmed.value}`,
+      k.confirmed.value ? `${k.confirmed.n_sources} trusted source${k.confirmed.n_sources > 1 ? "s" : ""}` : "no laboratory confirmation reported",
+      { tone: k.confirmed.value ? "bad" : "ok" }),
+    countTile("Quarantined / observed", c.quarantined.text || "–", c.quarantined.text ? "people in quarantine or under observation" : "no figure reported"),
+  );
+
+  const sources = [...d.reported.sources.slice(0, 3), ...k.reported.sources.slice(0, 3)];
+  const seen = new Set();
+  $("#count-sources").replaceChildren(...sources.filter((x) => !seen.has(x.url) && seen.add(x.url)).map(sourceLink));
+  if (!sources.length) $("#count-sources").append(el("li", { className: "muted", textContent: "No verified reports of cases or deaths." }));
+
+  $("#count-denials").replaceChildren(...c.denials.map(sourceLink));
+  if (!c.denials.length) $("#count-denials").append(el("li", { className: "muted", textContent: "No official denials reported." }));
+
+  const unverified = [
+    ...d.unverified.map((x) => ({ ...x, what: `${x.value} death${x.value > 1 ? "s" : ""}` })),
+    ...k.unverified.map((x) => ({ ...x, what: `${x.value} infected` })),
+  ];
+  $("#count-unverified-box").classList.toggle("hidden", !unverified.length);
+  $("#count-unverified").replaceChildren(...unverified.map((x) => {
+    const li = sourceLink(x);
+    li.prepend(el("strong", { textContent: `${x.what} — ` }));
+    return li;
+  }));
+}
+
+// ---- map --------------------------------------------------------------------------------
+
+let map, mapLayer, mapTiles, mapFitted;
+
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function renderMap(facets) {
+  const box = $("#map");
+  if (!window.L) {
+    // Leaflet loads with `defer`; try again shortly, and explain if it never arrives (offline / blocked).
+    if (!box.dataset.retries || Number(box.dataset.retries) < 20) {
+      box.dataset.retries = Number(box.dataset.retries || 0) + 1;
+      setTimeout(() => renderMap(facets), 250);
+    } else {
+      box.replaceChildren(el("p", { className: "muted map-fallback", textContent: "The map library could not be loaded. The region table lists the same data." }));
+    }
+    return;
+  }
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  if (!map) {
+    map = L.map(box, { scrollWheelZoom: false, worldCopyJump: true }).setView([58, 90], 3);
+    mapLayer = L.layerGroup().addTo(map);
+  }
+  const tiles = dark ? "dark_all" : "light_all";
+  if (mapTiles?.options.variant !== tiles) {
+    mapTiles?.remove();
+    mapTiles = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${tiles}/{z}/{x}/{y}{r}.png`, {
+      variant: tiles, subdomains: "abcd", maxZoom: 12,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    }).addTo(map);
+  }
+  mapLayer.clearLayers();
+  const points = facets.filter((f) => f.lat != null && f.lon != null);
+  for (const f of points) {
+    const color = f.official ? cssVar("--c-official") : f.trusted ? cssVar("--c-reputable") : cssVar("--c-unknown");
+    const deaths = f.counts?.deaths || 0;
+    const marker = L.circleMarker([f.lat, f.lon], {
+      radius: Math.min(28, 7 + Math.sqrt(f.count) * 2.2),
+      color: deaths ? cssVar("--accent") : color, weight: deaths ? 4 : 1.5,
+      fillColor: color, fillOpacity: 0.55,
+    });
+    const popup = el("div", { className: "map-popup" },
+      el("strong", { textContent: f.name }),
+      el("div", { textContent: `${f.count} article${f.count > 1 ? "s" : ""} · ${f.trusted} trusted · ${f.official} official` }),
+      f.counts?.cases ? el("div", { textContent: `Infected (verified, suspected or confirmed): ~${f.counts.cases}` }) : null,
+      deaths ? el("div", { className: "danger-text", textContent: `Deaths (verified reports): ${deaths}` }) : null,
+      f.counts?.denials ? el("div", { className: "muted", textContent: "Officials dispute plague here" }) : null,
+      el("div", { className: "popup-top" }, tierBadge(f.top.trust), " ",
+        el("a", { href: f.top.url, target: "_blank", rel: "noopener noreferrer", textContent: f.top.title })));
+    marker.bindPopup(popup, { maxWidth: 280 });
+    marker.bindTooltip(f.name);
+    marker.addTo(mapLayer);
+  }
+  if (points.length && !mapFitted) {
+    map.fitBounds(L.latLngBounds(points.map((f) => [f.lat, f.lon])), { padding: [30, 30], maxZoom: 5 });
+    mapFitted = true;
+  }
+  setTimeout(() => map.invalidateSize(), 0);
+}
+
 // ---- AI situation brief ---------------------------------------------------------------
 
 let analysisTimer;
@@ -376,6 +493,8 @@ function cite(ids, cited) {
 async function loadAnalysis() {
   clearTimeout(analysisTimer);
   const a = await ds.analysis(state.current.id);
+  // Optional paid feature: keep the panel out of the way unless it's switched on or a brief exists.
+  $("#ai-card").classList.toggle("hidden", !a.available && !a.latest);
   const btn = $("#btn-analyze");
   btn.classList.toggle("hidden", !a.available);
   btn.disabled = a.running;
@@ -484,7 +603,11 @@ function openForm(topic) {
     f.feeds.value = topic.feeds.join("\n");
     f.match.value = topic.match.map((g) => g.join(", ")).join("\n");
     f.exclude.value = topic.exclude.join(", ");
-    f.facets.value = Object.entries(topic.facets || {}).map(([k, v]) => `${k}: ${v.join(", ")}`).join("\n");
+    f.facets.value = Object.entries(topic.facets || {}).map(([k, v]) => {
+      const facet = Array.isArray(v) ? { keywords: v } : v;
+      const where = facet.lat != null ? ` @ ${facet.lat}, ${facet.lon}` : "";
+      return `${k}: ${facet.keywords.join(", ")}${where}`;
+    }).join("\n");
     f.interval_minutes.value = topic.interval_minutes;
     f.enabled.checked = topic.enabled;
   }
@@ -507,8 +630,12 @@ $("#topic-form").addEventListener("submit", async (ev) => {
     match: lines(f.match.value).map((l) => l.split(",").map((x) => x.trim()).filter(Boolean)),
     exclude: f.exclude.value,
     facets: Object.fromEntries(lines(f.facets.value).map((l) => {
-      const i = l.indexOf(":");
-      return i > 0 ? [l.slice(0, i).trim(), l.slice(i + 1).split(",").map((x) => x.trim()).filter(Boolean)] : [l, [l]];
+      const [main, where] = l.split("@");
+      const i = main.indexOf(":");
+      const name = (i > 0 ? main.slice(0, i) : main).trim();
+      const keywords = i > 0 ? main.slice(i + 1).split(",").map((x) => x.trim()).filter(Boolean) : [name];
+      const [lat, lon] = (where || "").split(",").map((x) => x.trim());
+      return [name, { keywords, lat: lat || null, lon: lon || null }];
     })),
     interval_minutes: Number(f.interval_minutes.value),
     enabled: f.enabled.checked,

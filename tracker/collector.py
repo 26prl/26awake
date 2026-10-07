@@ -70,11 +70,25 @@ def normalize_topic(data: dict) -> dict:
     if who and not match:
         raise ValidationError("the WHO source needs 'match' keywords, otherwise every WHO item is kept")
 
-    facets = data.get("facets") or {}
-    if not isinstance(facets, dict):
-        raise ValidationError("'facets' must map a name to a list of keywords")
-    facets = {str(k).strip(): _str_list(v, "facets") for k, v in facets.items() if str(k).strip()}
-    facets = {k: v for k, v in facets.items() if v}
+    facets = {}
+    raw_facets = data.get("facets") or {}
+    if not isinstance(raw_facets, dict):
+        raise ValidationError("'facets' must map a name to keywords (and optional lat/lon)")
+    for facet_name, value in raw_facets.items():
+        facet_name = str(facet_name).strip()
+        facet = value if isinstance(value, dict) else {"keywords": value}
+        keywords = _str_list(facet.get("keywords"), "facets")
+        if not facet_name or not keywords:
+            continue
+        lat, lon = facet.get("lat"), facet.get("lon")
+        try:
+            lat = float(lat) if lat not in (None, "") else None
+            lon = float(lon) if lon not in (None, "") else None
+        except (TypeError, ValueError):
+            raise ValidationError(f"facet '{facet_name}': lat/lon must be numbers") from None
+        if (lat is None) != (lon is None) or (lat is not None and not (-90 <= lat <= 90 and -180 <= lon <= 180)):
+            raise ValidationError(f"facet '{facet_name}': give both lat (-90..90) and lon (-180..180), or neither")
+        facets[facet_name] = {"keywords": keywords, "lat": lat, "lon": lon}
     if feeds and not match:
         raise ValidationError("topics with feeds need 'match' keywords, otherwise every feed item is kept")
 
