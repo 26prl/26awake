@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>WHO news</title>
+<entry><title>Plague – Mongolia and Russian Federation</title><link href="https://who.example/don/1"/><updated>2026-10-04T12:00:00Z</updated><summary>Disease outbreak news on &lt;b&gt;plague&lt;/b&gt; near the Russian border.</summary></entry>
+<entry><title>Measles update</title><link href="https://who.example/don/2"/><updated>2026-10-04T13:00:00Z</updated><summary>Measles.</summary></entry>
+</feed>

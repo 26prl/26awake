@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PlagueWeb Tracker</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="dot"></span> PlagueWeb <small>internet topic tracker</small></div>
+    <div class="topbar-actions">
+      <span id="clock" class="muted"></span>
+      <button id="btn-new" class="btn">+ New topic</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <h2>Topics</h2>
+      <ul id="topic-list"></ul>
+    </aside>
+
+    <main id="main">
+      <section id="empty" class="card hidden">
+        <h1>No topics yet</h1>
+        <p>Create a topic to start tracking it across news sites, GDELT and RSS feeds.</p>
+      </section>
+
+      <section id="topic" class="hidden">
+        <div class="topic-head">
+          <div>
+            <h1 id="t-name"></h1>
+            <p id="t-desc" class="muted"></p>
+          </div>
+          <div class="topic-actions">
+            <button id="btn-refresh" class="btn">Refresh now</button>
+            <button id="btn-edit" class="btn ghost">Edit</button>
+          </div>
+        </div>
+
+        <div id="alert" class="alert hidden"></div>
+
+        <div class="stats">
+          <div class="stat"><span class="label">Last 24 h</span><span id="s-24h" class="value">–</span></div>
+          <div class="stat"><span class="label">Daily avg (prev. 7 d)</span><span id="s-avg" class="value">–</span></div>
+          <div class="stat"><span class="label">Total tracked</span><span id="s-total" class="value">–</span></div>
+          <div class="stat"><span class="label">Last check</span><span id="s-run" class="value small">–</span></div>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <div class="card-head">
+              <h3>Mentions per day</h3>
+              <select id="days">
+                <option value="14">14 days</option>
+                <option value="30" selected>30 days</option>
+                <option value="90">90 days</option>
+              </select>
+            </div>
+            <div id="chart" class="chart"></div>
+          </div>
+          <div class="card">
+            <h3>Top sources</h3>
+            <ol id="sources" class="bars"></ol>
+            <h3>Languages</h3>
+            <div id="langs" class="chips"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>Articles <span id="a-count" class="muted"></span></h3>
+            <div class="filters">
+              <input id="search" type="search" placeholder="Filter headlines…">
+              <select id="lang-filter"><option value="">All languages</option></select>
+            </div>
+          </div>
+          <ul id="articles" class="articles"></ul>
+          <button id="more" class="btn ghost wide hidden">Load more</button>
+        </div>
+
+        <details class="card">
+          <summary>Collection log</summary>
+          <table class="runs"><thead><tr><th>Time</th><th>Source</th><th>Matched</th><th>New</th><th>Status</th></tr></thead>
+            <tbody id="runs"></tbody></table>
+        </details>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="dlg">
+    <form id="topic-form" method="dialog">
+      <h2 id="dlg-title">New topic</h2>
+      <label>Name <input name="name" required placeholder="Plague in Russia"></label>
+      <label>Description <input name="description" placeholder="What are you watching for?"></label>
+      <label>Search queries <small>one per line, as <code>lang: query</code> (en, ru, uk, de, fr, es, kk)</small>
+        <textarea name="queries" rows="4" placeholder="ru: чума Россия&#10;en: plague Russia"></textarea></label>
+      <label>GDELT queries <small>one per line, optional — global news index</small>
+        <textarea name="gdelt" rows="2" placeholder="plague (Russia OR Altai)"></textarea></label>
+      <label>RSS / Atom feeds <small>one URL per line, optional</small>
+        <textarea name="feeds" rows="2" placeholder="https://example.com/rss"></textarea></label>
+      <label>Must match <small>one group per line; each line = comma-separated alternatives, all lines must hit</small>
+        <textarea name="match" rows="3" placeholder="чум, plague&#10;росси, russia"></textarea></label>
+      <label>Exclude <small>comma-separated</small> <input name="exclude" placeholder="plague inc"></label>
+      <label>Check every (minutes) <input name="interval_minutes" type="number" min="5" value="30"></label>
+      <label class="inline"><input name="enabled" type="checkbox" checked> Enabled</label>
+      <p id="form-error" class="error"></p>
+      <div class="dlg-actions">
+        <button type="button" id="btn-delete" class="btn danger hidden">Delete topic</button>
+        <span class="spacer"></span>
+        <button type="button" id="btn-cancel" class="btn ghost">Cancel</button>
+        <button type="submit" class="btn">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>

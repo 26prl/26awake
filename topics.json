@@ -1,0 +1,21 @@
+[
+  {
+    "name": "Plague in Russia",
+    "description": "Reports of plague (Yersinia pestis) cases, outbreaks and quarantine measures in Russia and neighbouring regions.",
+    "queries": [
+      { "q": "чума Россия", "lang": "ru" },
+      { "q": "бубонная чума", "lang": "ru" },
+      { "q": "чума Роспотребнадзор", "lang": "ru" },
+      { "q": "plague Russia", "lang": "en" },
+      { "q": "bubonic plague Russia OR Altai OR Tuva", "lang": "en" }
+    ],
+    "gdelt": ["plague (Russia OR Russian OR Altai OR Tuva OR Siberia)"],
+    "feeds": [],
+    "match": [
+      ["чум", "plague", "pestis", "бубон"],
+      ["росси", "russia", "алта", "altai", "тыв", "tuva", "сибир", "siberia", "монгол", "mongolia", "казахстан", "kazakhstan", "роспотребнадзор", "rospotrebnadzor"]
+    ],
+    "exclude": ["чумовой", "чумовая", "чумовые", "чума на оба", "plague inc", "a plague tale"],
+    "interval_minutes": 30
+  }
+]
