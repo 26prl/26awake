@@ -10,7 +10,8 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><span class="dot"></span> PlagueWeb <small>internet topic tracker</small></div>
+    <div class="brand"><span class="dot"></span> PlagueWeb <small>internet topic tracker</small>
+      <span class="sticker-slot slot-header" data-sticker-slot="header"></span></div>
     <div class="topbar-actions">
       <div id="update-status" class="update-status" aria-live="polite">
         <span id="updated" class="muted"></span>
@@ -24,6 +25,8 @@
     <aside class="sidebar">
       <h2>Topics</h2>
       <ul id="topic-list"></ul>
+      <div class="sticker-slot slot-sidebar" data-sticker-slot="sidebar"></div>
+      <button id="sticker-toggle" class="link-btn" type="button" aria-pressed="true">Hide anime stickers</button>
       <details class="legend-box">
         <summary>How sources are rated</summary>
         <ul id="trust-legend"></ul>
@@ -84,6 +87,7 @@
         <div class="card" id="latest-card">
           <div class="card-head">
             <h3>Latest updates <span id="latest-sub" class="muted small"></span></h3>
+            <span class="sticker-slot slot-latest" data-sticker-slot="latest"></span>
           </div>
           <ul id="latest" class="articles compact"></ul>
         </div>
@@ -139,6 +143,7 @@
               <span class="chip"><span class="swatch seg-unknown"></span>Unverified only</span>
               <span class="chip"><span class="swatch ring"></span>Death reported (verified)</span>
             </div>
+            <div class="sticker-slot slot-map" data-sticker-slot="map"></div>
           </div>
           <div class="card">
             <h3>Regions <span class="muted small">last 30 days</span></h3>
@@ -174,6 +179,12 @@
             <tbody id="runs"></tbody></table>
         </details>
       </section>
+
+      <footer class="site-footer">
+        <div class="sticker-slot slot-footer" data-sticker-slot="footer"></div>
+        <p class="muted small">PlagueWeb collects public news automatically. Numbers are approximate — always check the
+          linked sources and follow official health guidance.</p>
+      </footer>
     </main>
   </div>
 
@@ -207,5 +218,6 @@
   </dialog>
 
   <script src="app.js"></script>
+  <script src="stickers.js"></script>
 </body>
 </html>

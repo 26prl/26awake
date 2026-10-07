@@ -1,0 +1,9 @@
+{
+  "stickers": [
+    { "slot": "header",  "art": "plague-chan", "size": "xs" },
+    { "slot": "sidebar", "src": "gifs/your-anime.gif", "alt": "Anime character in a plague mask", "captions": ["Your caption here"] },
+    { "slot": "latest",  "art": "flea", "size": "sm", "captions": ["Notice me, senpai…"] },
+    { "slot": "map",     "art": "pestis", "captions": ["NOOO, not the antibiotics!!"] },
+    { "slot": "footer",  "art": "plague-chan", "captions": ["Stay safe, ne~"] }
+  ]
+}

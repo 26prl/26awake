@@ -86,6 +86,19 @@ laboratory confirmation; "officially disputed" means trusted or state media repo
 Sentences about history ("Black Death") or worldwide yearly statistics are ignored. It is pattern matching,
 not reading comprehension, so treat the result as approximate and follow the links.
 
+## Anime stickers
+
+Four original animated characters sit around the page (header, sidebar, latest updates, map, footer):
+Plague-chan (a chibi plague doctor), Marmot-kun (tarbagan marmots carry plague in Altai, Tuva and Mongolia),
+Flea-senpai and Pestis-chan (running from an antibiotic). Click one for its next line; some lines are real
+safety tips. Visitors can hide them with **Hide anime stickers** in the sidebar, they stand still for people who
+prefer reduced motion, and they are kept out of the case-count panel.
+
+To use your own GIFs, put them in `static/gifs/` and copy `stickers.example.json` to `static/stickers.json`.
+Each entry has a `slot` (`header`, `sidebar`, `latest`, `map`, `footer`), either `src` (a GIF/PNG path or URL)
+or `art` (`plague-chan`, `marmot`, `flea`, `pestis`), optional `captions` and `size` (`xs`, `sm`, `md`).
+Only use GIFs you have the right to publish.
+
 ## Defining a topic
 
 Use **+ New topic** in the UI, or put it in `topics.json`:

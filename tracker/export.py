@@ -39,9 +39,7 @@ def export_site(store: Store, out_dir: str | Path) -> Path:
     if data.exists():
         shutil.rmtree(data)
     data.mkdir(parents=True)
-    for f in STATIC_DIR.iterdir():
-        if f.is_file():
-            shutil.copy2(f, out / f.name)
+    shutil.copytree(STATIC_DIR, out, dirs_exist_ok=True)
 
     topics = []
     for t in store.list_topics():
