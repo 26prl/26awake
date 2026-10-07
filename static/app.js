@@ -415,7 +415,7 @@ function renderCounts(c) {
 
 // ---- map --------------------------------------------------------------------------------
 
-let map, mapLayer, mapTiles, mapFitted;
+let map, mapLayer, mapFitted;
 
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -433,17 +433,13 @@ function renderMap(facets) {
     }
     return;
   }
-  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
   if (!map) {
     map = L.map(box, { scrollWheelZoom: false, worldCopyJump: true }).setView([58, 90], 3);
     mapLayer = L.layerGroup().addTo(map);
-  }
-  const tiles = dark ? "dark_all" : "light_all";
-  if (mapTiles?.options.variant !== tiles) {
-    mapTiles?.remove();
-    mapTiles = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${tiles}/{z}/{x}/{y}{r}.png`, {
-      variant: tiles, subdomains: "abcd", maxZoom: 12,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    // OpenStreetMap's own tiles: free, no API key, attribution required. Dark mode darkens them with CSS.
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 12,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
   }
   mapLayer.clearLayers();
@@ -699,28 +695,44 @@ function fmtCountdown(ms) {
   return h ? `${h}:${mmss}` : mmss;
 }
 
-// When will fresh data appear? Returns { at: Date|null, collecting: bool, lastUpdate: iso }.
+const CHECK_WINDOW_MS = 4 * 60_000; // how long to show "checking" after each scheduled update time
+const BACKGROUND_CHECK_MS = 2 * 60_000; // GitHub often starts runs late: keep looking quietly between checks
+
+// Scheduled check times (UTC minutes past the hour) from `now - 2h` to `now + 2h`, each shifted by the
+// time the job needs to run and publish.
+function publishTimes(sched, now) {
+  const out = [];
+  const t = new Date(now - 2 * 3600_000);
+  t.setUTCSeconds(0, 0);
+  for (let i = 0; i < 4 * 60; i++) {
+    t.setUTCMinutes(t.getUTCMinutes() + 1);
+    if (sched.minutes.includes(t.getUTCMinutes())) {
+      out.push({ slot: new Date(t), at: new Date(t.getTime() + sched.publish_delay_minutes * 60_000) });
+    }
+  }
+  return out;
+}
+
+// What the header shows: { at: Date|null, checking: bool, collecting: bool, lastUpdate: iso }.
 function nextUpdate() {
+  const now = Date.now();
   if (state.mode === "static") {
     const site = staticSource.site();
     const sched = site?.schedule;
     if (!sched) return { at: null, lastUpdate: site?.generated_at };
-    // The first scheduled run after the data we have, plus time to run and publish.
-    const gen = new Date(site.generated_at);
-    const slot = new Date(gen);
-    slot.setUTCSeconds(0, 0);
-    for (let i = 0; i < 24 * 60; i++) {
-      slot.setUTCMinutes(slot.getUTCMinutes() + 1);
-      if (sched.minutes.includes(slot.getUTCMinutes())) break;
-    }
-    return { at: new Date(slot.getTime() + sched.publish_delay_minutes * 60_000), lastUpdate: site.generated_at };
+    const times = publishTimes(sched, now);
+    const prev = times.filter((x) => x.at.getTime() <= now).pop();
+    const next = times.find((x) => x.at.getTime() > now);
+    // Runs that find nothing new don't republish, so only wait briefly for each scheduled check.
+    const waiting = prev && now - prev.at.getTime() < CHECK_WINDOW_MS && new Date(site.generated_at) < prev.slot;
+    return { at: next?.at || null, checking: waiting, lastUpdate: site.generated_at };
   }
   const t = state.current;
   if (!t) return { at: null };
   if (t.collecting) return { at: null, collecting: true, lastUpdate: t.last_run_at };
   if (!t.enabled) return { at: null, disabled: true, lastUpdate: t.last_run_at };
   const at = t.last_run_at ? new Date(new Date(t.last_run_at).getTime() + t.interval_minutes * 60_000) : new Date();
-  return { at, lastUpdate: t.last_run_at };
+  return { at, checking: at.getTime() <= now, lastUpdate: t.last_run_at };
 }
 
 let lastDueCheck = 0;
@@ -731,26 +743,20 @@ function tick() {
   const next = $("#next-update");
   const pulse = el("span", { className: "pulse" });
   next.classList.remove("due");
-  if (n.collecting) {
-    next.replaceChildren(pulse, "Updating now…");
+  if (n.collecting || n.checking) {
+    next.replaceChildren(pulse, n.collecting ? "Updating now…" : "Checking for news…");
     next.classList.add("due");
   } else if (n.disabled) {
     next.replaceChildren("Updates paused");
-  } else if (!n.at) {
-    next.replaceChildren();
+  } else if (n.at) {
+    next.replaceChildren(pulse, `Next check in ${fmtCountdown(n.at.getTime() - Date.now())}`);
+    next.title = `Around ${n.at.toLocaleTimeString()}. If nothing new is found, the page stays as it is.`;
   } else {
-    const left = n.at.getTime() - Date.now();
-    if (left > 0) {
-      next.replaceChildren(pulse, `Next update in ${fmtCountdown(left)}`);
-      next.title = `Expected around ${n.at.toLocaleTimeString()}`;
-    } else {
-      // Due: the scheduler can run a few minutes late, so keep checking for new data.
-      next.replaceChildren(pulse, state.mode === "static" && left < -15 * 60_000 ? "Update running late…" : "Updating…");
-      next.classList.add("due");
-    }
+    next.replaceChildren();
   }
-  const due = n.collecting || (n.at && n.at.getTime() <= Date.now());
-  if (due && Date.now() - lastDueCheck > (state.mode === "static" ? 60_000 : 15_000)) {
+  const every = n.collecting || n.checking ? (state.mode === "static" ? 30_000 : 15_000)
+    : state.mode === "static" ? BACKGROUND_CHECK_MS : Infinity;
+  if (!document.hidden && Date.now() - lastDueCheck > every) {
     lastDueCheck = Date.now();
     checkForNewData();
   }

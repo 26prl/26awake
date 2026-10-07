@@ -86,18 +86,13 @@ laboratory confirmation; "officially disputed" means trusted or state media repo
 Sentences about history ("Black Death") or worldwide yearly statistics are ignored. It is pattern matching,
 not reading comprehension, so treat the result as approximate and follow the links.
 
-## Anime stickers
+## GIF stickers
 
-Four original animated characters sit around the page (header, sidebar, latest updates, map, footer):
-Plague-chan (a chibi plague doctor), Marmot-kun (tarbagan marmots carry plague in Altai, Tuva and Mongolia),
-Flea-senpai and Pestis-chan (running from an antibiotic). Click one for its next line; some lines are real
-safety tips. Visitors can hide them with **Hide anime stickers** in the sidebar, they stand still for people who
-prefer reduced motion, and they are kept out of the case-count panel.
-
-To use your own GIFs, put them in `static/gifs/` and copy `stickers.example.json` to `static/stickers.json`.
-Each entry has a `slot` (`header`, `sidebar`, `latest`, `map`, `footer`), either `src` (a GIF/PNG path or URL)
-or `art` (`plague-chan`, `marmot`, `flea`, `pestis`), optional `captions` and `size` (`xs`, `sm`, `md`).
-Only use GIFs you have the right to publish.
+The page has five spots for GIFs: `header`, `sidebar`, `latest` (next to Latest updates), `map` (under the map)
+and `footer`. They stay empty until GIFs are listed in `static/stickers.json`. Put the files in `static/gifs/`
+and copy `stickers.example.json` to `static/stickers.json`: each entry has a `slot`, a `src` (file path or URL),
+an `alt` description, optional `captions` (clicking cycles through them) and `size` (`xs`, `sm`, `md`).
+Visitors can hide them with **Hide stickers** in the sidebar. Only use GIFs you have the right to publish.
 
 ## Defining a topic
 
@@ -129,12 +124,12 @@ Use **+ New topic** in the UI, or put it in `topics.json`:
 
 ## Deploying
 
-The tracker needs to **run continuously** (to collect every 30 minutes) and **keep its database**.
+The tracker needs to **run continuously** (to collect every 11 minutes) and **keep its database**.
 Vercel can't do either: functions stop after each request and have no persistent disk. Two options:
 
 ### Option A — Vercel (free): GitHub Actions collects, Vercel serves
 
-`.github/workflows/collect.yml` runs every 30 minutes on GitHub's servers, collects the news, keeps the
+`.github/workflows/collect.yml` runs every 11 minutes on GitHub's servers, collects the news, keeps the
 database, and pushes a static copy of the dashboard to a branch named `site`. Vercel serves that branch.
 
 1. Merge this code into the repository's **default branch** (GitHub only runs scheduled workflows from there).
@@ -146,10 +141,18 @@ database, and pushes a static copy of the dashboard to a branch named `site`. Ve
    code branch); instead run the workflow again (step 2) or wait for the next run, and Vercel deploys `site`.
    While Vercel still shows the code branch you'll see a setup page with these instructions instead of a 404.
 
-From then on, every run pushes to `site` and Vercel publishes it automatically (~48 deploys a day, within the
-free Hobby limit). The page is read-only: to add or change topics or source ratings, edit `topics.json` /
-`trust.json` on the default branch — the next run applies them (`--sync-topics`). GitHub's cron can be a few
-minutes late, and GitHub pauses scheduled workflows in repositories with no activity for 60 days.
+From then on the workflow checks every 11 minutes and pushes to `site` only when there is something to show:
+new articles, changed site files, or once an hour. That keeps Vercel under its free limit of 100 deployments a
+day. The page is read-only: to add or change topics or source ratings, edit `topics.json` / `trust.json` on the
+default branch — the next published run applies them (`--sync-topics`). GitHub's cron is often a few minutes
+late, and GitHub pauses scheduled workflows in repositories with no activity for 60 days.
+
+**GitHub Actions minutes:** public repositories run Actions for free without limit. A private repository gets
+2,000 free minutes a month, and every run counts as at least one minute: checking every 11 minutes needs about
+4,300 a month, so in a private repository the checks stop around mid-month. Make the repository public
+(Settings → General → Danger Zone → Change visibility), or change the cron line in
+`.github/workflows/collect.yml` to `"7,37 * * * *"` (every 30 minutes, ~1,450 minutes a month) and set
+`TRACKER_SCHEDULE_MINUTES` to `"7,37"`.
 
 GitHub Pages works the same way: Settings → Pages → Deploy from branch → `site` / root.
 

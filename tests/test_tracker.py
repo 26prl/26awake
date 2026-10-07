@@ -371,7 +371,7 @@ class SyncTopicsTests(unittest.TestCase):
             topics = {t["name"]: t for t in store.list_topics()}
             self.assertEqual(topics["Plague in Russia"]["id"], old["id"])
             self.assertTrue(topics["Plague in Russia"]["who"])
-            self.assertEqual(topics["Plague in Russia"]["interval_minutes"], 30)
+            self.assertEqual(topics["Plague in Russia"]["interval_minutes"], SEED["interval_minutes"])
             self.assertIn("Bird flu", topics)
 
 

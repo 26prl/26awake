@@ -1,10 +1,15 @@
-# Collects news every 30 minutes and publishes the static dashboard to the `site` branch.
+# Collects news every 11 minutes and publishes the static dashboard to the `site` branch.
 # Point Vercel (or GitHub Pages) at the `site` branch — see README "Deploying".
+#
+# To stay inside Vercel's free deployment limit, a run only publishes when something changed:
+# new articles, changed site files, or at least once an hour (so time-based numbers stay fresh).
 name: Collect and publish
 
 on:
   schedule:
-    - cron: "7,37 * * * *"
+    # Minutes 0, 11, 22, 33, 44, 55 (the 55 → 00 step is 5 minutes; cron cannot do an exact 11-minute cycle).
+    # Keep TRACKER_SCHEDULE_MINUTES below in sync so the page can count down to the next check.
+    - cron: "*/11 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -17,7 +22,7 @@ concurrency:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
@@ -39,12 +44,36 @@ jobs:
           fi
 
       - name: Collect and export
+        id: collect
         env:
-          # Must match the cron minutes above, so the page can count down to the next update.
-          TRACKER_SCHEDULE_MINUTES: "7,37"
-        run: python -m tracker --sync-topics --once --export public
+          TRACKER_SCHEDULE_MINUTES: "0,11,22,33,44,55"
+          TRACKER_PUBLISH_DELAY_MINUTES: "3"
+        run: |
+          python -m tracker --sync-topics --once --export public | tee run.log
+          echo "added=$(grep -oP '^TOTAL_ADDED=\K\d+' run.log || echo 0)" >> "$GITHUB_OUTPUT"
+
+      - name: Decide whether to publish
+        id: decide
+        run: |
+          reason=""
+          if [ "${{ steps.collect.outputs.added }}" != "0" ]; then reason="${{ steps.collect.outputs.added }} new articles"; fi
+          if git rev-parse -q --verify origin/site >/dev/null; then
+            age=$(( $(date +%s) - $(git log -1 --format=%ct origin/site) ))
+            if [ -z "$reason" ] && [ "$age" -gt 3300 ]; then reason="hourly refresh"; fi
+            mkdir -p "$RUNNER_TEMP/prev" && git archive origin/site | tar -x -C "$RUNNER_TEMP/prev"
+            if [ -z "$reason" ] && ! diff -rq --exclude=data --exclude=.data --exclude=vercel.json --exclude=.nojekyll \
+                 "$RUNNER_TEMP/prev" public >/dev/null; then
+              reason="site files changed"
+            fi
+          else
+            reason="first publish"
+          fi
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -z "$reason" ]; then reason="manual run"; fi
+          echo "reason=$reason" >> "$GITHUB_OUTPUT"
+          echo "Publish: ${reason:-skipped, nothing new}"
 
       - name: Publish to the site branch
+        if: steps.decide.outputs.reason != ''
         run: |
           mkdir -p public/.data
           cp data/tracker.db public/.data/tracker.db
@@ -55,6 +84,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -qm "Data update $(date -u +%Y-%m-%dT%H:%MZ)"
+          git commit -qm "Data update $(date -u +%Y-%m-%dT%H:%MZ): ${{ steps.decide.outputs.reason }}"
           # A single fresh commit each time keeps the branch small; the history lives in the database.
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" site

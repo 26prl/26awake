@@ -69,9 +69,13 @@ def main() -> None:
 
     if args.once or args.export:
         if args.once:
+            total_added = 0
             for topic in store.list_topics():
                 if topic.get("enabled", True):
-                    print(topic["name"], collector.collect(topic))
+                    result = collector.collect(topic)
+                    total_added += result.get("added", 0)
+                    print(topic["name"], result)
+            print(f"TOTAL_ADDED={total_added}")  # read by the GitHub workflow to decide whether to publish
         if args.export:
             print("exported to", export_site(store, args.export))
         return
