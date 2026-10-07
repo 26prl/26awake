@@ -9,8 +9,10 @@ import os
 from pathlib import Path
 
 from .collector import Collector, normalize_topic
+from .export import export_site
 from .server import serve
 from .store import Store
+from .trust import TrustRegistry
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -24,6 +26,20 @@ def seed(store: Store, path: Path) -> None:
         logging.info("seeded topic %r", raw.get("name"))
 
 
+def sync_topics(store: Store, path: Path) -> None:
+    """Make the database match the topics file: update by name, add new ones (never deletes)."""
+    existing = {t["name"]: t for t in store.list_topics()}
+    for raw in json.loads(path.read_text(encoding="utf-8")):
+        config = normalize_topic(raw)
+        current = existing.get(config["name"])
+        if current is None:
+            store.create_topic(config)
+            logging.info("added topic %r", config["name"])
+        elif any(current.get(k) != v for k, v in config.items()):
+            store.update_topic(current["id"], config)
+            logging.info("updated topic %r", config["name"])
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="PlagueWeb — keep tracking topics across the internet.")
     p.add_argument("--host", default=os.environ.get("HOST", "127.0.0.1"))
@@ -32,6 +48,10 @@ def main() -> None:
     p.add_argument("--seed", default=os.environ.get("TRACKER_SEED", str(ROOT / "topics.json")))
     p.add_argument("--no-collector", action="store_true", help="serve the dashboard only, do not fetch")
     p.add_argument("--once", action="store_true", help="collect every topic once and exit (for cron)")
+    p.add_argument("--export", metavar="DIR", help="write a static copy of the dashboard to DIR and exit")
+    p.add_argument("--trust", default=os.environ.get("TRACKER_TRUST", str(ROOT / "trust.json")))
+    p.add_argument("--sync-topics", action="store_true",
+                   help="apply the seed file to an existing database (update topics by name, add new ones)")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args()
 
@@ -40,14 +60,20 @@ def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     Path(args.db).parent.mkdir(parents=True, exist_ok=True)
-    store = Store(args.db)
-    seed(store, Path(args.seed))
+    store = Store(args.db, TrustRegistry(args.trust))
+    if args.sync_topics:
+        sync_topics(store, Path(args.seed))
+    else:
+        seed(store, Path(args.seed))
     collector = Collector(store)
 
-    if args.once:
-        for topic in store.list_topics():
-            if topic.get("enabled", True):
-                print(topic["name"], collector.collect(topic))
+    if args.once or args.export:
+        if args.once:
+            for topic in store.list_topics():
+                if topic.get("enabled", True):
+                    print(topic["name"], collector.collect(topic))
+        if args.export:
+            print("exported to", export_site(store, args.export))
         return
 
     token = os.environ.get("TRACKER_TOKEN") or None

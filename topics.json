@@ -3,19 +3,114 @@
     "name": "Plague in Russia",
     "description": "Reports of plague (Yersinia pestis) cases, outbreaks and quarantine measures in Russia and neighbouring regions.",
     "queries": [
-      { "q": "чума Россия", "lang": "ru" },
-      { "q": "бубонная чума", "lang": "ru" },
-      { "q": "чума Роспотребнадзор", "lang": "ru" },
-      { "q": "plague Russia", "lang": "en" },
-      { "q": "bubonic plague Russia OR Altai OR Tuva", "lang": "en" }
+      {
+        "q": "чума Россия",
+        "lang": "ru"
+      },
+      {
+        "q": "бубонная чума",
+        "lang": "ru"
+      },
+      {
+        "q": "чума Роспотребнадзор",
+        "lang": "ru"
+      },
+      {
+        "q": "plague Russia",
+        "lang": "en"
+      },
+      {
+        "q": "bubonic plague Russia OR Altai OR Tuva",
+        "lang": "en"
+      }
     ],
-    "gdelt": ["plague (Russia OR Russian OR Altai OR Tuva OR Siberia)"],
+    "gdelt": [
+      "plague (Russia OR Russian OR Altai OR Tuva OR Siberia)"
+    ],
+    "who": true,
     "feeds": [],
     "match": [
-      ["чум", "plague", "pestis", "бубон"],
-      ["росси", "russia", "алта", "altai", "тыв", "tuva", "сибир", "siberia", "монгол", "mongolia", "казахстан", "kazakhstan", "роспотребнадзор", "rospotrebnadzor"]
+      [
+        "чум",
+        "plague",
+        "pestis",
+        "бубон"
+      ],
+      [
+        "росси",
+        "russia",
+        "алта",
+        "altai",
+        "тыв",
+        "tuva",
+        "сибир",
+        "siberia",
+        "монгол",
+        "mongolia",
+        "казахстан",
+        "kazakhstan",
+        "роспотребнадзор",
+        "rospotrebnadzor"
+      ]
     ],
-    "exclude": ["чумовой", "чумовая", "чумовые", "чума на оба", "plague inc", "a plague tale"],
+    "exclude": [
+      "чумовой",
+      "чумовая",
+      "чумовые",
+      "чума на оба",
+      "plague inc",
+      "a plague tale"
+    ],
+    "facets": {
+      "Altai Republic": [
+        "алта",
+        "altai"
+      ],
+      "Tuva": [
+        "тыв",
+        "тува",
+        "туве",
+        "tuva"
+      ],
+      "Buryatia": [
+        "бурят",
+        "buryat"
+      ],
+      "Dagestan": [
+        "дагестан",
+        "dagestan"
+      ],
+      "Kalmykia": [
+        "калмык",
+        "kalmyk"
+      ],
+      "Astrakhan": [
+        "астрахан",
+        "astrakhan"
+      ],
+      "Stavropol": [
+        "ставрополь",
+        "stavropol"
+      ],
+      "Siberia (general)": [
+        "сибир",
+        "siberia"
+      ],
+      "Mongolia": [
+        "монгол",
+        "mongolia"
+      ],
+      "Kazakhstan": [
+        "казахстан",
+        "kazakhstan"
+      ],
+      "China": [
+        "китай",
+        "китае",
+        "china",
+        "inner mongolia"
+      ]
+    },
     "interval_minutes": 30
   }
 ]

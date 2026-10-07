@@ -1,0 +1,3 @@
+# Optional: only needed for the AI situation brief (set ANTHROPIC_API_KEY to enable).
+# The tracker itself uses the Python standard library only.
+anthropic>=1.11

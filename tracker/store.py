@@ -10,6 +10,9 @@ import threading
 import urllib.parse
 from datetime import datetime, timedelta, timezone
 
+from .sources import domain_of
+from .trust import TRUSTED, TrustRegistry
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS topics (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,6 +32,8 @@ CREATE TABLE IF NOT EXISTS articles (
     source       TEXT NOT NULL DEFAULT '',
     lang         TEXT NOT NULL DEFAULT '',
     origin       TEXT NOT NULL DEFAULT '',
+    domain       TEXT NOT NULL DEFAULT '',
+    trust        TEXT NOT NULL DEFAULT 'unknown',
     published_at TEXT NOT NULL,
     fetched_at   TEXT NOT NULL,
     UNIQUE (topic_id, url_key),
@@ -46,7 +51,23 @@ CREATE TABLE IF NOT EXISTS runs (
     error       TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_runs_topic ON runs(topic_id, id DESC);
+CREATE TABLE IF NOT EXISTS analyses (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    topic_id    INTEGER NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+    created_at  TEXT NOT NULL,
+    model       TEXT NOT NULL,
+    n_articles  INTEGER NOT NULL,
+    result      TEXT NOT NULL
+);
 """
+
+# Columns added after the first release; added in place to databases created before them.
+MIGRATIONS = {
+    "articles": [
+        ("domain", "TEXT NOT NULL DEFAULT ''"),
+        ("trust", "TEXT NOT NULL DEFAULT 'unknown'"),
+    ],
+}
 
 _TRACKING_PARAMS = re.compile(r"^(utm_|fbclid|gclid|yclid|ref$|rss$|from$)", re.I)
 _NON_WORD = re.compile(r"[\W_]+", re.U)
@@ -76,11 +97,39 @@ def title_key(title: str) -> str:
 
 
 class Store:
-    def __init__(self, path: str):
+    def __init__(self, path: str, trust: TrustRegistry | None = None):
         self.path = path
+        self.trust = trust or TrustRegistry()
         self._lock = threading.Lock()
-        with self._conn() as c:
-            c.executescript(SCHEMA)
+        c = self._conn()
+        try:
+            with c:
+                c.executescript(SCHEMA)
+                for table, cols in MIGRATIONS.items():
+                    have = {r["name"] for r in c.execute(f"PRAGMA table_info({table})")}
+                    for name, decl in cols:
+                        if name not in have:
+                            c.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
+                c.execute("CREATE INDEX IF NOT EXISTS idx_articles_topic_trust ON articles(topic_id, trust)")
+        finally:
+            c.close()
+        self.reclassify()
+
+    def reclassify(self) -> int:
+        """Re-rate every stored article, so edits to trust.json apply to history too."""
+
+        def op(c):
+            rows = c.execute("SELECT id, domain, url, trust FROM articles").fetchall()
+            changed = 0
+            for r in rows:
+                domain = r["domain"] or domain_of(r["url"])
+                tier = self.trust.tier(domain)
+                if tier != r["trust"] or domain != r["domain"]:
+                    c.execute("UPDATE articles SET trust = ?, domain = ? WHERE id = ?", (tier, domain, r["id"]))
+                    changed += 1
+            return changed
+
+        return self._write(op)
 
     def _conn(self) -> sqlite3.Connection:
         c = sqlite3.connect(self.path, timeout=30, check_same_thread=False)
@@ -161,8 +210,8 @@ class Store:
                 cur = c.execute(
                     """INSERT OR IGNORE INTO articles
                        (topic_id, url, url_key, title_key, title, summary, source, lang, origin,
-                        published_at, fetched_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        domain, trust, published_at, fetched_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         topic_id,
                         a["url"],
@@ -173,6 +222,8 @@ class Store:
                         a.get("source", ""),
                         a.get("lang", ""),
                         a.get("origin", ""),
+                        (domain := a.get("domain") or domain_of(a["url"])),
+                        self.trust.tier(domain),
                         min(a["published_at"], fetched),  # never trust future dates
                         fetched,
                     ),
@@ -183,9 +234,19 @@ class Store:
         return self._write(op)
 
     def articles(
-        self, topic_id: int, q: str = "", lang: str = "", since: str = "", limit: int = 50, offset: int = 0
+        self,
+        topic_id: int,
+        q: str = "",
+        lang: str = "",
+        since: str = "",
+        tiers: list[str] | None = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> tuple[list[dict], int]:
         where, args = ["topic_id = ?"], [topic_id]
+        if tiers:
+            where.append(f"trust IN ({','.join('?' * len(tiers))})")
+            args += list(tiers)
         if q:
             where.append("(ulower(title) LIKE ? OR ulower(summary) LIKE ? OR ulower(source) LIKE ?)")
             args += [f"%{q.lower()}%"] * 3
@@ -198,31 +259,50 @@ class Store:
         clause = " AND ".join(where)
         total = self._read(f"SELECT COUNT(*) FROM articles WHERE {clause}", tuple(args))[0][0]
         rows = self._read(
-            f"""SELECT id, url, title, summary, source, lang, origin, published_at, fetched_at
+            f"""SELECT id, url, title, summary, source, lang, origin, domain, trust, published_at, fetched_at
                 FROM articles WHERE {clause} ORDER BY published_at DESC, id DESC LIMIT ? OFFSET ?""",
             tuple(args + [limit, offset]),
         )
         return [dict(r) for r in rows], total
 
     def timeline(self, topic_id: int, days: int = 30) -> list[dict]:
+        """Articles per day, total and split by trust tier."""
         start = (datetime.now(timezone.utc) - timedelta(days=days - 1)).date()
         rows = self._read(
-            """SELECT substr(published_at, 1, 10) AS day, COUNT(*) AS n FROM articles
-               WHERE topic_id = ? AND published_at >= ? GROUP BY day""",
+            """SELECT substr(published_at, 1, 10) AS day, trust, COUNT(*) AS n FROM articles
+               WHERE topic_id = ? AND published_at >= ? GROUP BY day, trust""",
             (topic_id, start.isoformat()),
         )
-        counts = {r["day"]: r["n"] for r in rows}
-        return [
-            {"day": (d := (start + timedelta(days=i)).isoformat()), "count": counts.get(d, 0)} for i in range(days)
-        ]
+        by_day: dict[str, dict] = {}
+        for r in rows:
+            by_day.setdefault(r["day"], {})[r["trust"]] = r["n"]
+        out = []
+        for i in range(days):
+            d = (start + timedelta(days=i)).isoformat()
+            tiers = by_day.get(d, {})
+            out.append({"day": d, "count": sum(tiers.values()), "tiers": tiers})
+        return out
+
+    def recent(self, topic_id: int, days: int = 14, limit: int = 1000) -> list[dict]:
+        since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        rows = self._read(
+            """SELECT id, url, title, summary, source, lang, origin, domain, trust, published_at, fetched_at
+               FROM articles WHERE topic_id = ? AND published_at >= ? ORDER BY published_at DESC LIMIT ?""",
+            (topic_id, since, limit),
+        )
+        return [dict(r) for r in rows]
 
     def top_sources(self, topic_id: int, limit: int = 15) -> list[dict]:
         rows = self._read(
-            """SELECT source, COUNT(*) AS n FROM articles WHERE topic_id = ? AND source != ''
+            """SELECT source, MAX(trust) AS trust, COUNT(*) AS n FROM articles WHERE topic_id = ? AND source != ''
                GROUP BY source ORDER BY n DESC LIMIT ?""",
             (topic_id, limit),
         )
-        return [{"source": r["source"], "count": r["n"]} for r in rows]
+        return [{"source": r["source"], "trust": r["trust"], "count": r["n"]} for r in rows]
+
+    def tier_counts(self, topic_id: int) -> dict[str, int]:
+        rows = self._read("SELECT trust, COUNT(*) AS n FROM articles WHERE topic_id = ? GROUP BY trust", (topic_id,))
+        return {r["trust"]: r["n"] for r in rows}
 
     def languages(self, topic_id: int) -> list[dict]:
         rows = self._read(
@@ -235,12 +315,15 @@ class Store:
         day_ago = (now - timedelta(days=1)).isoformat()
         week_ago = (now - timedelta(days=8)).isoformat()
         r = self._read(
-            """SELECT COUNT(*) AS total,
+            f"""SELECT COUNT(*) AS total,
                       SUM(published_at >= ?) AS last24h,
                       SUM(published_at >= ? AND published_at < ?) AS prev7d,
-                      MAX(published_at) AS latest
+                      SUM(trust IN ({','.join('?' * len(TRUSTED))})) AS trusted,
+                      SUM(published_at >= ? AND trust IN ({','.join('?' * len(TRUSTED))})) AS trusted24h,
+                      MAX(published_at) AS latest,
+                      MAX(CASE WHEN trust = 'official' THEN published_at END) AS latest_official
                FROM articles WHERE topic_id = ?""",
-            (day_ago, week_ago, day_ago, topic_id),
+            (day_ago, week_ago, day_ago, *TRUSTED, day_ago, *TRUSTED, topic_id),
         )[0]
         last24h, prev7d = r["last24h"] or 0, r["prev7d"] or 0
         baseline = prev7d / 7
@@ -251,6 +334,9 @@ class Store:
             "last24h": last24h,
             "daily_avg_prev7d": round(baseline, 1),
             "latest": r["latest"],
+            "latest_official": r["latest_official"],
+            "trusted": r["trusted"] or 0,
+            "trusted24h": r["trusted24h"] or 0,
             "spike": spike,
         }
 
@@ -267,3 +353,21 @@ class Store:
     def runs(self, topic_id: int, limit: int = 30) -> list[dict]:
         rows = self._read("SELECT * FROM runs WHERE topic_id = ? ORDER BY id DESC LIMIT ?", (topic_id, limit))
         return [dict(r) for r in rows]
+
+    # --- AI analyses -------------------------------------------------------------------
+
+    def add_analysis(self, topic_id: int, model: str, n_articles: int, result: dict) -> None:
+        self._write(
+            lambda c: c.execute(
+                "INSERT INTO analyses (topic_id, created_at, model, n_articles, result) VALUES (?,?,?,?,?)",
+                (topic_id, now_iso(), model, n_articles, json.dumps(result, ensure_ascii=False)),
+            )
+        )
+
+    def latest_analysis(self, topic_id: int) -> dict | None:
+        rows = self._read("SELECT * FROM analyses WHERE topic_id = ? ORDER BY id DESC LIMIT 1", (topic_id,))
+        if not rows:
+            return None
+        r = dict(rows[0])
+        r["result"] = json.loads(r["result"])
+        return r

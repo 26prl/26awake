@@ -1,0 +1,57 @@
+# Collects news every 30 minutes and publishes the static dashboard to the `site` branch.
+# Point Vercel (or GitHub Pages) at the `site` branch — see README "Deploying".
+name: Collect and publish
+
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the Claude SDK (only used when ANTHROPIC_API_KEY is set)
+        if: env.ANTHROPIC_API_KEY != ''
+        run: pip install -r requirements.txt
+
+      - name: Restore the database from the last run
+        run: |
+          mkdir -p data
+          if git fetch --depth=1 origin site 2>/dev/null; then
+            git show origin/site:.data/tracker.db > data/tracker.db || rm -f data/tracker.db
+          fi
+
+      - name: Collect and export
+        run: python -m tracker --sync-topics --once --export public
+
+      - name: Publish to the site branch
+        run: |
+          mkdir -p public/.data
+          cp data/tracker.db public/.data/tracker.db
+          cp deploy/vercel.json public/vercel.json
+          touch public/.nojekyll
+          cd public
+          git init -q -b site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Data update $(date -u +%Y-%m-%dT%H:%MZ)"
+          # A single fresh commit each time keeps the branch small; the history lives in the database.
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" site

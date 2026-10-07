@@ -7,13 +7,15 @@ import json
 import logging
 import mimetypes
 import re
-from http import HTTPStatus
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+from . import ai, insights
 from .collector import Collector, ValidationError, normalize_topic
 from .store import Store
+from .trust import TIERS, TRUSTED
 
 log = logging.getLogger("tracker.server")
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -33,8 +35,23 @@ def _int(params: dict, key: str, default: int, lo: int, hi: int) -> int:
         raise ApiError(400, f"'{key}' must be an integer") from None
 
 
+def parse_tiers(params: dict) -> list[str] | None:
+    """`?trust=trusted` (official+expert+reputable) or a comma list such as `?trust=official,state`."""
+    raw = params.get("trust", [""])[0].strip()
+    if not raw or raw == "all":
+        return None
+    if raw == "trusted":
+        return list(TRUSTED)
+    tiers = [t for t in raw.split(",") if t]
+    bad = [t for t in tiers if t not in TIERS]
+    if bad:
+        raise ApiError(400, f"unknown trust tier(s): {', '.join(bad)}")
+    return tiers
+
+
 def make_handler(store: Store, collector: Collector, token: str | None):
     routes: list[tuple[str, re.Pattern, callable, bool]] = []
+    analyzing: set[int] = set()
 
     def route(method: str, pattern: str, write: bool = False):
         def deco(fn):
@@ -54,7 +71,11 @@ def make_handler(store: Store, collector: Collector, token: str | None):
 
     @route("GET", r"/api/health")
     def health(_p, _b):
-        return {"ok": True, "write_protected": bool(token)}
+        return {"ok": True, "write_protected": bool(token), "ai": ai.available(), "static": False}
+
+    @route("GET", r"/api/trust")
+    def trust_legend(_p, _b):
+        return store.trust.legend()
 
     @route("GET", r"/api/topics")
     def list_topics(_p, _b):
@@ -97,6 +118,7 @@ def make_handler(store: Store, collector: Collector, token: str | None):
             q=p.get("q", [""])[0].strip(),
             lang=p.get("lang", [""])[0].strip(),
             since=p.get("since", [""])[0].strip(),
+            tiers=parse_tiers(p),
             limit=_int(p, "limit", 50, 1, 200),
             offset=_int(p, "offset", 0, 0, 10**9),
         )
@@ -111,6 +133,37 @@ def make_handler(store: Store, collector: Collector, token: str | None):
     def breakdown(_p, _b, tid):
         topic_or_404(tid)
         return {"sources": store.top_sources(int(tid)), "languages": store.languages(int(tid))}
+
+    @route("GET", r"/api/topics/(\d+)/insights")
+    def topic_insights(p, _b, tid):
+        return insights.build(store, topic_or_404(tid), days=_int(p, "days", 14, 1, 90))
+
+    @route("GET", r"/api/topics/(\d+)/analysis")
+    def analysis(_p, _b, tid):
+        topic_or_404(tid)
+        return {
+            "available": ai.available(),
+            "running": int(tid) in analyzing,
+            "latest": store.latest_analysis(int(tid)),
+        }
+
+    @route("POST", r"/api/topics/(\d+)/analyze", write=True)
+    def analyze(_p, _b, tid):
+        topic = topic_or_404(tid)
+        if not ai.available():
+            raise ApiError(400, "AI analysis needs the 'anthropic' package and ANTHROPIC_API_KEY")
+        if topic["id"] in analyzing:
+            return {"started": False, "reason": "already running"}
+        analyzing.add(topic["id"])
+
+        def work():
+            try:
+                collector.maybe_analyze(topic, force=True)
+            finally:
+                analyzing.discard(topic["id"])
+
+        threading.Thread(target=work, daemon=True).start()
+        return {"started": True}
 
     @route("GET", r"/api/topics/(\d+)/runs")
     def runs(_p, _b, tid):

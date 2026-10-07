@@ -1,0 +1,63 @@
+{
+  "_comment": "Source credibility tiers. Edit freely: a domain matches itself and all its subdomains; 'suffixes' match any domain ending with them. Restart the tracker after editing (existing articles are re-rated on start).",
+  "tiers": {
+    "official": {
+      "label": "Official",
+      "description": "Health authorities, governments and intergovernmental bodies: the primary source of confirmed case data.",
+      "domains": [
+        "who.int", "paho.org", "un.org", "unicef.org",
+        "rospotrebnadzor.ru", "minzdrav.gov.ru", "government.ru", "kremlin.ru", "mchs.gov.ru", "duma.gov.ru",
+        "altai-republic.ru", "rtyva.ru", "egov-buryatia.ru", "e-dag.ru",
+        "cdc.gov", "nih.gov", "hhs.gov", "ecdc.europa.eu", "europa.eu", "gov.uk", "nhs.uk",
+        "moh.gov.mn", "nccd.gov.mn", "gov.kz", "dsm.gov.kz", "nhc.gov.cn", "chinacdc.cn"
+      ],
+      "suffixes": [".gov.ru", ".gov", ".gov.uk", ".gov.kz", ".gov.mn", ".gov.cn", ".europa.eu", ".int", ".rospotrebnadzor.ru"]
+    },
+    "expert": {
+      "label": "Expert",
+      "description": "Infectious-disease surveillance services, research institutes and peer-reviewed journals.",
+      "domains": [
+        "promedmail.org", "isid.org", "cidrap.umn.edu", "outbreak.info",
+        "microbe.ru", "gamaleya.org", "vector.nsc.ru", "crie.ru", "irkutsk-plague.ru",
+        "nature.com", "science.org", "thelancet.com", "nejm.org", "bmj.com", "plos.org", "ncbi.nlm.nih.gov",
+        "statnews.com", "eurosurveillance.org"
+      ],
+      "suffixes": []
+    },
+    "reputable": {
+      "label": "Reputable",
+      "description": "Wire services and established newsrooms with editorial standards and a record of corrections.",
+      "domains": [
+        "reuters.com", "apnews.com", "afp.com", "bloomberg.com", "ft.com",
+        "bbc.com", "bbc.co.uk", "theguardian.com", "nytimes.com", "washingtonpost.com", "wsj.com",
+        "dw.com", "france24.com", "euronews.com", "npr.org", "cnn.com", "nbcnews.com", "cbsnews.com", "abcnews.go.com",
+        "aljazeera.com", "lemonde.fr", "spiegel.de", "zeit.de",
+        "interfax.ru", "interfax.com", "kommersant.ru", "rbc.ru", "vedomosti.ru", "forbes.ru",
+        "meduza.io", "themoscowtimes.com", "novayagazeta.eu", "theins.ru", "bellingcat.com",
+        "tengrinews.kz", "kursiv.media", "akipress.com"
+      ],
+      "suffixes": []
+    },
+    "state": {
+      "label": "State media",
+      "description": "Government-controlled outlets. Usually accurate when relaying official announcements, but editorially controlled — look for confirmation.",
+      "domains": [
+        "tass.ru", "tass.com", "ria.ru", "rg.ru", "1tv.ru", "vesti.ru", "smotrim.ru", "iz.ru", "rt.com",
+        "sputniknews.com", "sputnik.kz", "ntv.ru", "5-tv.ru", "tvzvezda.ru", "pnp.ru",
+        "xinhuanet.com", "news.cn", "cgtn.com", "globaltimes.cn", "kazinform.kz", "montsame.mn"
+      ],
+      "suffixes": []
+    },
+    "low": {
+      "label": "Unreliable",
+      "description": "Tabloids, aggregators of user posts and outlets with a record of fabrication or sensationalism.",
+      "domains": [
+        "dailymail.co.uk", "thesun.co.uk", "express.co.uk", "dailystar.co.uk", "mirror.co.uk", "nypost.com",
+        "life.ru", "mk.ru", "kp.ru", "ren.tv", "tsargrad.tv", "pravda.ru", "topcor.ru", "politros.com",
+        "dzen.ru", "zen.yandex.ru", "pikabu.ru", "t.me", "vk.com",
+        "zerohedge.com", "infowars.com", "naturalnews.com", "thegatewaypundit.com"
+      ],
+      "suffixes": []
+    }
+  }
+}

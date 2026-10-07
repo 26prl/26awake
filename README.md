@@ -1,10 +1,19 @@
 # PlagueWeb — internet topic tracker
 
 A small self-hosted website that keeps watching the internet for the topics you define
-(for example, **plague cases in Russia**), stores every matching article, and shows a live
-dashboard: mentions per day, coverage-spike alerts, top sources, languages and a searchable feed.
+(for example, **plague cases in Russia**), rates every source for trustworthiness, and shows:
 
-No dependencies beyond Python 3.10+ (standard library only: `sqlite3`, `urllib`, `http.server`).
+* **What can be trusted** — stories grouped as *confirmed* (official health authority),
+  *corroborated* (several independent reputable outlets), *single trusted source* or *unverified*.
+* **Statistics** — mentions per day split by source trust, trend (rising / stable / falling),
+  share of trusted coverage, spike alerts, regions mentioned, top sources, languages.
+* **Figures reported by trusted sources** — numbers such as "2 cases" / "14 контактных" pulled
+  from official and reputable reports, each linked to its source.
+* **Official updates** — WHO, Rospotrebnadzor and other health authorities.
+* **AI situation brief** (optional) — Claude reads the last 14 days of articles and writes a summary that
+  keeps confirmed facts apart from unverified claims, with a citation for each point.
+
+The tracker uses the Python standard library only (3.10+). The AI brief additionally needs `pip install anthropic`.
 
 ## Quick start
 
@@ -20,27 +29,46 @@ and a background collector checks each topic every `interval_minutes` (default 3
 | `--host` / `HOST`, `--port` / `PORT` | where to listen (default `127.0.0.1:8000`) |
 | `--db` / `TRACKER_DB` | SQLite file (default `data/tracker.db`) |
 | `--seed` / `TRACKER_SEED` | starter topics file, used only when the DB has no topics |
+| `--trust` / `TRACKER_TRUST` | source ratings file (default `trust.json`) |
 | `TRACKER_TOKEN` | if set, creating/editing/deleting/refreshing topics requires this token (set it whenever the site is public) |
-| `--once` | collect every topic once and exit — use with cron instead of the built-in scheduler |
+| `ANTHROPIC_API_KEY` | enables the AI situation brief |
+| `TRACKER_AI_EVERY_HOURS` | regenerate the brief at most this often, after new articles arrive (default 6) |
+| `--once` | collect every topic once and exit |
+| `--sync-topics` | apply `topics.json` to an existing database (update by name, add new) |
+| `--export DIR` | write a static copy of the dashboard to `DIR` (combine with `--once`) |
 | `--no-collector` | serve the dashboard without fetching |
-
-Docker:
-
-```bash
-docker build -t plagueweb .
-docker run -d -p 8000:8000 -v plagueweb-data:/data -e TRACKER_TOKEN=change-me plagueweb
-```
 
 ## Where the data comes from
 
 | Source | What it covers |
 | --- | --- |
-| **Google News RSS** | search per query and language/region (`ru`, `en`, `uk`, `de`, `fr`, `es`, `kk`), last 7 days |
+| **WHO** | Disease Outbreak News (official outbreak notices) and WHO news releases |
+| **Google News RSS** | search per query and language/region (`ru`, `en`, `uk`, `de`, `fr`, `es`, `kk`), last 7 days; the real publisher is recorded, not news.google.com |
 | **GDELT DOC API** | global news index updated every 15 minutes, many languages (throttled to 1 request / 6 s) |
-| **Any RSS/Atom feed** | e.g. Rospotrebnadzor, WHO Disease Outbreak News, regional news sites |
+| **Any RSS/Atom feed** | e.g. regional news sites or a health agency's feed |
 
 Every result is filtered by the topic's keyword rules and de-duplicated (by normalised URL
 and by headline, so syndicated copies and the same story found by several queries count once).
+
+## How trust is decided
+
+Each article is rated by its publisher's domain using `trust.json`:
+
+| Tier | Examples | Counts as trusted |
+| --- | --- | --- |
+| Official | who.int, rospotrebnadzor.ru (and regional offices), cdc.gov, ecdc.europa.eu, `*.gov.ru` | ✔ |
+| Expert | ProMED, CIDRAP, anti-plague institutes, medical journals | ✔ |
+| Reputable | Reuters, AP, BBC, Interfax, Kommersant, RBC, Meduza | ✔ |
+| State media | TASS, RIA Novosti, RT, Xinhua — usually accurate when relaying officials, but editorially controlled | ✘ |
+| Unverified | anything not in the list | ✘ |
+| Unreliable | tabloids, user-post platforms, known fabricators | ✘ |
+
+A story's confidence comes from **who** reports it, not how often: headlines about the same event are grouped,
+and the group is *confirmed* if an official source is in it, *corroborated* with two or more independent trusted
+outlets, *single trusted source* with one, and *unverified* otherwise. Edit `trust.json` to add or move sources;
+existing articles are re-rated when the tracker restarts.
+
+These ratings are a starting point, not a verdict on any outlet; check the links before relying on a report.
 
 ## Defining a topic
 
@@ -51,20 +79,57 @@ Use **+ New topic** in the UI, or put it in `topics.json`:
   "name": "Plague in Russia",
   "queries": [{ "q": "чума Россия", "lang": "ru" }, { "q": "plague Russia", "lang": "en" }],
   "gdelt":   ["plague (Russia OR Altai OR Tuva)"],
+  "who":     true,
   "feeds":   [],
   "match":   [["чум", "plague", "бубон"], ["росси", "russia", "алта", "altai", "тыв", "tuva"]],
   "exclude": ["чумовой", "plague inc"],
+  "facets":  { "Altai Republic": ["алта", "altai"], "Tuva": ["тыв", "tuva"] },
   "interval_minutes": 30
 }
 ```
 
-* `match` — a list of keyword groups. **Every group must hit** at least one of its keywords
+* `match` — keyword groups. **Every group must hit** at least one of its keywords
   (case-insensitive substring), so word stems like `чум` cover `чума / чумы / чумой`.
 * `exclude` — drop an article if any of these appear (filters slang like *«чумовой»* or games).
-* Feeds require `match` rules, otherwise every item in the feed would be kept.
+* `facets` — named keyword lists counted in the "Regions mentioned" table.
+* WHO and feeds require `match` rules, otherwise every item would be kept.
 
-A **spike** is flagged when the last 24 h has ≥ 5 articles and at least twice the previous
-week's daily average.
+`topics.json` is read into a new, empty database. To push edits from the file into an existing database
+(update topics by name, add new ones), run with `--sync-topics`.
+
+## Deploying
+
+The tracker needs to **run continuously** (to collect every 30 minutes) and **keep its database**.
+Vercel can't do either: functions stop after each request and have no persistent disk. Two options:
+
+### Option A — Vercel (free): GitHub Actions collects, Vercel serves
+
+`.github/workflows/collect.yml` runs every 30 minutes on GitHub's servers, collects the news, keeps the
+database, and pushes a static copy of the dashboard to a branch named `site`. Vercel serves that branch.
+
+1. Merge this code into the repository's **default branch** (GitHub only runs scheduled workflows from there).
+2. GitHub → **Actions** → *Collect and publish* → **Run workflow** once. This creates the `site` branch.
+3. Optional: GitHub → Settings → Secrets and variables → Actions → add `ANTHROPIC_API_KEY` for the AI brief.
+4. [vercel.com](https://vercel.com) → **Add New… → Project** → import this repository →
+   Framework preset **Other**, leave the build command empty → **Deploy**.
+5. Vercel project → **Settings → Git → Production Branch** → `site`, then redeploy.
+
+From then on, every run pushes to `site` and Vercel publishes it automatically (~48 deploys a day, within the
+free Hobby limit). The page is read-only: to add or change topics or source ratings, edit `topics.json` /
+`trust.json` on the default branch — the next run applies them (`--sync-topics`). GitHub's cron can be a few
+minutes late, and GitHub pauses scheduled workflows in repositories with no activity for 60 days.
+
+GitHub Pages works the same way: Settings → Pages → Deploy from branch → `site` / root.
+
+### Option B — Full app on a server (live editing, refresh button)
+
+Any host that runs Docker with a persistent disk: Render, Railway, Fly.io, or a small VPS.
+
+```bash
+docker build -t plagueweb .
+docker run -d -p 8000:8000 -v plagueweb-data:/data \
+  -e TRACKER_TOKEN=change-me -e ANTHROPIC_API_KEY=sk-ant-... plagueweb
+```
 
 ## API
 
@@ -74,10 +139,13 @@ week's daily average.
 | POST | `/api/topics` | create (JSON body as above) |
 | PUT / DELETE | `/api/topics/{id}` | update / delete |
 | POST | `/api/topics/{id}/refresh` | collect now |
-| GET | `/api/topics/{id}/articles?q=&lang=&since=&limit=&offset=` | feed |
-| GET | `/api/topics/{id}/timeline?days=30` | mentions per day |
+| GET | `/api/topics/{id}/articles?q=&lang=&trust=&since=&limit=&offset=` | feed; `trust=trusted` or e.g. `trust=official,expert` |
+| GET | `/api/topics/{id}/insights` | stories with confidence, trend, regions, figures, official updates |
+| GET | `/api/topics/{id}/analysis` · POST `/analyze` | latest AI brief · generate a new one |
+| GET | `/api/topics/{id}/timeline?days=30` | mentions per day, split by trust tier |
 | GET | `/api/topics/{id}/breakdown` | top sources and languages |
 | GET | `/api/topics/{id}/runs` | collection log (errors per source) |
+| GET | `/api/trust` | trust tiers and their descriptions |
 
 Write endpoints need `Authorization: Bearer $TRACKER_TOKEN` when a token is configured.
 
@@ -87,4 +155,4 @@ Write endpoints need `Authorization: Bearer $TRACKER_TOKEN` when a token is conf
 python -m unittest -v
 ```
 
-Tests run offline against recorded Google News / GDELT / Atom fixtures.
+Tests run offline against recorded Google News / GDELT / WHO / Atom fixtures; the Claude call is mocked.

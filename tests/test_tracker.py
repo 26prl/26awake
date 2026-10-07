@@ -123,6 +123,10 @@ class CollectorAndApiTests(unittest.TestCase):
             return (FIX / "google_news.xml").read_bytes()
         if "gdeltproject" in url:
             return (FIX / "gdelt.json").read_bytes()
+        if "diseaseoutbreaknews" in url:
+            return (FIX / "who_don.json").read_bytes()
+        if "who.int/rss-feeds" in url:
+            return (FIX / "atom.xml").read_bytes()
         raise urllib.error.URLError("offline")
 
     def collect(self):
@@ -131,9 +135,11 @@ class CollectorAndApiTests(unittest.TestCase):
 
     def test_collect_dedupes_across_queries(self):
         result = self.collect()
-        # 5 Google queries return the same 2 relevant items; GDELT adds 1 real + 1 sports false-positive.
+        # 5 Google queries return the same 2 relevant items; GDELT adds 1 real + 1 sports false-positive;
+        # WHO DON adds 1, and the same notice in the WHO news feed is deduplicated by headline.
         self.assertEqual(result["errors"], 0)
-        self.assertEqual(self.store.stats(self.topic["id"])["total"], 4)
+        self.assertEqual(self.store.stats(self.topic["id"])["total"], 5)
+        self.assertEqual(self.store.stats(self.topic["id"])["latest_official"][:10], "2026-10-04")
         self.assertEqual(self.collect()["added"], 0)
         self.assertIsNotNone(self.store.get_topic(self.topic["id"])["last_run_at"])
 
@@ -170,13 +176,21 @@ class CollectorAndApiTests(unittest.TestCase):
         base = self._server()
         status, topics = self.req(f"{base}/api/topics")
         self.assertEqual(status, 200)
-        self.assertEqual(topics[0]["stats"]["total"], 4)
+        self.assertEqual(topics[0]["stats"]["total"], 5)
         tid = topics[0]["id"]
 
         status, page = self.req(f"{base}/api/topics/{tid}/articles?q=%D0%A2%D1%83%D0%B2")  # "Тув"
         self.assertEqual((status, page["total"]), (200, 1))
         status, timeline = self.req(f"{base}/api/topics/{tid}/timeline?days=7")
         self.assertEqual(len(timeline), 7)
+        status, page = self.req(f"{base}/api/topics/{tid}/articles?trust=state")  # ria.ru + tass.ru
+        self.assertEqual((status, page["total"]), (200, 2))
+        self.assertEqual(self.req(f"{base}/api/topics/{tid}/articles?trust=bogus")[0], 400)
+        status, ins = self.req(f"{base}/api/topics/{tid}/insights")
+        self.assertEqual(status, 200)
+        self.assertIn("stories", ins)
+        status, legend = self.req(f"{base}/api/trust")
+        self.assertEqual(legend[0]["tier"], "official")
         self.assertEqual(self.req(f"{base}/api/topics/999")[0], 404)
         self.assertEqual(self.req(f"{base}/api/topics", "POST", {"name": ""})[0], 400)
 
@@ -201,3 +215,163 @@ class CollectorAndApiTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TrustTests(unittest.TestCase):
+    def setUp(self):
+        from tracker.trust import TrustRegistry
+
+        self.reg = TrustRegistry()
+
+    def test_tiers(self):
+        self.assertEqual(self.reg.tier("who.int"), "official")
+        self.assertEqual(self.reg.tier("04.rospotrebnadzor.ru"), "official")
+        self.assertEqual(self.reg.tier("www.reuters.com"), "reputable")
+        self.assertEqual(self.reg.tier("tass.ru"), "state")
+        self.assertEqual(self.reg.tier("dailymail.co.uk"), "low")
+        self.assertEqual(self.reg.tier("random-blog.net"), "unknown")
+        self.assertEqual(self.reg.tier(""), "unknown")
+
+    def test_google_news_uses_publisher_domain(self):
+        items = sources.parse_google_news((FIX / "google_news.xml").read_bytes(), "ru")
+        self.assertEqual([a["domain"] for a in items], ["ria.ru", "afisha.ru", "tass.ru"])
+
+    def test_who_don(self):
+        items = sources.parse_who_don((FIX / "who_don.json").read_bytes())
+        self.assertEqual(items[0]["url"], "https://www.who.int/emergencies/disease-outbreak-news/item/2026-DON601")
+        self.assertEqual(items[0]["domain"], "who.int")
+        self.assertIn("Altai Republic", items[0]["summary"])
+        topic = normalize_topic(SEED)
+        self.assertEqual([matches(topic, a) for a in items], [True, False])
+
+
+class InsightTests(unittest.TestCase):
+    def art(self, i, title, domain, trust, day="2026-10-05"):
+        return {"id": i, "title": title, "url": f"https://{domain}/{i}", "source": domain, "domain": domain,
+                "trust": trust, "summary": "", "published_at": f"{day}T10:00:00+00:00"}
+
+    def test_cluster_levels(self):
+        from tracker.insights import cluster
+
+        arts = [
+            self.art(1, "В Республике Алтай выявили случай бубонной чумы", "rospotrebnadzor.ru", "official"),
+            self.art(2, "В Республике Алтай выявили случай бубонной чумы у подростка", "tass.ru", "state"),
+            self.art(3, "Russia confirms bubonic plague case in Altai", "reuters.com", "reputable"),
+            self.art(4, "Russia confirms bubonic plague case in Altai teenager", "apnews.com", "reputable"),
+            self.art(5, "Plague spreads to Kazakhstan border, sources say", "blog.example", "unknown"),
+        ]
+        stories = cluster(arts)
+        self.assertEqual(len(stories), 3)
+        level = {c["title"].split()[0]: c["level"] for c in stories}
+        self.assertEqual(level, {"В": "confirmed", "Russia": "corroborated", "Plague": "unverified"})
+
+    def test_figures_only_from_trusted(self):
+        from tracker.insights import reported_figures
+
+        arts = [
+            self.art(1, "Роспотребнадзор: 2 случая чумы в Туве", "rospotrebnadzor.ru", "official"),
+            self.art(2, "1000 deaths from plague!!!", "tabloid.example", "low"),
+            self.art(3, "Plague in 2026: 3 cases confirmed", "reuters.com", "reputable"),
+        ]
+        figs = {(f["value"], f["source"]) for f in reported_figures(arts)}
+        self.assertEqual(figs, {(2, "rospotrebnadzor.ru"), (3, "reuters.com")})
+
+    def test_trend(self):
+        from tracker.insights import trend
+
+        tl = [{"count": 1}] * 7 + [{"count": 5}] * 3
+        self.assertEqual(trend(tl)["direction"], "rising")
+        self.assertEqual(trend([{"count": 0}] * 10)["direction"], "quiet")
+
+
+class UpgradeAndExportTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.db = str(Path(self.tmp.name) / "t.db")
+
+    def test_old_database_is_migrated_and_rated(self):
+        import sqlite3
+
+        c = sqlite3.connect(self.db)
+        c.executescript("""
+            CREATE TABLE topics (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE NOT NULL, config TEXT NOT NULL,
+                                 created_at TEXT NOT NULL, last_run_at TEXT);
+            CREATE TABLE articles (id INTEGER PRIMARY KEY AUTOINCREMENT, topic_id INTEGER NOT NULL, url TEXT NOT NULL,
+                url_key TEXT NOT NULL, title_key TEXT NOT NULL, title TEXT NOT NULL, summary TEXT NOT NULL DEFAULT '',
+                source TEXT NOT NULL DEFAULT '', lang TEXT NOT NULL DEFAULT '', origin TEXT NOT NULL DEFAULT '',
+                published_at TEXT NOT NULL, fetched_at TEXT NOT NULL);
+            INSERT INTO topics VALUES (1, 'old', '{"name":"old","queries":[],"gdelt":[],"feeds":[],"match":[],"exclude":[],"interval_minutes":30,"enabled":true}', '2026-01-01', NULL);
+            INSERT INTO articles (topic_id, url, url_key, title_key, title, published_at, fetched_at)
+                VALUES (1, 'https://www.reuters.com/x', 'k', 't', 'Plague', '2026-10-01', '2026-10-01');
+        """)
+        c.close()
+        store = Store(self.db)
+        items, _ = store.articles(1)
+        self.assertEqual((items[0]["domain"], items[0]["trust"]), ("reuters.com", "reputable"))
+
+    def test_export(self):
+        from tracker.export import export_site
+
+        store = Store(self.db)
+        topic = store.create_topic(normalize_topic(SEED))
+        store.add_articles(topic["id"], [{"url": "https://who.int/x", "title": "Plague in Altai", "published_at": "2026-10-05T00:00:00+00:00"}])
+        out = export_site(store, Path(self.tmp.name) / "site")
+        site = json.loads((out / "data" / "site.json").read_text(encoding="utf-8"))
+        data = json.loads((out / "data" / f"topic-{topic['id']}.json").read_text(encoding="utf-8"))
+        self.assertTrue((out / "index.html").exists())
+        self.assertEqual(site["topics"][0]["stats"]["total"], 1)
+        self.assertEqual(data["articles"][0]["trust"], "official")
+        self.assertEqual(len(data["timeline"]), 90)
+
+
+class AiTests(unittest.TestCase):
+    def test_brief_keeps_only_valid_citations(self):
+        from types import SimpleNamespace
+
+        from tracker import ai
+
+        brief = {"summary": "s", "status": "isolated_cases", "confidence": "medium",
+                 "confirmed_facts": [{"fact": "one case", "ids": [1, 999]}], "unverified_claims": [],
+                 "key_figures": [], "locations": [], "watch_next": [], "background": ""}
+        response = SimpleNamespace(stop_reason="end_turn", model="claude-opus-5-5",
+                                   content=[SimpleNamespace(type="text", text=json.dumps(brief))])
+        fake = mock.MagicMock()
+        fake.Anthropic.return_value.beta.messages.create.return_value = response
+        arts = [{"id": 1, "title": "Чума на Алтае", "url": "https://who.int/1", "source": "WHO", "trust": "official",
+                 "summary": "", "published_at": "2026-10-05T00:00:00+00:00"}]
+        with mock.patch.dict("sys.modules", {"anthropic": fake}):
+            out, model = ai.analyze({"name": "t"}, arts)
+        kwargs = fake.Anthropic.return_value.beta.messages.create.call_args.kwargs
+        self.assertEqual(kwargs["output_config"]["format"]["type"], "json_schema")
+        self.assertEqual(out["confirmed_facts"][0]["ids"], [1])
+        self.assertIn("1", out["cited"])
+        self.assertEqual(model, "claude-opus-5-5")
+
+    def test_refusal_raises(self):
+        from types import SimpleNamespace
+
+        from tracker import ai
+
+        fake = mock.MagicMock()
+        fake.Anthropic.return_value.beta.messages.create.return_value = SimpleNamespace(stop_reason="refusal", content=[])
+        arts = [{"id": 1, "title": "x", "url": "u", "source": "s", "trust": "unknown", "summary": "", "published_at": "2026"}]
+        with mock.patch.dict("sys.modules", {"anthropic": fake}), self.assertRaises(ai.AnalysisError):
+            ai.analyze({"name": "t"}, arts)
+
+
+class SyncTopicsTests(unittest.TestCase):
+    def test_sync_updates_by_name_and_adds(self):
+        from tracker.__main__ import sync_topics
+
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Store(str(Path(tmp) / "t.db"))
+            old = store.create_topic(normalize_topic({**SEED, "who": False, "interval_minutes": 60}))
+            seed_file = Path(tmp) / "topics.json"
+            seed_file.write_text(json.dumps([SEED, {"name": "Bird flu", "queries": ["H5N1"]}]), encoding="utf-8")
+            sync_topics(store, seed_file)
+            topics = {t["name"]: t for t in store.list_topics()}
+            self.assertEqual(topics["Plague in Russia"]["id"], old["id"])
+            self.assertTrue(topics["Plague in Russia"]["who"])
+            self.assertEqual(topics["Plague in Russia"]["interval_minutes"], 30)
+            self.assertIn("Bird flu", topics)

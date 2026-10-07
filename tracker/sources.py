@@ -75,6 +75,11 @@ def parse_date(value: str | None) -> str:
     return to_iso(None)
 
 
+def domain_of(url: str) -> str:
+    host = urllib.parse.urlsplit(url).hostname or ""
+    return host.lower().removeprefix("www.")
+
+
 def _local(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
 
@@ -116,16 +121,19 @@ def parse_feed(data: bytes, origin: str, lang: str = "") -> list[dict]:
         if not title or not link:
             continue
         source_el = _child(it, "source")
-        source = ""
+        source, source_url = "", ""
         if source_el is not None:
             source = (source_el.text or "").strip() or _child_text(source_el, "title")
+            source_url = source_el.get("url", "")
         summary = clean_text(_child_text(it, "description", "summary", "content"))
         out.append(
             {
                 "url": link,
                 "title": title,
                 "summary": summary,
-                "source": source or feed_title or urllib.parse.urlparse(link).netloc,
+                "source": source or feed_title or domain_of(link),
+                # Google News links point at news.google.com; <source url> names the real publisher.
+                "domain": domain_of(source_url or link),
                 "published_at": parse_date(_child_text(it, "pubDate", "published", "updated", "date")),
                 "lang": lang,
                 "origin": origin,
@@ -197,6 +205,7 @@ def parse_gdelt(data: bytes) -> list[dict]:
                 "title": clean_text(a["title"], 400),
                 "summary": "",
                 "source": a.get("domain", ""),
+                "domain": (a.get("domain") or domain_of(a["url"])).lower().removeprefix("www."),
                 "published_at": parse_date(a.get("seendate")),
                 "lang": GDELT_LANGS.get((a.get("language") or "").lower(), (a.get("language") or "")[:2].lower()),
                 "origin": "gdelt",
@@ -207,6 +216,57 @@ def parse_gdelt(data: bytes) -> list[dict]:
 
 def fetch_gdelt(query: str) -> list[dict]:
     return parse_gdelt(http_get(gdelt_url(query)))
+
+
+# --- World Health Organization -----------------------------------------------------------
+
+WHO_DON_API = (
+    "https://www.who.int/api/news/diseaseoutbreaknews"
+    "?sf_culture=en&$orderby=PublicationDateAndTime%20desc&$top=50"
+)
+WHO_NEWS_RSS = "https://www.who.int/rss-feeds/news-english.xml"
+WHO_DON_PAGE = "https://www.who.int/emergencies/disease-outbreak-news/item/"
+
+
+def parse_who_don(data: bytes) -> list[dict]:
+    """WHO Disease Outbreak News: official outbreak reports, JSON from the who.int content API."""
+    payload = json.loads(data.decode("utf-8", "replace"))
+    out = []
+    for item in payload.get("value", []) or []:
+        title = clean_text(item.get("Title") or item.get("OverrideTitle"), 400)
+        slug = item.get("UrlName") or ""
+        url = item.get("ItemDefaultUrl") or ""
+        if url.startswith("/"):
+            url = WHO_DON_PAGE + url.strip("/").rsplit("/", 1)[-1]
+        elif not url and slug:
+            url = WHO_DON_PAGE + slug
+        if not title or not url:
+            continue
+        summary = clean_text(item.get("Summary") or item.get("Overview") or item.get("Epidemiology") or "")
+        out.append(
+            {
+                "url": url,
+                "title": title,
+                "summary": summary,
+                "source": "WHO Disease Outbreak News",
+                "domain": "who.int",
+                "published_at": parse_date(item.get("PublicationDateAndTime") or item.get("PublicationDate")),
+                "lang": "en",
+                "origin": "who",
+            }
+        )
+    return out
+
+
+def fetch_who_don() -> list[dict]:
+    return parse_who_don(http_get(WHO_DON_API))
+
+
+def fetch_who_news() -> list[dict]:
+    items = parse_feed(http_get(WHO_NEWS_RSS), origin="who", lang="en")
+    for a in items:
+        a["source"], a["domain"] = "WHO", "who.int"
+    return items
 
 
 # --- Arbitrary RSS / Atom feed (filtered by keywords later) -----------------------------

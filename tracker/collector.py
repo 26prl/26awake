@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 from datetime import datetime, timedelta, timezone
 
-from . import sources
+from . import ai, sources
+from .insights import is_stale
 from .store import Store
 
 log = logging.getLogger("tracker.collector")
@@ -15,6 +17,7 @@ log = logging.getLogger("tracker.collector")
 DEFAULT_INTERVAL = 30  # minutes
 MIN_INTERVAL = 5
 GDELT_PAUSE = 6  # seconds; GDELT asks for at most one request every 5 seconds
+AI_EVERY_HOURS = float(os.environ.get("TRACKER_AI_EVERY_HOURS", "6"))
 
 
 class ValidationError(ValueError):
@@ -61,8 +64,17 @@ def normalize_topic(data: dict) -> dict:
             raise ValidationError(f"feed '{f}' must be an http(s) URL")
 
     gdelt = _str_list(data.get("gdelt"), "gdelt")
-    if not (queries or feeds or gdelt):
-        raise ValidationError("add at least one search query, GDELT query or feed")
+    who = bool(data.get("who", False))
+    if not (queries or feeds or gdelt or who):
+        raise ValidationError("add at least one search query, GDELT query, feed or the WHO source")
+    if who and not match:
+        raise ValidationError("the WHO source needs 'match' keywords, otherwise every WHO item is kept")
+
+    facets = data.get("facets") or {}
+    if not isinstance(facets, dict):
+        raise ValidationError("'facets' must map a name to a list of keywords")
+    facets = {str(k).strip(): _str_list(v, "facets") for k, v in facets.items() if str(k).strip()}
+    facets = {k: v for k, v in facets.items() if v}
     if feeds and not match:
         raise ValidationError("topics with feeds need 'match' keywords, otherwise every feed item is kept")
 
@@ -77,7 +89,9 @@ def normalize_topic(data: dict) -> dict:
         "queries": queries,
         "gdelt": gdelt,
         "feeds": feeds,
+        "who": who,
         "match": match,
+        "facets": facets,
         "exclude": _str_list(data.get("exclude"), "exclude"),
         "interval_minutes": max(MIN_INTERVAL, interval),
         "enabled": bool(data.get("enabled", True)),
@@ -99,6 +113,9 @@ def jobs_for(topic: dict) -> list[tuple[str, callable]]:
         jobs.append((f"google_news[{q['lang']}]: {q['q']}", lambda q=q: sources.fetch_google_news(q["q"], q["lang"])))
     for g in topic["gdelt"]:
         jobs.append((f"gdelt: {g}", lambda g=g: sources.fetch_gdelt(g)))
+    if topic.get("who"):
+        jobs.append(("who: disease outbreak news", sources.fetch_who_don))
+        jobs.append(("who: news", sources.fetch_who_news))
     for f in topic["feeds"]:
         jobs.append((f"rss: {f}", lambda f=f: sources.fetch_rss(f)))
     return jobs
@@ -141,10 +158,23 @@ class Collector:
                     self.store.add_run(topic["id"], label, False, 0, 0, f"{type(e).__name__}: {e}"[:500])
                     log.warning("%s | %s failed: %s", topic["name"], label, e)
             self.store.mark_run(topic["id"])
+            if summary["added"] and ai.available():
+                self.maybe_analyze(topic)
         finally:
             with self._busy_lock:
                 self._busy.discard(topic["id"])
         return summary
+
+    def maybe_analyze(self, topic: dict, force: bool = False) -> dict | None:
+        last = self.store.latest_analysis(topic["id"])
+        if not force and last and not is_stale(last["created_at"], AI_EVERY_HOURS):
+            return None
+        try:
+            return ai.run(self.store, topic)
+        except Exception as e:
+            log.warning("%s | AI analysis failed: %s", topic["name"], e)
+            self.store.add_run(topic["id"], "ai analysis", False, 0, 0, f"{type(e).__name__}: {e}"[:500])
+            return None
 
     def collect_async(self, topic: dict) -> None:
         threading.Thread(target=self.collect, args=(topic,), daemon=True).start()
