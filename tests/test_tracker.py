@@ -384,3 +384,34 @@ class SyncTopicsTests(unittest.TestCase):
             self.assertTrue(topics["Plague in Russia"]["who"])
             self.assertEqual(topics["Plague in Russia"]["interval_minutes"], 30)
             self.assertIn("Bird flu", topics)
+
+
+class HttpRetryTests(unittest.TestCase):
+    def test_retries_once_on_429(self):
+        import io
+
+        calls = []
+
+        class Resp(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        def fake_urlopen(req, timeout):
+            calls.append(1)
+            if len(calls) == 1:
+                raise urllib.error.HTTPError(req.full_url, 429, "Too Many Requests", {"Retry-After": "0"}, None)
+            return Resp(b"ok")
+
+        with mock.patch("urllib.request.urlopen", fake_urlopen), mock.patch("time.sleep"):
+            self.assertEqual(sources.http_get("https://api.gdeltproject.org/x"), b"ok")
+        self.assertEqual(len(calls), 2)
+
+    def test_other_errors_are_not_retried(self):
+        def fake_urlopen(req, timeout):
+            raise urllib.error.HTTPError(req.full_url, 404, "Not Found", {}, None)
+
+        with mock.patch("urllib.request.urlopen", fake_urlopen), self.assertRaises(urllib.error.HTTPError):
+            sources.http_get("https://example.com/x")

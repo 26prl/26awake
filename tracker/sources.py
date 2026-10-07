@@ -10,6 +10,8 @@ import email.utils
 import html
 import json
 import re
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -17,6 +19,7 @@ from datetime import datetime, timezone
 
 USER_AGENT = "Mozilla/5.0 (compatible; PlagueWebTracker/0.1; +https://github.com/26prl/plagueweb)"
 TIMEOUT = 25
+RETRY_WAIT = 15  # seconds
 
 # Google News region settings per language: (hl, gl, ceid)
 GOOGLE_NEWS_LOCALES = {
@@ -33,10 +36,19 @@ _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
 
 
-def http_get(url: str) -> bytes:
+def http_get(url: str, retries: int = 1) -> bytes:
+    """GET with one retry on rate limiting / temporary unavailability (GDELT often answers 429)."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "*/*"})
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
-        return resp.read()
+    for attempt in range(retries + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+                return resp.read()
+        except urllib.error.HTTPError as e:
+            if e.code not in (429, 503) or attempt == retries:
+                raise
+            retry_after = e.headers.get("Retry-After", "")
+            time.sleep(min(int(retry_after), 30) if retry_after.isdigit() else RETRY_WAIT)
+    raise AssertionError("unreachable")
 
 
 def clean_text(value: str | None, limit: int = 600) -> str:
