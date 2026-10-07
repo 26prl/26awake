@@ -18,8 +18,8 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
 USER_AGENT = "Mozilla/5.0 (compatible; PlagueWebTracker/0.1; +https://github.com/26prl/plagueweb)"
-TIMEOUT = 25
-RETRY_WAIT = 15  # seconds
+TIMEOUT = 15
+RETRY_WAIT = 5  # seconds; GDELT often refuses shared GitHub servers, so fail fast rather than hold up a check
 
 # Google News region settings per language: (hl, gl, ceid)
 GOOGLE_NEWS_LOCALES = {
@@ -47,7 +47,7 @@ def http_get(url: str, retries: int = 1) -> bytes:
             if e.code not in (429, 503) or attempt == retries:
                 raise
             retry_after = e.headers.get("Retry-After", "")
-            time.sleep(min(int(retry_after), 30) if retry_after.isdigit() else RETRY_WAIT)
+            time.sleep(min(int(retry_after), 10) if retry_after.isdigit() else RETRY_WAIT)
     raise AssertionError("unreachable")
 
 

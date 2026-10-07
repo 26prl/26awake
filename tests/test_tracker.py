@@ -148,6 +148,21 @@ class CollectorAndApiTests(unittest.TestCase):
         self.assertIsNotNone(topic["last_run_at"])
         self.assertEqual(topic["last_run_added"], 0)
 
+    def test_sources_are_fetched_in_parallel(self):
+        import time
+
+        def slow_get(url):
+            time.sleep(0.4)
+            return self.fake_get(url)
+
+        topic = self.store.update_topic(self.topic["id"], normalize_topic({**SEED, "gdelt": [], "who": False}))
+        with mock.patch.object(sources, "http_get", slow_get):
+            started = time.monotonic()
+            result = self.collector.collect(topic)
+            elapsed = time.monotonic() - started
+        self.assertEqual(result["errors"], 0)
+        self.assertLess(elapsed, 1.2)  # five 0.4 s searches, one after another, would take 2 s
+
     def test_failing_source_is_logged_not_fatal(self):
         def broken(url):
             if "gdelt" in url:

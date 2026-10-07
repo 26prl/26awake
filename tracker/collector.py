@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+from concurrent.futures import ThreadPoolExecutor
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -156,12 +157,25 @@ class Collector:
             self._busy.add(topic["id"])
         summary = {"found": 0, "added": 0, "errors": 0}
         started = now_iso()
+        def fetch_one(job):
+            label, fetch = job
+            try:
+                if label.startswith("gdelt"):
+                    self._gdelt_throttle()
+                return label, fetch(), None
+            except Exception as e:  # one broken source must not stop the others
+                return label, None, e
+
         try:
-            for label, fetch in jobs_for(topic):
+            # Download every source at the same time (a slow one no longer holds up the rest),
+            # then store the results one by one.
+            jobs = jobs_for(topic)
+            with ThreadPoolExecutor(max_workers=max(1, min(8, len(jobs)))) as pool:
+                results = list(pool.map(fetch_one, jobs))
+            for label, items, error in results:
                 try:
-                    if label.startswith("gdelt"):
-                        self._gdelt_throttle()
-                    items = fetch()
+                    if error:
+                        raise error
                     kept = [a for a in items if matches(topic, a)]
                     added = self.store.add_articles(topic["id"], kept)
                     self.store.add_run(topic["id"], label, True, len(kept), added, None, fetched=len(items))

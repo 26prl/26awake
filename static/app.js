@@ -755,8 +755,8 @@ function fmtCountdown(ms) {
 }
 
 const CHECK_WINDOW_MS = 4 * 60_000; // how long to wait for a check's results after its scheduled minute
-const POLL_START_MS = 40_000;       // a check takes about a minute, so don't ask GitHub straight away
-const POLL_EVERY_MS = 35_000;       // at most ~6 GitHub calls per check, inside its 60-an-hour allowance
+const POLL_START_MS = 15_000;       // a check takes ~20-30 s, so start asking GitHub shortly after the minute
+const POLL_EVERY_MS = 10_000;       // "not modified" answers don't count against GitHub's 60-an-hour allowance
 const sync = { phase: "idle", slot: 0, startedAt: 0, lastPoll: 0, doneSlot: 0, busy: false, wasCollecting: false };
 
 // The scheduled check minutes just before and after `now`.
@@ -867,7 +867,7 @@ function tick() {
 
   if (sync.phase === "checking") {
     const elapsed = now - (state.mode === "static" ? sync.slot : sync.startedAt);
-    const fraction = 0.92 * (1 - Math.exp(-elapsed / 45_000)); // eases towards 92% until results arrive
+    const fraction = 0.92 * (1 - Math.exp(-elapsed / 18_000)); // eases towards 92% until results arrive
     setBar(fraction);
     next.classList.add("due");
     next.replaceChildren(pulse, `Checking for news… ${Math.round(fraction * 100)}%`);
