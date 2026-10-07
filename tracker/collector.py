@@ -150,10 +150,10 @@ class Collector:
                     items = fetch()
                     kept = [a for a in items if matches(topic, a)]
                     added = self.store.add_articles(topic["id"], kept)
-                    self.store.add_run(topic["id"], label, True, len(kept), added, None)
+                    self.store.add_run(topic["id"], label, True, len(kept), added, None, fetched=len(items))
                     summary["found"] += len(kept)
                     summary["added"] += added
-                    log.info("%s | %s: %d matched, %d new", topic["name"], label, len(kept), added)
+                    log.info("%s | %s: %d fetched, %d matched, %d new", topic["name"], label, len(items), len(kept), added)
                 except Exception as e:  # one broken source must not stop the others
                     summary["errors"] += 1
                     self.store.add_run(topic["id"], label, False, 0, 0, f"{type(e).__name__}: {e}"[:500])

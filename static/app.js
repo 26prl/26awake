@@ -450,6 +450,7 @@ async function loadRuns() {
   $("#runs").replaceChildren(...runs.map((r) => el("tr", {},
     el("td", { textContent: fmtDate(r.started_at) }),
     el("td", { textContent: r.source }),
+    el("td", { textContent: r.fetched ?? "" }),
     el("td", { textContent: r.found }),
     el("td", { textContent: r.added }),
     el("td", { className: r.ok ? "ok" : "err", textContent: r.ok ? "ok" : r.error }))));

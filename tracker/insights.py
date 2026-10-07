@@ -181,7 +181,7 @@ def build(store, topic: dict, days: int = 14) -> dict:
         "level_text": CONFIDENCE,
         "stories": clusters[:40],
         "official_updates": official,
-        "latest": store.latest_found(topic["id"], limit=10),
+        "latest": store.latest_found(topic["id"], limit=10, since=topic.get("last_run_started")),
         "facets": facets(topic, articles),
         "figures": reported_figures(articles),
         "tier_counts": store.tier_counts(topic["id"]),

@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS runs (
     source      TEXT NOT NULL,
     started_at  TEXT NOT NULL,
     ok          INTEGER NOT NULL,
+    fetched     INTEGER NOT NULL DEFAULT 0,
     found       INTEGER NOT NULL DEFAULT 0,
     added       INTEGER NOT NULL DEFAULT 0,
     error       TEXT
@@ -66,6 +67,9 @@ MIGRATIONS = {
     "topics": [
         ("last_run_started", "TEXT"),
         ("last_run_added", "INTEGER NOT NULL DEFAULT 0"),
+    ],
+    "runs": [
+        ("fetched", "INTEGER NOT NULL DEFAULT 0"),
     ],
     "articles": [
         ("domain", "TEXT NOT NULL DEFAULT ''"),
@@ -299,12 +303,16 @@ class Store:
             out.append({"day": d, "count": sum(tiers.values()), "tiers": tiers})
         return out
 
-    def latest_found(self, topic_id: int, limit: int = 10) -> list[dict]:
-        """The articles discovered most recently (by when the tracker found them, not publish date)."""
+    def latest_found(self, topic_id: int, limit: int = 10, since: str | None = None) -> list[dict]:
+        """Articles found in the latest update (since its start) first, newest published first;
+        then the most recently found older ones."""
         rows = self._read(
             """SELECT id, url, title, summary, source, lang, origin, domain, trust, published_at, fetched_at
-               FROM articles WHERE topic_id = ? ORDER BY fetched_at DESC, published_at DESC LIMIT ?""",
-            (topic_id, limit),
+               FROM articles WHERE topic_id = ?
+               ORDER BY fetched_at >= ? DESC, CASE WHEN fetched_at >= ? THEN published_at END DESC,
+                        fetched_at DESC, published_at DESC
+               LIMIT ?""",
+            (topic_id, since or "9999", since or "9999", limit),
         )
         return [dict(r) for r in rows]
 
@@ -367,11 +375,14 @@ class Store:
 
     # --- runs --------------------------------------------------------------------------
 
-    def add_run(self, topic_id: int, source: str, ok: bool, found: int, added: int, error: str | None) -> None:
+    def add_run(
+        self, topic_id: int, source: str, ok: bool, found: int, added: int, error: str | None, fetched: int = 0
+    ) -> None:
         self._write(
             lambda c: c.execute(
-                "INSERT INTO runs (topic_id, source, started_at, ok, found, added, error) VALUES (?,?,?,?,?,?,?)",
-                (topic_id, source, now_iso(), int(ok), found, added, error),
+                """INSERT INTO runs (topic_id, source, started_at, ok, fetched, found, added, error)
+                   VALUES (?,?,?,?,?,?,?,?)""",
+                (topic_id, source, now_iso(), int(ok), fetched, found, added, error),
             )
         )
 
