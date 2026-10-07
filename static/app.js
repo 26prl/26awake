@@ -654,7 +654,6 @@ function openForm(topic) {
     f.description.value = topic.description;
     f.queries.value = topic.queries.map((q) => `${q.lang}: ${q.q}`).join("\n");
     f.who.checked = !!topic.who;
-    f.gdelt.value = topic.gdelt.join("\n");
     f.feeds.value = topic.feeds.join("\n");
     f.match.value = topic.match.map((g) => g.join(", ")).join("\n");
     f.exclude.value = topic.exclude.join(", ");
@@ -680,7 +679,6 @@ $("#topic-form").addEventListener("submit", async (ev) => {
       return m ? { lang: m[1].toLowerCase(), q: m[2] } : { lang: "en", q: l };
     }),
     who: f.who.checked,
-    gdelt: lines(f.gdelt.value),
     feeds: lines(f.feeds.value),
     match: lines(f.match.value).map((l) => l.split(",").map((x) => x.trim()).filter(Boolean)),
     exclude: f.exclude.value,
@@ -871,7 +869,7 @@ function tick() {
     setBar(fraction);
     next.classList.add("due");
     next.replaceChildren(pulse, `Checking for news… ${Math.round(fraction * 100)}%`);
-    next.title = "Collecting from Google News, GDELT and WHO";
+    next.title = "Collecting from Google News and WHO";
     const every = state.mode === "static" ? POLL_EVERY_MS : 10_000;
     const ready = state.mode === "static" ? now - Math.max(sync.slot, sync.startedAt - POLL_START_MS) >= POLL_START_MS : true;
     if (ready && !sync.busy && !document.hidden && now - sync.lastPoll >= every) {

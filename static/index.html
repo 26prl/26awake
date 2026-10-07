@@ -38,7 +38,7 @@
     <main id="main">
       <section id="empty" class="card hidden">
         <h1>No topics yet</h1>
-        <p>Create a topic to start tracking it across news sites, WHO, GDELT and RSS feeds.</p>
+        <p>Create a topic to start tracking it across news sites, WHO and RSS feeds.</p>
       </section>
 
       <section id="topic" class="hidden">
@@ -203,8 +203,6 @@
       <label>Search queries <small>one per line, as <code>lang: query</code> (en, ru, uk, de, fr, es, kk)</small>
         <textarea name="queries" rows="4" placeholder="ru: чума Россия&#10;en: plague Russia"></textarea></label>
       <label class="inline"><input name="who" type="checkbox"> Include WHO (Disease Outbreak News + WHO news)</label>
-      <label>GDELT queries <small>one per line, optional — global news index</small>
-        <textarea name="gdelt" rows="2" placeholder="plague (Russia OR Altai)"></textarea></label>
       <label>RSS / Atom feeds <small>one URL per line, optional</small>
         <textarea name="feeds" rows="2" placeholder="https://example.com/rss"></textarea></label>
       <label>Must match <small>one group per line; each line = comma-separated alternatives, all lines must hit</small>

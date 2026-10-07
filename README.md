@@ -51,7 +51,6 @@ and a background collector checks each topic every `interval_minutes` (default 3
 | --- | --- |
 | **WHO** | Disease Outbreak News (official outbreak notices) and WHO news releases |
 | **Google News RSS** | search per query and language/region (`ru`, `en`, `uk`, `de`, `fr`, `es`, `kk`), last 7 days; the real publisher is recorded, not news.google.com |
-| **GDELT DOC API** | global news index updated every 15 minutes, many languages (throttled to 1 request / 6 s) |
 | **Any RSS/Atom feed** | e.g. regional news sites or a health agency's feed |
 
 Every result is filtered by the topic's keyword rules and de-duplicated (by normalised URL
@@ -104,7 +103,6 @@ Use **+ New topic** in the UI, or put it in `topics.json`:
 {
   "name": "Plague in Russia",
   "queries": [{ "q": "чума Россия", "lang": "ru" }, { "q": "plague Russia", "lang": "en" }],
-  "gdelt":   ["plague (Russia OR Altai OR Tuva)"],
   "who":     true,
   "feeds":   [],
   "match":   [["чум", "plague", "бубон"], ["росси", "russia", "алта", "altai", "тыв", "tuva"]],
@@ -217,4 +215,4 @@ Write endpoints need `Authorization: Bearer $TRACKER_TOKEN` when a token is conf
 python -m unittest -v
 ```
 
-Tests run offline against recorded Google News / GDELT / WHO / Atom fixtures; the Claude call is mocked.
+Tests run offline against recorded Google News / WHO / Atom fixtures; the Claude call is mocked.

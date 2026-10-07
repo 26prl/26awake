@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 
 USER_AGENT = "Mozilla/5.0 (compatible; PlagueWebTracker/0.1; +https://github.com/26prl/plagueweb)"
 TIMEOUT = 15
-RETRY_WAIT = 5  # seconds; GDELT often refuses shared GitHub servers, so fail fast rather than hold up a check
+RETRY_WAIT = 5  # seconds; fail fast rather than hold up a check
 
 # Google News region settings per language: (hl, gl, ceid)
 GOOGLE_NEWS_LOCALES = {
@@ -37,7 +37,7 @@ _WS_RE = re.compile(r"\s+")
 
 
 def http_get(url: str, retries: int = 1) -> bytes:
-    """GET with one retry on rate limiting / temporary unavailability (GDELT often answers 429)."""
+    """GET with one retry on rate limiting / temporary unavailability (429 / 503)."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "*/*"})
     for attempt in range(retries + 1):
         try:
@@ -68,7 +68,7 @@ def to_iso(dt: datetime | None) -> str:
 
 
 def parse_date(value: str | None) -> str:
-    """Parse RFC-822 (RSS), ISO-8601 (Atom) or GDELT (20261007T120000Z) dates."""
+    """Parse RFC-822 (RSS), ISO-8601 (Atom) or compact (20261007T120000Z) dates."""
     if value:
         value = value.strip()
         try:
@@ -179,55 +179,6 @@ def parse_google_news(data: bytes, lang: str) -> list[dict]:
 
 def fetch_google_news(query: str, lang: str = "en") -> list[dict]:
     return parse_google_news(http_get(google_news_url(query, lang)), lang)
-
-
-# --- GDELT (global news index, updated every 15 minutes) --------------------------------
-
-
-def gdelt_url(query: str, timespan: str = "3d", max_records: int = 100) -> str:
-    params = urllib.parse.urlencode(
-        {
-            "query": query,
-            "mode": "artlist",
-            "format": "json",
-            "maxrecords": str(max_records),
-            "timespan": timespan,
-            "sort": "datedesc",
-        }
-    )
-    return f"https://api.gdeltproject.org/api/v2/doc/doc?{params}"
-
-
-GDELT_LANGS = {"russian": "ru", "english": "en", "ukrainian": "uk", "german": "de", "french": "fr"}
-
-
-def parse_gdelt(data: bytes) -> list[dict]:
-    text = data.decode("utf-8", "replace").strip()
-    if not text.startswith("{"):
-        # GDELT answers errors (bad query, rate limit) with plain text.
-        raise ValueError(f"GDELT: {text[:200]}")
-    payload = json.loads(text)
-    out = []
-    for a in payload.get("articles", []) or []:
-        if not a.get("url") or not a.get("title"):
-            continue
-        out.append(
-            {
-                "url": a["url"],
-                "title": clean_text(a["title"], 400),
-                "summary": "",
-                "source": a.get("domain", ""),
-                "domain": (a.get("domain") or domain_of(a["url"])).lower().removeprefix("www."),
-                "published_at": parse_date(a.get("seendate")),
-                "lang": GDELT_LANGS.get((a.get("language") or "").lower(), (a.get("language") or "")[:2].lower()),
-                "origin": "gdelt",
-            }
-        )
-    return out
-
-
-def fetch_gdelt(query: str) -> list[dict]:
-    return parse_gdelt(http_get(gdelt_url(query)))
 
 
 # --- World Health Organization -----------------------------------------------------------

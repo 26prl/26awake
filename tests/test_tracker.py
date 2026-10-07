@@ -27,16 +27,6 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(first["published_at"], "2026-10-05T09:12:00+00:00")
         self.assertEqual(first["lang"], "ru")
 
-    def test_gdelt(self):
-        items = sources.parse_gdelt((FIX / "gdelt.json").read_bytes())
-        self.assertEqual(items[0]["published_at"], "2026-10-06T08:15:00+00:00")
-        self.assertEqual(items[0]["lang"], "en")
-        self.assertEqual(items[0]["source"], "example.com")
-
-    def test_gdelt_error_text(self):
-        with self.assertRaises(ValueError):
-            sources.parse_gdelt(b"Please limit requests to one every 5 seconds")
-
     def test_atom(self):
         items = sources.parse_feed((FIX / "atom.xml").read_bytes(), origin="rss")
         self.assertEqual(items[0]["url"], "https://who.example/don/1")
@@ -121,8 +111,6 @@ class CollectorAndApiTests(unittest.TestCase):
     def fake_get(self, url):
         if "news.google.com" in url:
             return (FIX / "google_news.xml").read_bytes()
-        if "gdeltproject" in url:
-            return (FIX / "gdelt.json").read_bytes()
         if "diseaseoutbreaknews" in url:
             return (FIX / "who_don.json").read_bytes()
         if "who.int/rss-feeds" in url:
@@ -130,18 +118,18 @@ class CollectorAndApiTests(unittest.TestCase):
         raise urllib.error.URLError("offline")
 
     def collect(self):
-        with mock.patch.object(sources, "http_get", self.fake_get), mock.patch("tracker.collector.GDELT_PAUSE", 0):
+        with mock.patch.object(sources, "http_get", self.fake_get):
             return self.collector.collect(self.topic)
 
     def test_collect_dedupes_across_queries(self):
         result = self.collect()
-        # 5 Google queries return the same 2 relevant items; GDELT adds 1 real + 1 sports false-positive;
-        # WHO DON adds 1, and the same notice in the WHO news feed is deduplicated by headline.
+        # 5 Google queries return the same 2 relevant items; WHO DON adds 1, and the same notice
+        # in the WHO news feed is deduplicated by headline.
         self.assertEqual(result["errors"], 0)
-        self.assertEqual(self.store.stats(self.topic["id"])["total"], 5)
+        self.assertEqual(self.store.stats(self.topic["id"])["total"], 3)
         self.assertEqual(self.store.stats(self.topic["id"])["latest_official"][:10], "2026-10-04")
         topic = self.store.get_topic(self.topic["id"])
-        self.assertEqual(topic["last_run_added"], 5)
+        self.assertEqual(topic["last_run_added"], 3)
         self.assertEqual(len(self.store.latest_found(self.topic["id"], limit=3)), 3)
         self.assertEqual(self.collect()["added"], 0)
         topic = self.store.get_topic(self.topic["id"])
@@ -155,7 +143,7 @@ class CollectorAndApiTests(unittest.TestCase):
             time.sleep(0.4)
             return self.fake_get(url)
 
-        topic = self.store.update_topic(self.topic["id"], normalize_topic({**SEED, "gdelt": [], "who": False}))
+        topic = self.store.update_topic(self.topic["id"], normalize_topic({**SEED, "who": False}))
         with mock.patch.object(sources, "http_get", slow_get):
             started = time.monotonic()
             result = self.collector.collect(topic)
@@ -165,11 +153,11 @@ class CollectorAndApiTests(unittest.TestCase):
 
     def test_failing_source_is_logged_not_fatal(self):
         def broken(url):
-            if "gdelt" in url:
+            if "diseaseoutbreaknews" in url:
                 raise urllib.error.URLError("boom")
             return self.fake_get(url)
 
-        with mock.patch.object(sources, "http_get", broken), mock.patch("tracker.collector.GDELT_PAUSE", 0):
+        with mock.patch.object(sources, "http_get", broken):
             result = self.collector.collect(self.topic)
         self.assertEqual(result["errors"], 1)
         runs = self.store.runs(self.topic["id"])
@@ -196,7 +184,7 @@ class CollectorAndApiTests(unittest.TestCase):
         base = self._server()
         status, topics = self.req(f"{base}/api/topics")
         self.assertEqual(status, 200)
-        self.assertEqual(topics[0]["stats"]["total"], 5)
+        self.assertEqual(topics[0]["stats"]["total"], 3)
         tid = topics[0]["id"]
 
         status, page = self.req(f"{base}/api/topics/{tid}/articles?q=%D0%A2%D1%83%D0%B2")  # "Тув"
@@ -415,7 +403,7 @@ class HttpRetryTests(unittest.TestCase):
             return Resp(b"ok")
 
         with mock.patch("urllib.request.urlopen", fake_urlopen), mock.patch("time.sleep"):
-            self.assertEqual(sources.http_get("https://api.gdeltproject.org/x"), b"ok")
+            self.assertEqual(sources.http_get("https://api.example.org/x"), b"ok")
         self.assertEqual(len(calls), 2)
 
     def test_other_errors_are_not_retried(self):

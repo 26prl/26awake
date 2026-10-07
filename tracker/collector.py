@@ -6,7 +6,6 @@ import logging
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor
-import time
 from datetime import datetime, timedelta, timezone
 
 from . import ai, sources
@@ -17,7 +16,6 @@ log = logging.getLogger("tracker.collector")
 
 DEFAULT_INTERVAL = 30  # minutes
 MIN_INTERVAL = 5
-GDELT_PAUSE = 6  # seconds; GDELT asks for at most one request every 5 seconds
 AI_EVERY_HOURS = float(os.environ.get("TRACKER_AI_EVERY_HOURS", "6"))
 
 
@@ -64,10 +62,9 @@ def normalize_topic(data: dict) -> dict:
         if not f.startswith(("http://", "https://")):
             raise ValidationError(f"feed '{f}' must be an http(s) URL")
 
-    gdelt = _str_list(data.get("gdelt"), "gdelt")
     who = bool(data.get("who", False))
-    if not (queries or feeds or gdelt or who):
-        raise ValidationError("add at least one search query, GDELT query, feed or the WHO source")
+    if not (queries or feeds or who):
+        raise ValidationError("add at least one search query, feed or the WHO source")
     if who and not match:
         raise ValidationError("the WHO source needs 'match' keywords, otherwise every WHO item is kept")
 
@@ -102,7 +99,6 @@ def normalize_topic(data: dict) -> dict:
         "name": name,
         "description": str(data.get("description", "")).strip(),
         "queries": queries,
-        "gdelt": gdelt,
         "feeds": feeds,
         "who": who,
         "match": match,
@@ -126,8 +122,6 @@ def jobs_for(topic: dict) -> list[tuple[str, callable]]:
     jobs = []
     for q in topic["queries"]:
         jobs.append((f"google_news[{q['lang']}]: {q['q']}", lambda q=q: sources.fetch_google_news(q["q"], q["lang"])))
-    for g in topic["gdelt"]:
-        jobs.append((f"gdelt: {g}", lambda g=g: sources.fetch_gdelt(g)))
     if topic.get("who"):
         jobs.append(("who: disease outbreak news", sources.fetch_who_don))
         jobs.append(("who: news", sources.fetch_who_news))
@@ -143,8 +137,6 @@ class Collector:
         self._wake = threading.Event()
         self._busy: set[int] = set()
         self._busy_lock = threading.Lock()
-        self._gdelt_lock = threading.Lock()
-        self._gdelt_last = 0.0
 
     def is_busy(self, topic_id: int) -> bool:
         return topic_id in self._busy
@@ -160,14 +152,12 @@ class Collector:
         def fetch_one(job):
             label, fetch = job
             try:
-                if label.startswith("gdelt"):
-                    self._gdelt_throttle()
                 return label, fetch(), None
             except Exception as e:  # one broken source must not stop the others
                 return label, None, e
 
         try:
-            # Download every source at the same time (a slow one no longer holds up the rest),
+            # Download every source at the same time (a slow one doesn't hold up the rest),
             # then store the results one by one.
             jobs = jobs_for(topic)
             with ThreadPoolExecutor(max_workers=max(1, min(8, len(jobs)))) as pool:
@@ -207,13 +197,6 @@ class Collector:
 
     def collect_async(self, topic: dict) -> None:
         threading.Thread(target=self.collect, args=(topic,), daemon=True).start()
-
-    def _gdelt_throttle(self) -> None:
-        with self._gdelt_lock:
-            wait = GDELT_PAUSE - (time.monotonic() - self._gdelt_last)
-            if wait > 0:
-                time.sleep(wait)
-            self._gdelt_last = time.monotonic()
 
     def due(self, topic: dict) -> bool:
         if not topic.get("enabled", True):

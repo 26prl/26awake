@@ -24,9 +24,6 @@
         "lang": "en"
       }
     ],
-    "gdelt": [
-      "plague (Russia OR Russian OR Altai OR Tuva OR Siberia)"
-    ],
     "who": true,
     "feeds": [],
     "match": [
