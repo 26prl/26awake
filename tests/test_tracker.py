@@ -140,8 +140,13 @@ class CollectorAndApiTests(unittest.TestCase):
         self.assertEqual(result["errors"], 0)
         self.assertEqual(self.store.stats(self.topic["id"])["total"], 5)
         self.assertEqual(self.store.stats(self.topic["id"])["latest_official"][:10], "2026-10-04")
+        topic = self.store.get_topic(self.topic["id"])
+        self.assertEqual(topic["last_run_added"], 5)
+        self.assertEqual(len(self.store.latest_found(self.topic["id"], limit=3)), 3)
         self.assertEqual(self.collect()["added"], 0)
-        self.assertIsNotNone(self.store.get_topic(self.topic["id"])["last_run_at"])
+        topic = self.store.get_topic(self.topic["id"])
+        self.assertIsNotNone(topic["last_run_at"])
+        self.assertEqual(topic["last_run_added"], 0)
 
     def test_failing_source_is_logged_not_fatal(self):
         def broken(url):
@@ -320,6 +325,10 @@ class UpgradeAndExportTests(unittest.TestCase):
         site = json.loads((out / "data" / "site.json").read_text(encoding="utf-8"))
         data = json.loads((out / "data" / f"topic-{topic['id']}.json").read_text(encoding="utf-8"))
         self.assertTrue((out / "index.html").exists())
+        self.assertIsNone(site["schedule"])
+        with mock.patch.dict("os.environ", {"TRACKER_SCHEDULE_MINUTES": "37,7"}):
+            site = json.loads((export_site(store, out) / "data" / "site.json").read_text(encoding="utf-8"))
+        self.assertEqual(site["schedule"]["minutes"], [7, 37])
         self.assertEqual(site["topics"][0]["stats"]["total"], 1)
         self.assertEqual(data["articles"][0]["trust"], "official")
         self.assertEqual(len(data["timeline"]), 90)

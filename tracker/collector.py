@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 
 from . import ai, sources
 from .insights import is_stale
-from .store import Store
+from .store import Store, now_iso
 
 log = logging.getLogger("tracker.collector")
 
@@ -141,6 +141,7 @@ class Collector:
                 return {"skipped": True}
             self._busy.add(topic["id"])
         summary = {"found": 0, "added": 0, "errors": 0}
+        started = now_iso()
         try:
             for label, fetch in jobs_for(topic):
                 try:
@@ -157,7 +158,7 @@ class Collector:
                     summary["errors"] += 1
                     self.store.add_run(topic["id"], label, False, 0, 0, f"{type(e).__name__}: {e}"[:500])
                     log.warning("%s | %s failed: %s", topic["name"], label, e)
-            self.store.mark_run(topic["id"])
+            self.store.mark_run(topic["id"], started, summary["added"])
             if summary["added"] and ai.available():
                 self.maybe_analyze(topic)
         finally:

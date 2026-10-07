@@ -39,6 +39,9 @@ jobs:
           fi
 
       - name: Collect and export
+        env:
+          # Must match the cron minutes above, so the page can count down to the next update.
+          TRACKER_SCHEDULE_MINUTES: "7,37"
         run: python -m tracker --sync-topics --once --export public
 
       - name: Publish to the site branch

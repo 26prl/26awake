@@ -10,6 +10,8 @@ A small self-hosted website that keeps watching the internet for the topics you 
 * **Figures reported by trusted sources** — numbers such as "2 cases" / "14 контактных" pulled
   from official and reputable reports, each linked to its source.
 * **Official updates** — WHO, Rospotrebnadzor and other health authorities.
+* **Latest updates** — the articles found most recently, with how many were new in the last update,
+  and a **countdown to the next update** in the header.
 * **AI situation brief** (optional) — Claude reads the last 14 days of articles and writes a summary that
   keeps confirmed facts apart from unverified claims, with a citation for each point.
 
@@ -37,6 +39,7 @@ and a background collector checks each topic every `interval_minutes` (default 3
 | `--sync-topics` | apply `topics.json` to an existing database (update by name, add new) |
 | `--export DIR` | write a static copy of the dashboard to `DIR` (combine with `--once`) |
 | `--no-collector` | serve the dashboard without fetching |
+| `TRACKER_SCHEDULE_MINUTES` | for `--export` run by cron: the cron minutes (e.g. `7,37`), so the static page can count down to the next update |
 
 ## Where the data comes from
 

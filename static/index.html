@@ -10,7 +10,10 @@
   <header class="topbar">
     <div class="brand"><span class="dot"></span> PlagueWeb <small>internet topic tracker</small></div>
     <div class="topbar-actions">
-      <span id="updated" class="muted small"></span>
+      <div id="update-status" class="update-status" aria-live="polite">
+        <span id="updated" class="muted"></span>
+        <span id="next-update" class="next"></span>
+      </div>
       <button id="btn-new" class="btn">+ New topic</button>
     </div>
   </header>
@@ -50,6 +53,13 @@
           <div class="stat"><span class="label">Trend (3 d vs prior 7 d)</span><span id="s-trend" class="value">–</span><span id="s-trend-sub" class="sub"></span></div>
           <div class="stat"><span class="label">From trusted sources</span><span id="s-trusted" class="value">–</span><span id="s-trusted-sub" class="sub"></span></div>
           <div class="stat"><span class="label">Latest official report</span><span id="s-official" class="value small">–</span><span id="s-run" class="sub"></span></div>
+        </div>
+
+        <div class="card" id="latest-card">
+          <div class="card-head">
+            <h3>Latest updates <span id="latest-sub" class="muted small"></span></h3>
+          </div>
+          <ul id="latest" class="articles compact"></ul>
         </div>
 
         <div class="card" id="ai-card">

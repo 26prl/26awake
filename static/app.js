@@ -102,6 +102,8 @@ const staticSource = (() => {
   const topicData = async (id) => (cache[id] ??= await load(`data/topic-${id}.json`));
   return {
     async init() { site = await load("data/site.json"); return site; },
+    site: () => site,
+    async hasNewData() { const s = await load("data/site.json"); return s.generated_at !== site.generated_at; },
     reset() { for (const k of Object.keys(cache)) delete cache[k]; return this.init(); },
     topics: async () => site.topics,
     trust: async () => site.trust,
@@ -137,7 +139,7 @@ async function detectMode() {
   const site = await staticSource.init();
   ds = staticSource;
   state.mode = "static";
-  state.health = { ai: false, static: true, generated_at: site.generated_at };
+  state.health = { ai: false, static: true };
   document.body.classList.add("static");
 }
 
@@ -156,7 +158,6 @@ async function loadTopics() {
   }));
   $("#empty").classList.toggle("hidden", state.topics.length > 0);
   $("#topic").classList.toggle("hidden", state.topics.length === 0);
-  $("#updated").textContent = state.mode === "static" ? `Data updated ${ago(state.health.generated_at)}` : "";
   if (!state.topics.length) return;
 
   const wanted = state.current?.id ?? Number(location.hash.slice(1));
@@ -334,6 +335,23 @@ async function loadInsights() {
       el("span", { className: "muted", textContent: ` · ${fmtDay(f.published_at)}` })),
     el("p", { className: "muted", textContent: f.snippet }))));
   if (!ins.figures.length) $("#figures").append(el("li", { className: "muted", textContent: "No numbers found in trusted reports yet." }));
+
+  // Latest updates: what the tracker found most recently
+  const t = state.current;
+  const runStart = t.last_run_started;
+  $("#latest-sub").textContent = !t.last_run_at ? "waiting for the first update"
+    : t.last_run_added ? `${t.last_run_added} new in the last update, ${ago(t.last_run_at)}`
+      : `no new articles in the last update, ${ago(t.last_run_at)}`;
+  $("#latest").replaceChildren(...(ins.latest || []).map((a) => {
+    const li = articleItem(a);
+    const meta = li.querySelector(".meta");
+    if (t.last_run_added && runStart && a.fetched_at >= runStart && !meta.querySelector(".new")) {
+      meta.prepend(el("span", { className: "new", textContent: "NEW" }));
+    }
+    meta.append(el("span", { className: "found", textContent: `found ${ago(a.fetched_at)}` }));
+    return li;
+  }));
+  if (!(ins.latest || []).length) $("#latest").append(el("li", { className: "muted", textContent: "Nothing collected yet." }));
 
   // Official updates
   $("#official").replaceChildren(...ins.official_updates.map(articleItem));
@@ -544,6 +562,84 @@ $("#btn-analyze").onclick = async () => {
   loadAnalysis();
 };
 
+// ---- update timer -------------------------------------------------------------------
+
+function fmtCountdown(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  const mmss = `${String(m).padStart(h ? 2 : 1, "0")}:${String(sec).padStart(2, "0")}`;
+  return h ? `${h}:${mmss}` : mmss;
+}
+
+// When will fresh data appear? Returns { at: Date|null, collecting: bool, lastUpdate: iso }.
+function nextUpdate() {
+  if (state.mode === "static") {
+    const site = staticSource.site();
+    const sched = site?.schedule;
+    if (!sched) return { at: null, lastUpdate: site?.generated_at };
+    // The first scheduled run after the data we have, plus time to run and publish.
+    const gen = new Date(site.generated_at);
+    const slot = new Date(gen);
+    slot.setUTCSeconds(0, 0);
+    for (let i = 0; i < 24 * 60; i++) {
+      slot.setUTCMinutes(slot.getUTCMinutes() + 1);
+      if (sched.minutes.includes(slot.getUTCMinutes())) break;
+    }
+    return { at: new Date(slot.getTime() + sched.publish_delay_minutes * 60_000), lastUpdate: site.generated_at };
+  }
+  const t = state.current;
+  if (!t) return { at: null };
+  if (t.collecting) return { at: null, collecting: true, lastUpdate: t.last_run_at };
+  if (!t.enabled) return { at: null, disabled: true, lastUpdate: t.last_run_at };
+  const at = t.last_run_at ? new Date(new Date(t.last_run_at).getTime() + t.interval_minutes * 60_000) : new Date();
+  return { at, lastUpdate: t.last_run_at };
+}
+
+let lastDueCheck = 0;
+
+function tick() {
+  const n = nextUpdate();
+  $("#updated").textContent = n.lastUpdate ? `Updated ${ago(n.lastUpdate)}` : "";
+  const next = $("#next-update");
+  const pulse = el("span", { className: "pulse" });
+  next.classList.remove("due");
+  if (n.collecting) {
+    next.replaceChildren(pulse, "Updating now…");
+    next.classList.add("due");
+  } else if (n.disabled) {
+    next.replaceChildren("Updates paused");
+  } else if (!n.at) {
+    next.replaceChildren();
+  } else {
+    const left = n.at.getTime() - Date.now();
+    if (left > 0) {
+      next.replaceChildren(pulse, `Next update in ${fmtCountdown(left)}`);
+      next.title = `Expected around ${n.at.toLocaleTimeString()}`;
+    } else {
+      // Due: the scheduler can run a few minutes late, so keep checking for new data.
+      next.replaceChildren(pulse, state.mode === "static" && left < -15 * 60_000 ? "Update running late…" : "Updating…");
+      next.classList.add("due");
+    }
+  }
+  const due = n.collecting || (n.at && n.at.getTime() <= Date.now());
+  if (due && Date.now() - lastDueCheck > (state.mode === "static" ? 60_000 : 15_000)) {
+    lastDueCheck = Date.now();
+    checkForNewData();
+  }
+}
+
+async function checkForNewData() {
+  try {
+    if (state.mode === "static") {
+      if (await staticSource.hasNewData()) await refreshAll();
+    } else {
+      await refreshAll();
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
 async function refreshAll() {
   try {
     if (state.mode === "static") await staticSource.reset();
@@ -562,5 +658,7 @@ async function refreshAll() {
   } catch (e) {
     $("#main").prepend(el("div", { className: "alert", textContent: `Cannot load tracker data: ${e.message}` }));
   }
-  setInterval(() => { if (!document.hidden) refreshAll(); }, state.mode === "static" ? 5 * POLL_MS : POLL_MS);
+  tick();
+  setInterval(tick, 1000);
+  if (state.mode === "api") setInterval(() => { if (!document.hidden) refreshAll(); }, POLL_MS);
 })();

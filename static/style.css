@@ -154,7 +154,7 @@ dialog label.inline { display: flex; gap: .5rem; align-items: center; }
   .grid { grid-template-columns: 1fr; }
   .stats { grid-template-columns: repeat(2, 1fr); }
   main { padding: 1rem; }
-  .brand small, #clock { display: none; }
+  .brand small { display: none; }
 }
 
 .small { font-size: .8rem; }
@@ -242,4 +242,18 @@ a.cite { font-size: .7rem; font-weight: 600; text-decoration: none; padding: 0 .
 
 @media (max-width: 860px) {
   .levels { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* update status / countdown */
+.update-status { display: flex; flex-direction: column; align-items: flex-end; font-size: .78rem; line-height: 1.3; }
+.update-status .next { font-variant-numeric: tabular-nums; font-weight: 600; }
+.update-status .next.due { color: var(--accent); }
+.update-status .next .pulse { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ok);
+  margin-right: .35rem; vertical-align: 1px; animation: pulse 1.6s ease-in-out infinite; }
+.update-status .next.due .pulse { background: var(--accent); }
+@keyframes pulse { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .update-status .next .pulse { animation: none; } }
+.found { color: var(--muted); }
+@media (max-width: 860px) {
+  .update-status { font-size: .72rem; }
 }

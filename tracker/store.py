@@ -63,6 +63,10 @@ CREATE TABLE IF NOT EXISTS analyses (
 
 # Columns added after the first release; added in place to databases created before them.
 MIGRATIONS = {
+    "topics": [
+        ("last_run_started", "TEXT"),
+        ("last_run_added", "INTEGER NOT NULL DEFAULT 0"),
+    ],
     "articles": [
         ("domain", "TEXT NOT NULL DEFAULT ''"),
         ("trust", "TEXT NOT NULL DEFAULT 'unknown'"),
@@ -161,7 +165,14 @@ class Store:
     @staticmethod
     def _topic(row: sqlite3.Row) -> dict:
         t = json.loads(row["config"])
-        t.update(id=row["id"], slug=row["slug"], created_at=row["created_at"], last_run_at=row["last_run_at"])
+        t.update(
+            id=row["id"],
+            slug=row["slug"],
+            created_at=row["created_at"],
+            last_run_at=row["last_run_at"],
+            last_run_started=row["last_run_started"],
+            last_run_added=row["last_run_added"],
+        )
         return t
 
     def list_topics(self) -> list[dict]:
@@ -196,8 +207,13 @@ class Store:
     def delete_topic(self, topic_id: int) -> None:
         self._write(lambda c: c.execute("DELETE FROM topics WHERE id = ?", (topic_id,)))
 
-    def mark_run(self, topic_id: int) -> None:
-        self._write(lambda c: c.execute("UPDATE topics SET last_run_at = ? WHERE id = ?", (now_iso(), topic_id)))
+    def mark_run(self, topic_id: int, started: str | None = None, added: int = 0) -> None:
+        self._write(
+            lambda c: c.execute(
+                "UPDATE topics SET last_run_at = ?, last_run_started = ?, last_run_added = ? WHERE id = ?",
+                (now_iso(), started or now_iso(), added, topic_id),
+            )
+        )
 
     # --- articles ----------------------------------------------------------------------
 
@@ -282,6 +298,15 @@ class Store:
             tiers = by_day.get(d, {})
             out.append({"day": d, "count": sum(tiers.values()), "tiers": tiers})
         return out
+
+    def latest_found(self, topic_id: int, limit: int = 10) -> list[dict]:
+        """The articles discovered most recently (by when the tracker found them, not publish date)."""
+        rows = self._read(
+            """SELECT id, url, title, summary, source, lang, origin, domain, trust, published_at, fetched_at
+               FROM articles WHERE topic_id = ? ORDER BY fetched_at DESC, published_at DESC LIMIT ?""",
+            (topic_id, limit),
+        )
+        return [dict(r) for r in rows]
 
     def recent(self, topic_id: int, days: int = 14, limit: int = 1000) -> list[dict]:
         since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
