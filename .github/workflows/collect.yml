@@ -108,6 +108,9 @@ jobs:
             if ! diff -rq --exclude=data --exclude=.data --exclude=vercel.json --exclude=.nojekyll \
                  "$RUNNER_TEMP/prev" public >/dev/null; then
               reason="site files changed"
+            elif ! python3 -c "import json,sys; a,b=(json.load(open(f)) for f in sys.argv[1:]); sys.exit((a.get('schedule'),a.get('live'))!=(b.get('schedule'),b.get('live')))" \
+                 "$RUNNER_TEMP/prev/data/site.json" public/data/site.json; then
+              reason="update schedule changed"  # pages that can't reach GitHub must count down to the right minutes
             elif [ "$age" -gt 3300 ]; then
               reason="hourly refresh"
             fi

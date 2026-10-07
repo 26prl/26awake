@@ -134,20 +134,32 @@ const staticSource = (() => {
 })();
 
 // Fresh data between deployments: every check pushes to a GitHub branch (site.json → live), which
-// pages read directly. GitHub allows 60 unauthenticated API calls an hour per visitor, so calls are
-// rationed and the page falls back to the deployed files when the limit is hit.
+// pages read directly. GitHub allows 60 unauthenticated API calls an hour per visitor; requests are
+// conditional (the browser revalidates its cached copy, and "not modified" answers don't count), and the
+// newest snapshot this browser has seen is remembered, so a reload never shows older numbers.
+const LIVE_KEY = "live-snapshot";
 const live = {
   pausedUntil: 0,
   config: () => staticSource.site()?.live,
   available() { return !!this.config() && Date.now() >= this.pausedUntil; },
+  remembered() {
+    try { return JSON.parse(localStorage.getItem(LIVE_KEY) || "null"); } catch { return null; }
+  },
+  remember(sha, generatedAt) {
+    try { localStorage.setItem(LIVE_KEY, JSON.stringify({ sha, generated_at: generatedAt })); } catch { /* private mode */ }
+  },
   // Latest commit on the data branch: { sha, date }.
   async head() {
     const cfg = this.config();
     if (!this.available()) return null;
     try {
-      const r = await fetch(`https://api.github.com/repos/${cfg.repo}/commits/${encodeURIComponent(cfg.branch)}`,
-        { headers: { Accept: "application/vnd.github+json" }, cache: "no-store" });
-      if (r.status === 403 || r.status === 429) { this.pausedUntil = Date.now() + 15 * 60_000; return null; }
+      // "no-cache" = the browser sends If-None-Match with the cached ETag; a 304 is free and served from cache.
+      const r = await fetch(`https://api.github.com/repos/${cfg.repo}/commits/${encodeURIComponent(cfg.branch)}`, { cache: "no-cache" });
+      if (r.status === 403 || r.status === 429) {
+        const reset = Number(r.headers.get("x-ratelimit-reset")) * 1000;
+        this.pausedUntil = reset > Date.now() ? reset : Date.now() + 15 * 60_000;
+        return null;
+      }
       if (!r.ok) return null;
       const j = await r.json();
       return { sha: j.sha, date: new Date(j.commit.committer.date) };
@@ -155,15 +167,17 @@ const live = {
       return null;
     }
   },
-  // Load the snapshot at `head` if it is newer than what the page shows. Returns true when it switched.
+  // Switch to the snapshot at `sha` if it is newer than what the page shows. Returns true when it switched.
   async pull(head) {
     if (!head || head.sha === staticSource.sha()) return false;
     const cfg = this.config();
+    if (!cfg) return false;
     const base = `https://raw.githubusercontent.com/${cfg.repo}/${head.sha}/`;
     try {
       const fresh = await staticSource.load(`${base}data/site.json`);
-      if (fresh.generated_at < staticSource.site().generated_at) return false;
+      if (fresh.generated_at <= staticSource.site().generated_at) return false;
       staticSource.use(fresh, base, head.sha);
+      this.remember(head.sha, fresh.generated_at);
       return true;
     } catch {
       return false;
@@ -900,11 +914,15 @@ async function renderAll() {
 }
 const refreshAll = renderAll;
 
-// On first load, jump straight to the newest data on GitHub if it is newer than the deployed copy.
+// On first load, show the newest data this browser has seen (no API call), then ask GitHub for anything newer.
 async function catchUpLive() {
-  if (state.mode !== "static" || !live.available()) return;
+  if (state.mode !== "static" || !live.config()) return;
+  let changed = false;
+  const seen = live.remembered();
+  if (seen?.sha && seen.generated_at > staticSource.site().generated_at) changed = await live.pull({ sha: seen.sha });
   const head = await live.head();
-  if (await live.pull(head)) await renderAll();
+  if (await live.pull(head)) changed = true;
+  if (changed) await renderAll();
   const sched = staticSource.site()?.schedule;
   if (head && sched) {
     const { prev } = slotsAround(sched.minutes, Date.now());
