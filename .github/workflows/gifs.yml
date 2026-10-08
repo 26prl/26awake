@@ -11,6 +11,11 @@ permissions:
   contents: write
   actions: write
 
+# One at a time; a run that finds the work already pushed by another just stops.
+concurrency:
+  group: gifs
+  cancel-in-progress: false
+
 jobs:
   resolve:
     runs-on: ubuntu-latest
@@ -28,6 +33,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -qam "Resolve GIF links"
+          git fetch -q origin "${GITHUB_REF_NAME}"
+          if ! git rebase -q "origin/${GITHUB_REF_NAME}"; then
+            git rebase --abort
+            echo "the branch moved on with these links already resolved"; exit 0
+          fi
           git push -q origin "HEAD:${GITHUB_REF_NAME}"
       - name: Publish the site
         env:
