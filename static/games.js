@@ -17,6 +17,7 @@
   const gridEl = $("g8-grid"), scoreEl = $("g8-score"), bestEl = $("g8-best");
   const overlay = $("g8-overlay"), msg = $("g8-msg"), keepBtn = $("g8-keep");
   const fmt = (n) => Number(n || 0).toLocaleString();
+  const who = (p) => (p.name ? `${p.name}` : `#${p.id}`);
 
   const store = {
     get(k, fallback) { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; } },
@@ -147,12 +148,35 @@
     const box = $("g8-me");
     if (!me) return;
     box.replaceChildren(
-      el("b", { textContent: `player #${me.id}` }),
+      el("b", { textContent: me.name ? `${me.name} (#${me.id})` : `player #${me.id}` }),
       me.rank ? ` · rank ${me.rank} of ${fmt(me.players)}` : " · no ranked game yet",
       el("br"),
       el("span", { className: "muted", textContent:
         `best ${fmt(me.best)} · ${fmt(me.games)} game${me.games === 1 ? "" : "s"} · ${fmt(me.points)} points in total` +
-        (me.tile ? ` · biggest tile ${fmt(me.tile)}` : "") }));
+        (me.tile ? ` · biggest tile ${fmt(me.tile)}` : "") }),
+      ...(me.name ? [] : [nicknameForm()]));
+  }
+
+  // One nickname per player, chosen once; it stays with the player number (and the recovery code).
+  function nicknameForm() {
+    const input = el("input", { type: "text", maxLength: 20, placeholder: "nickname", autocomplete: "off", className: "g8-input g8-name" });
+    const btn = el("button", { type: "button", className: "btn", textContent: "Set nickname" });
+    const note = el("span", { className: "muted", textContent: "You can only choose it once." });
+    btn.onclick = async () => {
+      const name = input.value.trim().replace(/\s+/g, " ");
+      if (!/^[\p{L}\p{N}_.\- ]{2,20}$/u.test(name)) { note.textContent = "2–20 letters, numbers, spaces or _ . -"; return; }
+      if (!confirm(`Your nickname will be "${name}" forever. It can't be changed later. OK?`)) return;
+      const p = store.get("player-2048", null);
+      try {
+        const me = await api("POST", { action: "name", id: p.id, key: p.key, name });
+        showStanding(me);
+        loadBoard();
+      } catch (e) {
+        note.textContent = e.message === "nickname already set" ? "This player already has a nickname." : e.message;
+        if (e.message === "nickname already set") loadBoard();
+      }
+    };
+    return el("span", { className: "g8-nick" }, el("br"), input, " ", btn, " ", note);
   }
 
   async function loadBoard() {
@@ -177,7 +201,7 @@
     box.replaceChildren(el("table", { className: "g8-table" },
       el("thead", {}, el("tr", {}, ...["#", "player", "best", "tile", "games"].map((h) => el("th", { textContent: h })))),
       el("tbody", {}, ...data.top.map((r) => el("tr", { className: p && r.id === p.id ? "me" : "" },
-        el("td", { textContent: r.rank }), el("td", { textContent: `#${r.id}` }), el("td", { textContent: fmt(r.score) }),
+        el("td", { textContent: r.rank }), el("td", { textContent: who(r) }), el("td", { textContent: fmt(r.score) }),
         el("td", { textContent: r.tile ? fmt(r.tile) : "–" }), el("td", { textContent: fmt(r.games) }))))));
     dispatchEvent(new Event("relayout"));
   }
@@ -223,7 +247,7 @@
       if (g && g.moves.length && phase !== "over") await finish(); // the game in progress still counts for the old number
       await flush();
       store.set("player-2048", next);
-      status.textContent = `Welcome back, player #${next.id}.`;
+      status.textContent = "Welcome back.";
       input.value = "";
       await loadBoard();
       recoveryPanel();

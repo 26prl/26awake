@@ -68,6 +68,8 @@ a { color: inherit; }
 .g8-recovery p { margin: 6px 0; }
 .g8-code code { font-size: .8rem; background: #f2f2f2; padding: 3px 6px; word-break: break-all; }
 .g8-recovery summary { cursor: pointer; color: #777; }
+.g8-nick .btn { padding: 5px 12px; font-size: .85rem; }
+.g8-input.g8-name { width: 160px; margin-top: 8px; }
 .g8-input { width: min(320px, 100%); font: inherit; font-size: .85rem; padding: 6px 8px; border: 1px solid #ccc; }
 
 /* ---- music ---- */

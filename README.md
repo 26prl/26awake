@@ -128,7 +128,8 @@ Each thing has its own page, all styled by `static/site.css` (white, system font
   Players get a number automatically (no names); the server deals each game's tiles from its own seed and replays
   the moves when the game ends, so scores can't be faked. Shows rank, best, games, total points, biggest tile and
   the top 20. A **recovery code** (player number + key, under the ranking) brings the same player back on another
-  browser or device, or after site data was cleared. **To switch it on:** Vercel → your project → **Storage** → **Create** → **Upstash for Redis** (free) →
+  browser or device, or after site data was cleared. Each player can set a **nickname** once (final, unique,
+  2–20 letters/numbers/spaces/_ . -); it stays with the player number. **To switch it on:** Vercel → your project → **Storage** → **Create** → **Upstash for Redis** (free) →
   connect it to the project (it adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`) → redeploy. Without it the game
   works and the best score stays on the device.
 * `/gifs.html` — a wall of GIFs listed in `static/gifs.json` (`{"gifs": ["https://…gif", …]}`, shown in a new random order on every visit; .gif/.webp/.mp4 links, giphy.com links, or tenor.com page links — the "Resolve GIF links" workflow turns Tenor pages into direct links (`tools/resolve_gifs.py`) and republishes).

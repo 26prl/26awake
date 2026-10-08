@@ -9,6 +9,7 @@
 //   GET  /api/scores?id=N                         top 20 + player N's rank and stats
 //   POST /api/scores {action:"register"}          → {id, key}
 //   POST /api/scores {action:"whoami", id, key}   → player's standing (403 if the key is wrong)
+//   POST /api/scores {action:"name", id, key, name} → set the player's nickname (once, final, unique)
 //   POST /api/scores {action:"start", id, key}    → {game, seed}
 //   POST /api/scores {action:"submit", id, key, game, moves}  → {score, tile, best, rank, players, newBest}
 
@@ -19,6 +20,7 @@ const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const GAME_TTL = 60 * 60 * 24 * 30; // an unfinished game can be submitted for 30 days
 const MAX_MOVES = 50000;
+const NAME = /^[\p{L}\p{N}_.\- ]{2,20}$/u; // letters (any alphabet), digits, _ . - and single spaces
 
 function send(res, status, body) {
   res.statusCode = status;
@@ -58,9 +60,9 @@ async function checkPlayer(id, key) {
 
 async function standing(id) {
   const [rank, best, stats, players] = await redis(
-    ["ZREVRANK", "lb", String(id)], ["ZSCORE", "lb", String(id)], ["HMGET", `p:${id}`, "games", "points", "tile"], ["ZCARD", "lb"]);
+    ["ZREVRANK", "lb", String(id)], ["ZSCORE", "lb", String(id)], ["HMGET", `p:${id}`, "games", "points", "tile", "name"], ["ZCARD", "lb"]);
   return {
-    id, rank: rank === null ? null : rank + 1, best: toInt(best), players: toInt(players),
+    id, name: stats[3] || null, rank: rank === null ? null : rank + 1, best: toInt(best), players: toInt(players),
     games: toInt(stats[0]), points: toInt(stats[1]), tile: toInt(stats[2]),
   };
 }
@@ -70,8 +72,8 @@ async function top(n = 20) {
   const rows = [];
   for (let i = 0; i < flat[0].length; i += 2) rows.push({ rank: rows.length + 1, id: toInt(flat[0][i]), score: toInt(flat[0][i + 1]) });
   if (!rows.length) return rows;
-  const stats = await redis(...rows.map((r) => ["HMGET", `p:${r.id}`, "games", "tile"]));
-  rows.forEach((r, i) => { r.games = toInt(stats[i][0]); r.tile = toInt(stats[i][1]); });
+  const stats = await redis(...rows.map((r) => ["HMGET", `p:${r.id}`, "games", "tile", "name"]));
+  rows.forEach((r, i) => { r.games = toInt(stats[i][0]); r.tile = toInt(stats[i][1]); r.name = stats[i][2] || null; });
   return rows;
 }
 
@@ -97,6 +99,18 @@ module.exports = async (req, res) => {
     if (!(await checkPlayer(id, b.key))) return send(res, 403, { error: "unknown player" });
 
     if (b.action === "whoami") return send(res, 200, await standing(id)); // checks a recovery code
+
+    if (b.action === "name") {
+      const name = String(b.name || "").trim().replace(/\s+/g, " ");
+      if (!NAME.test(name)) return send(res, 400, { error: "2–20 letters, numbers, spaces or _ . -" });
+      const [current] = await redis(["HGET", `p:${id}`, "name"]);
+      if (current) return send(res, 409, { error: "nickname already set", name: current });
+      // Reserve the name (case-insensitive) for this player; first come, first served.
+      const [won] = await redis(["HSETNX", "names", name.toLowerCase(), String(id)]);
+      if (!won) return send(res, 409, { error: "that nickname is taken" });
+      await redis(["HSET", `p:${id}`, "name", name]);
+      return send(res, 200, await standing(id));
+    }
 
     if (b.action === "start") {
       const game = crypto.randomBytes(9).toString("base64url");
