@@ -106,8 +106,8 @@ async function tTop(kind, diff, n = 20) {
   const rows = [];
   for (let i = 0; i < flat.length; i += 2) rows.push({ rank: rows.length + 1, id: toInt(flat[i]), time: toInt(flat[i + 1]) });
   if (!rows.length) return rows;
-  const stats = await redis(...rows.map((r) => ["HMGET", `p:${r.id}`, `${field}:${diff}:wins`, "name"]));
-  rows.forEach((r, i) => { r.wins = toInt(stats[i][0]); r.name = stats[i][1] || null; });
+  const stats = await redis(...rows.map((r) => ["HMGET", `p:${r.id}`, `${field}:${diff}:wins`, "name", `${field}:${diff}:games`]));
+  rows.forEach((r, i) => { r.wins = toInt(stats[i][0]); r.name = stats[i][1] || null; r.games = toInt(stats[i][2]); });
   return rows;
 }
 

@@ -136,7 +136,9 @@ window.Players = (() => {
     }
     // Sudoku can't be lost: count completed puzzles instead of "won of played".
     const finishOnly = kind === "sudoku";
-    const tally = (m) => finishOnly ? `${fmt(m.wins)} completed` : `${fmt(m.wins)} won of ${fmt(m.games)}`;
+    const losses = (m) => Math.max(0, (m.games || 0) - (m.wins || 0));
+    const tally = (m) => finishOnly ? `${fmt(m.wins)} completed`
+      : `${fmt(m.wins)} win${m.wins === 1 ? "" : "s"} · ${fmt(losses(m))} loss${losses(m) === 1 ? "" : "es"}`;
     const me = data.me;
     if (me) {
       meBox.replaceChildren(
@@ -152,10 +154,11 @@ window.Players = (() => {
       box.replaceChildren(el("p", { className: "muted small", textContent: `No ${diff} ${finishOnly ? "puzzles completed" : "wins"} yet — be the first.` }));
     } else {
       box.replaceChildren(el("table", { className: "g8-table" },
-        el("thead", {}, el("tr", {}, ...["#", "player", "fastest", finishOnly ? "completed" : "wins"].map((h) => el("th", { textContent: h })))),
+        el("thead", {}, el("tr", {}, ...["#", "player", "fastest", ...(finishOnly ? ["completed"] : ["wins", "losses"])].map((h) => el("th", { textContent: h })))),
         el("tbody", {}, ...data.top.map((r) => el("tr", { className: p && r.id === p.id ? "me" : "" },
           el("td", { textContent: r.rank }), el("td", { textContent: who(r) }),
-          el("td", { textContent: secs(r.time) }), el("td", { textContent: fmt(r.wins) }))))));
+          el("td", { textContent: secs(r.time) }), el("td", { textContent: fmt(r.wins) }),
+          finishOnly ? null : el("td", { textContent: fmt(losses(r)) }))))));
     }
     $(ids.title).textContent = `Ranking · ${diff}`;
     dispatchEvent(new Event("relayout"));
