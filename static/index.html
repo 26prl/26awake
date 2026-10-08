@@ -40,42 +40,24 @@
     <section id="play" class="room">
       <p class="room-no">01 — play</p>
       <h2>Something to do with your hands.</h2>
-      <p class="room-note">best scores stay on this device.</p>
-      <div class="games">
-        <article class="game">
-          <div class="game-head">
-            <h3>Fireflies</h3>
-            <span class="game-score"><b id="ff-score">0</b> <i>best <span id="ff-best">0</span> · <span id="ff-time">30</span>s</i></span>
-          </div>
-          <div class="game-stage">
-            <canvas id="ff-canvas" width="720" height="720" aria-label="Fireflies game"></canvas>
-            <div class="game-overlay" id="ff-overlay">
-              <p id="ff-msg">Catch the fireflies before they fade.<br><em>leave the dark ones alone.</em></p>
-              <button class="soft-btn" id="ff-start" type="button">begin</button>
+      <p class="room-note">arrows / wasd, or swipe. your best score stays on this device.</p>
+      <article class="game g2048">
+        <div class="game-head">
+          <h3>2048</h3>
+          <span class="game-score"><b id="g8-score">0</b> <i>best <span id="g8-best">0</span></i></span>
+        </div>
+        <div class="g8-board" id="g8-board" tabindex="0" aria-label="2048 board">
+          <div class="g8-grid" id="g8-grid"></div>
+          <div class="game-overlay" id="g8-overlay" hidden>
+            <p id="g8-msg"></p>
+            <div class="g8-actions">
+              <button class="soft-btn" id="g8-keep" type="button" hidden>keep going</button>
+              <button class="soft-btn" id="g8-new" type="button">new game</button>
             </div>
           </div>
-        </article>
-
-        <article class="game">
-          <div class="game-head">
-            <h3>Afterglow</h3>
-            <span class="game-score"><b id="ps-score">0</b> <i>best <span id="ps-best">0</span></i></span>
-          </div>
-          <div class="game-stage">
-            <canvas id="ps-canvas" width="720" height="720" tabindex="0" aria-label="Afterglow game"></canvas>
-            <div class="game-overlay" id="ps-overlay">
-              <p id="ps-msg">Drift through the empty pool, gather the lights.<br><em>arrows, wasd or swipe.</em></p>
-              <button class="soft-btn" id="ps-start" type="button">begin</button>
-            </div>
-          </div>
-          <div class="dpad" aria-label="Direction buttons">
-            <button type="button" data-dir="up" aria-label="Up"></button>
-            <button type="button" data-dir="left" aria-label="Left"></button>
-            <button type="button" data-dir="down" aria-label="Down"></button>
-            <button type="button" data-dir="right" aria-label="Right"></button>
-          </div>
-        </article>
-      </div>
+        </div>
+        <div class="g8-foot"><button class="g8-reset" id="g8-reset" type="button">start over</button></div>
+      </article>
     </section>
 
     <section id="walls" class="room">

@@ -92,7 +92,7 @@ not reading comprehension, so treat the result as approximate and follow the lin
 ## Home page, art and music
 
 `/` is the home page (`static/index.html`, styled by `static/home.css`): a quiet, late-night page split into
-"rooms": **play** (two small games, Fireflies and Afterglow, in `static/games.js`), **walls** (art),
+"rooms": **play** (2048, in `static/games.js`; the game in progress and best score are saved per device), **walls** (art),
 **sound** (what I'm listening to on Spotify, plus any players or tracks you add) and **elsewhere** (a live card
 for every tracker topic). The tracker itself is `/watch.html` (`/watch.html#2` opens topic 2).
 
