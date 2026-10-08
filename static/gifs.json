@@ -380,23 +380,95 @@
       "mp4": "https://media.tenor.com/_yk7EqZqxaAAAAPo/bleach-aizen.mp4",
       "page": "https://tenor.com/view/bleach-aizen-gin-tosen-gif-18386291905004225952"
     },
-    "https://tenor.com/view/steins-gate-science-adventure-okabe-rintaro-houoin-kyoma-mad-scientist-gif-5339076098501755023",
-    "https://tenor.com/view/okabe-rintarou-steins-gate-s-g-anime-gif-3188468857373972059",
-    "https://tenor.com/view/makise-kirusu-steins-gate-gif-21154463",
-    "https://tenor.com/view/steins-gate-mayuri-cooking-gif-2373289375411451451",
-    "https://tenor.com/view/steins-gate-divergence-meter-gif-11648177079793850530",
-    "https://tenor.com/view/haruhi-suzumiya-gif-12004212143495731501",
-    "https://tenor.com/view/the-melancholy-of-haruhi-suzumiya-haruhi-suzumiya-haruhi-suzumiya-anime-gif-13680461083862145498",
-    "https://tenor.com/view/yuki-nagato-witch-wand-hat-haruhi-gif-14526364237497096735",
-    "https://tenor.com/view/swpa-gif-26427165",
-    "https://tenor.com/view/lelouch-gif-10400991459934247247",
-    "https://tenor.com/view/pizza-codegeass-cc-gif-7752834",
-    "https://tenor.com/view/clannad-anime-headpat-headpats-tomoya-okazaki-gif-4725864058617566587",
-    "https://tenor.com/view/anime-clannad-after-story-gif-25121006",
-    "https://tenor.com/view/anime-clannad-star-gif-8334152351603880041",
-    "https://tenor.com/view/anime-cry-sad-crying-devastated-gif-14064862",
-    "https://tenor.com/view/clannad-tomoya-okazaki-ushio-okazaki-gif-3423740273900732455",
-    "https://tenor.com/view/kotomi-ichinose-clannad-curtained-hair-blue-hair-anime-gif-5859890554765501772",
-    "https://tenor.com/view/clannad-parapara-trump-playing-cards-nagisa-furukawa-suit-anime-clannad-gif-5697531447154689884"
+    {
+      "src": "https://media1.tenor.com/m/Shg1bIf5wI8AAAAC/steins-gate-science-adventure.gif",
+      "mp4": "https://media.tenor.com/Shg1bIf5wI8AAAPo/steins-gate-science-adventure.mp4",
+      "page": "https://tenor.com/view/steins-gate-science-adventure-okabe-rintaro-houoin-kyoma-mad-scientist-gif-5339076098501755023"
+    },
+    {
+      "src": "https://media1.tenor.com/m/LD-3iFUr1lsAAAAC/okabe-rintarou.gif",
+      "mp4": "https://media.tenor.com/LD-3iFUr1lsAAAPo/okabe-rintarou.mp4",
+      "page": "https://tenor.com/view/okabe-rintarou-steins-gate-s-g-anime-gif-3188468857373972059"
+    },
+    {
+      "src": "https://media1.tenor.com/m/N5v8Cqz0DY0AAAAC/makise-kirusu-steins-gate.gif",
+      "mp4": "https://media.tenor.com/N5v8Cqz0DY0AAAPo/makise-kirusu-steins-gate.mp4",
+      "page": "https://tenor.com/view/makise-kirusu-steins-gate-gif-21154463"
+    },
+    {
+      "src": "https://media1.tenor.com/m/IO-eHNqbtjsAAAAC/steins-gate-mayuri.gif",
+      "mp4": "https://media.tenor.com/IO-eHNqbtjsAAAPo/steins-gate-mayuri.mp4",
+      "page": "https://tenor.com/view/steins-gate-mayuri-cooking-gif-2373289375411451451"
+    },
+    {
+      "src": "https://media1.tenor.com/m/oaajVuH1mKIAAAAC/steins-gate-divergence-meter.gif",
+      "mp4": "https://media.tenor.com/oaajVuH1mKIAAAPo/steins-gate-divergence-meter.mp4",
+      "page": "https://tenor.com/view/steins-gate-divergence-meter-gif-11648177079793850530"
+    },
+    {
+      "src": "https://media1.tenor.com/m/ppeHV-1-WS0AAAAC/haruhi-suzumiya.gif",
+      "mp4": "https://media.tenor.com/ppeHV-1-WS0AAAPo/haruhi-suzumiya.mp4",
+      "page": "https://tenor.com/view/haruhi-suzumiya-gif-12004212143495731501"
+    },
+    {
+      "src": "https://media1.tenor.com/m/vdrC36MomdoAAAAC/the-melancholy-of-haruhi-suzumiya-haruhi-suzumiya.gif",
+      "mp4": "https://media.tenor.com/vdrC36MomdoAAAPo/the-melancholy-of-haruhi-suzumiya-haruhi-suzumiya.mp4",
+      "page": "https://tenor.com/view/the-melancholy-of-haruhi-suzumiya-haruhi-suzumiya-haruhi-suzumiya-anime-gif-13680461083862145498"
+    },
+    {
+      "src": "https://media1.tenor.com/m/yZgDT13z2h8AAAAC/yuki-nagato-witch.gif",
+      "mp4": "https://media.tenor.com/yZgDT13z2h8AAAPo/yuki-nagato-witch.mp4",
+      "page": "https://tenor.com/view/yuki-nagato-witch-wand-hat-haruhi-gif-14526364237497096735"
+    },
+    {
+      "src": "https://media1.tenor.com/m/vOgdsVDn8SQAAAAC/swpa.gif",
+      "mp4": "https://media.tenor.com/vOgdsVDn8SQAAAPo/swpa.mp4",
+      "page": "https://tenor.com/view/swpa-gif-26427165"
+    },
+    {
+      "src": "https://media1.tenor.com/m/kFe-oEFAmU8AAAAC/lelouch.gif",
+      "mp4": "https://media.tenor.com/kFe-oEFAmU8AAAPo/lelouch.mp4",
+      "page": "https://tenor.com/view/lelouch-gif-10400991459934247247"
+    },
+    {
+      "src": "https://media1.tenor.com/m/HWWzri0F5H8AAAAC/pizza-codegeass.gif",
+      "mp4": "https://media.tenor.com/HWWzri0F5H8AAAPo/pizza-codegeass.mp4",
+      "page": "https://tenor.com/view/pizza-codegeass-cc-gif-7752834"
+    },
+    {
+      "src": "https://media1.tenor.com/m/QZWkUpavlXsAAAAC/clannad-anime.gif",
+      "mp4": "https://media.tenor.com/QZWkUpavlXsAAAPo/clannad-anime.mp4",
+      "page": "https://tenor.com/view/clannad-anime-headpat-headpats-tomoya-okazaki-gif-4725864058617566587"
+    },
+    {
+      "src": "https://media1.tenor.com/m/TbaJv9U_sywAAAAC/anime-clannad-after-story.gif",
+      "mp4": "https://media.tenor.com/TbaJv9U_sywAAAPo/anime-clannad-after-story.mp4",
+      "page": "https://tenor.com/view/anime-clannad-after-story-gif-25121006"
+    },
+    {
+      "src": "https://media1.tenor.com/m/c6jbaFVV8GkAAAAC/anime-clannad.gif",
+      "mp4": "https://media.tenor.com/c6jbaFVV8GkAAAPo/anime-clannad.mp4",
+      "page": "https://tenor.com/view/anime-clannad-star-gif-8334152351603880041"
+    },
+    {
+      "src": "https://media1.tenor.com/m/A6X7TWjNXSEAAAAC/anime-cry.gif",
+      "mp4": "https://media.tenor.com/A6X7TWjNXSEAAAPo/anime-cry.mp4",
+      "page": "https://tenor.com/view/anime-cry-sad-crying-devastated-gif-14064862"
+    },
+    {
+      "src": "https://media1.tenor.com/m/L4ORo60NQCcAAAAC/clannad-tomoya-okazaki.gif",
+      "mp4": "https://media.tenor.com/L4ORo60NQCcAAAPo/clannad-tomoya-okazaki.mp4",
+      "page": "https://tenor.com/view/clannad-tomoya-okazaki-ushio-okazaki-gif-3423740273900732455"
+    },
+    {
+      "src": "https://media1.tenor.com/m/UVKDaZt25UwAAAAC/kotomi-ichinose-clannad.gif",
+      "mp4": "https://media.tenor.com/UVKDaZt25UwAAAPo/kotomi-ichinose-clannad.mp4",
+      "page": "https://tenor.com/view/kotomi-ichinose-clannad-curtained-hair-blue-hair-anime-gif-5859890554765501772"
+    },
+    {
+      "src": "https://media1.tenor.com/m/TxGyqhRFx1wAAAAC/clannad-parapara-trump-playing-cards-nagisa-furukawa.gif",
+      "mp4": "https://media.tenor.com/TxGyqhRFx1wAAAPo/clannad-parapara-trump-playing-cards-nagisa-furukawa.mp4",
+      "page": "https://tenor.com/view/clannad-parapara-trump-playing-cards-nagisa-furukawa-suit-anime-clannad-gif-5697531447154689884"
+    }
   ]
 }
