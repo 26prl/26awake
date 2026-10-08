@@ -134,22 +134,25 @@ window.Players = (() => {
       recoveryPanel(rec, { afterSwitch: async () => { await onSwitch?.(); await again(); } });
       rec.dataset.player = String(p?.id);
     }
+    // Sudoku can't be lost: count completed puzzles instead of "won of played".
+    const finishOnly = kind === "sudoku";
+    const tally = (m) => finishOnly ? `${fmt(m.wins)} completed` : `${fmt(m.wins)} won of ${fmt(m.games)}`;
     const me = data.me;
     if (me) {
       meBox.replaceChildren(
         el("b", { textContent: me.name ? `${me.name} (#${me.id})` : `player #${me.id}` }),
-        me.rank ? ` · ${diff}: rank ${me.rank} of ${fmt(me.players)}` : ` · no ${diff} win yet`,
+        me.rank ? ` · ${diff}: rank ${me.rank} of ${fmt(me.players)}` : ` · no ${diff} ${finishOnly ? "puzzle completed" : "win"} yet`,
         el("br"),
-        el("span", { className: "muted", textContent: (me.best !== null ? `best ${secs(me.best)} · ` : "") + `${fmt(me.wins)} won of ${fmt(me.games)}` }),
+        el("span", { className: "muted", textContent: (me.best !== null ? `best ${secs(me.best)} · ` : "") + tally(me) }),
         ...(me.name ? [] : [nicknameForm(again)]));
     } else {
       meBox.textContent = "Finish a game to get your player number and a rank.";
     }
     if (!data.top.length) {
-      box.replaceChildren(el("p", { className: "muted small", textContent: `No ${diff} wins yet — be the first.` }));
+      box.replaceChildren(el("p", { className: "muted small", textContent: `No ${diff} ${finishOnly ? "puzzles completed" : "wins"} yet — be the first.` }));
     } else {
       box.replaceChildren(el("table", { className: "g8-table" },
-        el("thead", {}, el("tr", {}, ...["#", "player", "fastest", "wins"].map((h) => el("th", { textContent: h })))),
+        el("thead", {}, el("tr", {}, ...["#", "player", "fastest", finishOnly ? "completed" : "wins"].map((h) => el("th", { textContent: h })))),
         el("tbody", {}, ...data.top.map((r) => el("tr", { className: p && r.id === p.id ? "me" : "" },
           el("td", { textContent: r.rank }), el("td", { textContent: who(r) }),
           el("td", { textContent: secs(r.time) }), el("td", { textContent: fmt(r.wins) }))))));
