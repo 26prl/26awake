@@ -500,8 +500,20 @@
       "mp4": "https://media.tenor.com/_B3DdjeQyqYAAAPo/summer-ghost.mp4",
       "page": "https://tenor.com/view/summer-ghost-gif-22430250"
     },
-    "https://tenor.com/view/marin-kitagawa-marin-kitagawa-kitagawa-marin-bisque-gif-24864045",
-    "https://tenor.com/view/kitagawa-winco-serenakittyy-my-dress-up-darling-dress-up-darling-gif-14980564840820405118",
-    "https://tenor.com/view/my-dress-up-darling-wakana-gif-16893416850706568176"
+    {
+      "src": "https://media1.tenor.com/m/xq2d1Oj0OwUAAAAC/marin-kitagawa.gif",
+      "mp4": "https://media.tenor.com/xq2d1Oj0OwUAAAPo/marin-kitagawa.mp4",
+      "page": "https://tenor.com/view/marin-kitagawa-marin-kitagawa-kitagawa-marin-bisque-gif-24864045"
+    },
+    {
+      "src": "https://media1.tenor.com/m/z-WoWi_Oc34AAAAC/kitagawa-winco.gif",
+      "mp4": "https://media.tenor.com/z-WoWi_Oc34AAAPo/kitagawa-winco.mp4",
+      "page": "https://tenor.com/view/kitagawa-winco-serenakittyy-my-dress-up-darling-dress-up-darling-gif-14980564840820405118"
+    },
+    {
+      "src": "https://media1.tenor.com/m/6nF5Htz2k_AAAAAC/my-dress.gif",
+      "mp4": "https://media.tenor.com/6nF5Htz2k_AAAAPo/my-dress.mp4",
+      "page": "https://tenor.com/view/my-dress-up-darling-wakana-gif-16893416850706568176"
+    }
   ]
 }
