@@ -1,0 +1,10 @@
+{
+  "_help": "Hand-made fixes for the counts, per topic name. exclude_urls / exclude_domains: articles ignored for counting. pin: {\"deaths\": {\"value\": 1, \"note\": \"why\", \"url\": \"source\", \"until\": \"YYYY-MM-DD\"}} overrides a figure. See README.",
+  "topics": {
+    "Plague in Russia": {
+      "exclude_urls": [],
+      "exclude_domains": [],
+      "pin": {}
+    }
+  }
+}

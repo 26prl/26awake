@@ -89,6 +89,36 @@ laboratory confirmation; "officially disputed" means trusted or state media repo
 Sentences about history ("Black Death") or worldwide yearly statistics are ignored. It is pattern matching,
 not reading comprehension, so treat the result as approximate and follow the links.
 
+### Corrections and the revision trail
+
+Counts are recomputed from every stored article on each check, so a later, better source changes them:
+
+* **Official correction** — an official/expert source (WHO, Rospotrebnadzor, …) states an exact lower figure
+  *after* the figure was verified: the figure drops to the official one. "1 new case"-style increments don't count.
+* **Ruled out** — after the figure was verified, an official/expert source, or two independent trusted outlets,
+  report it wasn't plague (tests negative, ruled out, "did not die of plague", опроверг…): the figure drops to 0.
+  "Not confirmed yet" / "пока не подтвержден" is not a correction.
+* The corrected figure moves to the "higher figures, not verified" list, with links; the correcting source becomes
+  the figure's backing.
+* **No silent drops** — when the reports behind a figure simply get older than the 30-day window, the last
+  recorded figure is kept instead of falling to 0.
+* **Revision trail** — every change of the deaths/cases figures is stored (`count_history` table) with time and
+  reason ("new reports", "official figure: 2 → 1", "ruled out: 1 → 0", "pinned by hand"…) and exported as
+  `insights.counts.history` in `data/topic-N.json`.
+
+**Fixing or reverting by hand:** edit `corrections.json` (it applies on the next check):
+
+```json
+{"topics": {"Plague in Russia": {
+  "exclude_urls": ["https://example.com/wrong-article"],
+  "exclude_domains": ["fake-news.example"],
+  "pin": {"deaths": {"value": 1, "note": "WHO DON 2026-10-09", "url": "https://www.who.int/…", "until": "2026-12-31"}}
+}}}
+```
+
+`exclude_*` throws articles out of the counts; `pin` overrides a figure (optional `until` date, `"confirmed": false`
+to show it as suspected). Remove the entry to go back to the computed figure.
+
 ## Home page, game and music
 
 `/` is the home page (`static/index.html`): a white page with the logo in the middle and links (music, game, plague) scattered at random spots in random colours (`static/scatter.js`). The other pages have a randomly placed "go back" link the same way.

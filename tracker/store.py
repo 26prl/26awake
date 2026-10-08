@@ -53,6 +53,18 @@ CREATE TABLE IF NOT EXISTS runs (
     error       TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_runs_topic ON runs(topic_id, id DESC);
+-- Every change of a topic's verified counts (deaths, cases): the trail of revisions.
+CREATE TABLE IF NOT EXISTS count_history (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    topic_id    INTEGER NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+    metric      TEXT NOT NULL,
+    value       INTEGER NOT NULL,
+    confirmed   INTEGER NOT NULL,
+    reason      TEXT NOT NULL,
+    detail      TEXT NOT NULL,
+    changed_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_count_history ON count_history(topic_id, metric, id DESC);
 CREATE TABLE IF NOT EXISTS analyses (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     topic_id    INTEGER NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
@@ -458,6 +470,31 @@ class Store:
                 (topic_id, now_iso(), model, n_articles, json.dumps(result, ensure_ascii=False)),
             )
         )
+
+    # ---- count history ----------------------------------------------------------------
+
+    def last_counts(self, topic_id: int) -> dict:
+        """The latest recorded state of each metric: {metric: {value, confirmed, reason, detail, changed_at}}."""
+        out = {}
+        for metric in ("deaths", "cases"):
+            rows = self._read("SELECT * FROM count_history WHERE topic_id = ? AND metric = ? ORDER BY id DESC LIMIT 1",
+                              (topic_id, metric))
+            if rows:
+                r = dict(rows[0])
+                r["detail"] = json.loads(r["detail"])
+                out[metric] = r
+        return out
+
+    def record_counts(self, topic_id: int, metric: str, value: int, confirmed: int, reason: str, detail: dict) -> None:
+        self._write(lambda c: c.execute(
+            "INSERT INTO count_history (topic_id, metric, value, confirmed, reason, detail, changed_at) VALUES (?,?,?,?,?,?,?)",
+            (topic_id, metric, value, confirmed, reason, json.dumps(detail, ensure_ascii=False), now_iso()),
+        ))
+
+    def count_history(self, topic_id: int, limit: int = 50) -> list[dict]:
+        rows = self._read("SELECT metric, value, confirmed, reason, changed_at FROM count_history "
+                          "WHERE topic_id = ? ORDER BY id DESC LIMIT ?", (topic_id, limit))
+        return [dict(r) for r in rows]
 
     def latest_analysis(self, topic_id: int) -> dict | None:
         rows = self._read("SELECT * FROM analyses WHERE topic_id = ? ORDER BY id DESC LIMIT 1", (topic_id,))

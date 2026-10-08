@@ -5,18 +5,26 @@ Every article headline/summary is scanned for statements such as "lab worker die
 verified only when an official/expert source states it, or at least two independent reputable
 outlets do. Bigger figures from other sources are listed separately as unverified.
 
+Later corrections win: when, after a figure was verified, an official/expert source states a lower
+exact figure, or trusted sources report that it was ruled out (tests negative, "not plague"), the
+figure is revised and the earlier one is listed with the unverified figures. Articles can be thrown
+out, or a figure pinned by hand, in corrections.json (see load_corrections).
+
 This is rule-based text matching on headlines, so the result is an approximation: every number
 links to the reports it came from.
 """
 
 from __future__ import annotations
 
+import json
+import os
 import re
 from datetime import datetime, timedelta, timezone
 
 from .trust import TRUSTED
 
 WINDOW_DAYS = 30
+CORRECTIONS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "corrections.json")
 
 WORD_NUMBERS = {
     "a": 1, "an": 1, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
@@ -57,6 +65,16 @@ DENIAL = re.compile(
     r"фейк\w*|опроверг\w*|не подтверд\w*|не подтвержд\w*|отрица\w*|ложн\w*",
     re.I,
 )
+# A correction, not just a denial: the earlier report turned out wrong.
+RETRACTION = re.compile(
+    r"\bruled? out\b|tested negative|tests? (?:came back |were |was |are )?negative|\bnot (?:the )?plague\b|"
+    r"did(?:n['’]t| not) (?:die|have) (?:of |from )?plague|\bfalse (?:alarm|information|reports?)\b|\bretract\w*|"
+    r"опроверг\w*|исключил\w*|исключен\w*|не подтвердил\w*|не подтвержд\w*|отрицательн\w*|"
+    r"ложн\w* (?:информац|тревог|сообщени)\w*|\bне чума\b|не от чумы|не связан\w* с чумой",
+    re.I,
+)
+NOT_YET = re.compile(r"\byet\b|\bawait|\bpending\b|\bпока\b|\bещ[её] не\b|ожида", re.I)
+INCREMENT = re.compile(r"\bnew\b|\banother\b|\bmore\b|\bновы\w*|\bещ[её]\b|\bдополнительн\w*", re.I)
 NO_DEATHS = re.compile(r"\bno (new )?deaths?\b|никто не умер|смертей нет|без летальн", re.I)
 CONTEXT_SKIP = re.compile(
     r"black death|ч[её]рн\w* смерт|middle ages|medieval|средневек|century|столети|веке\b|annually|per year|"
@@ -92,37 +110,47 @@ def extract(text: str, tier: str = "unknown") -> list[dict]:
         denial = bool(DENIAL.search(low))
         qual = _qualifier(low, tier)
 
-        # Deaths (a death is reported even when officials dispute that plague caused it).
-        if not NO_DEATHS.search(low):
-            death = None
+        retraction = denial and bool(RETRACTION.search(low)) and not NOT_YET.search(low)
+
+        # Deaths (a death is reported even when officials dispute that plague caused it, but not when the
+        # sentence itself says it wasn't plague).
+        if not NO_DEATHS.search(low) and not retraction:
+            death, explicit = None, False
             m = re.search(_NUM + r"\s+(?:people\s+|persons?\s+|человек\w*\s+)?(?:have\s+)?" + DEATH_WORDS, low)
             if m and _value(m.group(1)) is not None:
-                death = _value(m.group(1))
+                death, explicit = _value(m.group(1)), True
             m2 = re.search(r"\b" + _ORD + _GAP + DEATH_WORDS, low)
             if m2:
-                death = max(death or 0, ORDINALS[m2.group(1)])
+                death, explicit = max(death or 0, ORDINALS[m2.group(1)]), True
+            # verb first: "умер 1 человек", "умерли двое", "died: 2 people"
+            m3 = re.search(r"\b" + DEATH_WORDS + r":?\s+(?:[\w-]+\s+){0,2}?" + _NUM
+                           + r"(?:\s+(?:человек\w*|people|persons?|сотрудник\w*|workers?)|\s*$|[.,;])", low)
+            if m3 and _value(m3.group(2)) and not re.match(r"(a|an)\b", m3.group(2)):
+                death, explicit = max(death or 0, _value(m3.group(2))), True
             if death is None and re.search(r"\b" + DEATH_WORDS, low) and not re.search(r"\bdeath toll\b", low):
                 death = 1
             if death:
-                claims.append({"metric": "deaths", "value": death, "qualifier": qual, "denial": False, "quote": s})
+                claims.append({"metric": "deaths", "value": death, "qualifier": qual, "denial": False,
+                               "explicit": explicit, "quote": s})
 
         # Cases / infections — not counted from sentences that deny cases.
         if not denial:
-            case = None
-            m = re.search(_NUM + r"\s+(?:new\s+|confirmed\s+|suspected\s+|possible\s+|probable\s+|more\s+)?"
+            case, explicit = None, False
+            m = re.search(_NUM + r"\s+(?:new\s+|confirmed\s+|suspected\s+|possible\s+|probable\s+|more\s+|новы\w*\s+|подтвержд\w*\s+|подозрени\w*\s+)?"
                           r"(?:plague\s+|чумы\s+)?" + CASE_WORDS, low)
             if m and _value(m.group(1)) is not None and not re.match(r"(a|an)\b", m.group(1)):
-                case = _value(m.group(1))
+                case, explicit = _value(m.group(1)), True
             m2 = re.search(r"\b" + _ORD + _GAP + CASE_SUBJECT, low) or re.search(
                 r"\b(another|ещ[её] (один|одна|одного))\b" + _GAP + r"?" + CASE_WORDS, low)
             if m2:
                 n = ORDINALS.get(m2.group(1), 2)
-                case = max(case or 0, n)
+                case, explicit = max(case or 0, n), True
             if case is None and re.search(r"\b(a|one)\b" + _GAP + r"?(case|infection|patient)\b|\bcase of\b|"
                                           r"\bслучай\b|\bслучая (чумы|заболев|заражен)|\bзаболел\w*\b", low):
                 case = 1
             if case:
-                claims.append({"metric": "cases", "value": case, "qualifier": qual, "denial": False, "quote": s})
+                claims.append({"metric": "cases", "value": case, "qualifier": qual, "denial": False,
+                               "explicit": explicit, "quote": s})
 
         # Quarantined / contacts under observation.
         m = re.search(r"(\d{1,6}|" + "|".join(VAGUE) + "|" + "|".join(k for k in WORD_NUMBERS if len(k) > 2) + r")"
@@ -135,7 +163,12 @@ def extract(text: str, tier: str = "unknown") -> list[dict]:
 
         if denial:
             metric = "deaths" if re.search(DEATH_WORDS, low) and "plague" not in low and "чум" not in low else "cases"
-            claims.append({"metric": metric, "value": 0, "qualifier": "denial", "denial": True, "quote": s})
+            claims.append({"metric": metric, "value": 0, "qualifier": "denial", "denial": True,
+                           "retraction": retraction, "quote": s})
+            # "did not die of plague": the death is no longer a plague death either.
+            if retraction and metric == "cases" and re.search(r"\bdie\b|" + DEATH_WORDS, low):
+                claims.append({"metric": "deaths", "value": 0, "qualifier": "denial", "denial": True,
+                               "retraction": True, "quote": s})
     return claims
 
 
@@ -170,12 +203,47 @@ def _dedupe_articles(claims: list[dict]) -> list[dict]:
     return out
 
 
+def _correction(claims: list[dict], reported: dict) -> dict | None:
+    """A later correction of a verified figure: an exact lower figure from an official/expert source, or the
+    figure ruled out (official/expert source, or two independent trusted outlets). Newest correction wins."""
+    old = reported["value"]
+    if not old or not reported["sources"]:
+        return None
+    last_support = max(s["published_at"] for s in reported["sources"])
+    newer = [c for c in claims if c["published_at"] > last_support]
+    found = []
+    lower = [c for c in newer if not c["denial"] and c.get("explicit") and c["trust"] in ("official", "expert")
+             and c["value"] < old and not INCREMENT.search(c["quote"])]
+    if lower:
+        latest = max(lower, key=lambda c: c["published_at"])
+        found.append((latest["published_at"], latest["value"], "official figure", [latest]))
+    ruled_out = [c for c in newer if c.get("retraction") and c["trust"] in TRUSTED]
+    score, _ = _support([{**c, "value": 1} for c in ruled_out], 1)
+    if score >= 2:
+        found.append((max(c["published_at"] for c in ruled_out), 0, "ruled out", ruled_out))
+    if not found:
+        return None
+    at, value, reason, backing = max(found, key=lambda f: f[0])
+    return {"from": old, "to": value, "at": at, "reason": reason, "sources": _dedupe_articles(backing)[:6]}
+
+
 def _metric_summary(claims: list[dict], metric: str) -> dict:
-    mine = [c for c in claims if c["metric"] == metric and not c["denial"]]
+    every = [c for c in claims if c["metric"] == metric]
+    mine = [c for c in every if not c["denial"]]
     reported = _verified(mine)  # suspected + reported + confirmed
     confirmed = _verified([c for c in mine if c["qualifier"] == "confirmed"])
+    revised = _correction(every, reported)
+    if revised:
+        backing = revised["sources"]
+        reported = {"value": revised["to"], "n_sources": len({b["source"] for b in backing}),
+                    "official": any(b["trust"] == "official" for b in backing), "sources": backing}
+        if revised["to"] == 0:
+            confirmed = {"value": 0, "n_sources": 0, "official": False, "sources": []}
+        elif confirmed["value"] > revised["to"] or revised["reason"] == "official figure":
+            confirmed = dict(reported)
     verified_value = reported["value"]
-    # Anything above the verified figure: untrusted sources, or a single trusted outlet without backing.
+    # Anything above the verified figure: untrusted sources, a single trusted outlet without backing,
+    # or figures that were corrected later.
     unverified = [c for c in mine if (c["value"] or 0) > verified_value]
     return {
         "value": verified_value,
@@ -185,6 +253,7 @@ def _metric_summary(claims: list[dict], metric: str) -> dict:
         "unverified_max": max((c["value"] for c in unverified), default=None),
         "unverified": _dedupe_articles(unverified)[:5],
         "n_claims": len(mine),
+        "revised": revised,
     }
 
 
@@ -232,11 +301,56 @@ def summarize(claims: list[dict]) -> dict:
             "n_denials": len(denials)}
 
 
-def build(articles: list[dict], facets: dict | None = None, days: int = WINDOW_DAYS) -> dict:
+def load_corrections(topic_name: str, path: str | None = None) -> dict:
+    """Hand-made fixes for one topic from corrections.json:
+
+        {"topics": {"Plague in Russia": {
+            "exclude_urls": ["https://…"],          # articles that turned out wrong: ignored for counts
+            "exclude_domains": ["example.com"],
+            "pin": {"deaths": {"value": 1, "note": "why", "url": "https://source", "until": "2026-12-31"}}
+        }}}
+
+    A pin replaces the computed figure (until its optional date); use it to revert a wrong number."""
+    try:
+        with open(path or CORRECTIONS_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return (data.get("topics") or {}).get(topic_name) or {}
+
+
+def _apply_pins(result: dict, pins: dict) -> None:
+    today = datetime.now(timezone.utc).date().isoformat()
+    for metric in ("deaths", "cases"):
+        pin = pins.get(metric)
+        if not isinstance(pin, dict) or "value" not in pin or (pin.get("until") and pin["until"] < today):
+            continue
+        m = result[metric]
+        value = int(pin["value"])
+        src = [{"title": pin.get("note") or "Corrected by hand", "url": pin.get("url") or "", "source": "correction",
+                "trust": "official", "published_at": pin.get("since") or today, "value": value,
+                "qualifier": "confirmed", "quote": pin.get("note") or ""}]
+        fixed = {"value": value, "n_sources": 1, "official": True, "sources": src}
+        m["revised"] = {"from": m["value"], "to": value, "at": today, "reason": "pinned by hand", "sources": src}
+        m["value"] = value
+        m["reported"] = fixed
+        m["confirmed"] = fixed if pin.get("confirmed", True) else {"value": 0, "n_sources": 0, "official": False, "sources": []}
+        m["suspected_only"] = value > m["confirmed"]["value"]
+        m["unverified"] = [u for u in m["unverified"] if u["value"] > value]
+        m["unverified_max"] = max((u["value"] for u in m["unverified"]), default=None)
+
+
+def build(articles: list[dict], facets: dict | None = None, days: int = WINDOW_DAYS,
+          corrections: dict | None = None) -> dict:
+    corrections = corrections or {}
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-    recent = [a for a in articles if a["published_at"] >= since]
+    skip_urls = set(corrections.get("exclude_urls") or [])
+    skip_domains = {d.lower().removeprefix("www.") for d in corrections.get("exclude_domains") or []}
+    recent = [a for a in articles if a["published_at"] >= since and a["url"] not in skip_urls
+              and (a.get("domain") or a["source"]).lower().removeprefix("www.") not in skip_domains]
     claims = collect_claims(recent)
     result = summarize(claims)
+    _apply_pins(result, corrections.get("pin") or {})
     result["window_days"] = days
     result["n_articles"] = len(recent)
     regions = {}

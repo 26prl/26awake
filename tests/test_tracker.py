@@ -438,6 +438,13 @@ class CountTests(unittest.TestCase):
         claims = extract("Россия сообщила ВОЗ об отсутствии случаев чумы в Иркутске", "reputable")
         self.assertEqual([(c["metric"], c["denial"]) for c in claims], [("cases", True)])
         self.assertTrue(first("Russia says no plague found in contacts of Siberian lab worker who died", "cases")["denial"])
+        # Verb first, and not across a comma ("died, 200 quarantined" is one death).
+        self.assertEqual(first("Роспотребнадзор: от чумы умер 1 человек", "deaths", "official")["value"], 1)
+        self.assertEqual(first("В Иркутске умерли двое сотрудников лаборатории", "deaths")["value"], 2)
+        self.assertEqual(first("Девушка умерла, 200 человек на карантине", "deaths")["value"], 1)
+        # Corrections are told apart from "not confirmed yet".
+        self.assertTrue(first("Plague ruled out in death of lab worker, tests negative", "deaths")["retraction"])
+        self.assertFalse(first("Диагноз чума пока не подтвержден", "cases")["retraction"])
         # History and global statistics are ignored.
         self.assertEqual(extract("The Black Death killed 25 million people in Europe", "reputable"), [])
         self.assertEqual(extract("Plague infects 2,000 people worldwide each year", "reputable"), [])
@@ -477,6 +484,99 @@ class CountTests(unittest.TestCase):
             dt.now.return_value = real_dt(2026, 10, 7, tzinfo=tz.utc)
             r = build(arts)
         self.assertEqual((r["cases"]["value"], r["cases"]["confirmed"]["value"]), (2, 2))
+
+    def _build(self, arts, **kw):
+        from tracker.counts import build
+        with mock.patch("tracker.counts.datetime") as dt:
+            from datetime import datetime as real_dt, timezone as tz
+            dt.now.return_value = real_dt(2026, 10, 12, tzinfo=tz.utc)
+            return build(arts, **kw)
+
+    def test_later_official_figure_revises_down(self):
+        arts = [
+            self.art(1, "Two people died of plague in Irkutsk", "reuters.com", "reputable", "2026-10-06"),
+            self.art(2, "2 people died of plague at Irkutsk lab", "apnews.com", "reputable", "2026-10-06"),
+            self.art(3, "Роспотребнадзор: от чумы умер 1 человек", "rospotrebnadzor.ru", "official", "2026-10-08"),
+        ]
+        r = self._build(arts)
+        self.assertEqual(r["deaths"]["value"], 1)
+        self.assertEqual((r["deaths"]["revised"]["from"], r["deaths"]["revised"]["reason"]), (2, "official figure"))
+        self.assertEqual(r["deaths"]["unverified_max"], 2)  # the earlier figure is listed as not verified any more
+
+    def test_older_or_incremental_official_figures_do_not_revise(self):
+        arts = [
+            self.art(1, "Роспотребнадзор: от чумы умер 1 человек", "rospotrebnadzor.ru", "official", "2026-10-04"),
+            self.art(2, "Two people died of plague in Irkutsk", "reuters.com", "reputable", "2026-10-06"),
+            self.art(3, "2 people died of plague at Irkutsk lab", "apnews.com", "reputable", "2026-10-06"),
+            self.art(4, "Роспотребнадзор: выявлен 1 новый случай чумы", "rospotrebnadzor.ru", "official", "2026-10-09"),
+        ]
+        r = self._build(arts)
+        self.assertEqual(r["deaths"]["value"], 2)
+        self.assertIsNone(r["deaths"]["revised"])
+        self.assertIsNone(r["cases"]["revised"])
+
+    def test_ruled_out_by_trusted_sources(self):
+        arts = [
+            self.art(1, "Russian lab worker dies of suspected plague in Siberia", "reuters.com", "reputable", "2026-10-06"),
+            self.art(2, "Russia reports suspected plague death of lab worker", "apnews.com", "reputable", "2026-10-06"),
+            self.art(3, "Tests negative: Siberian lab worker did not die of plague", "bbc.com", "reputable", "2026-10-09"),
+            self.art(4, "Plague ruled out in death of Irkutsk lab worker, tests negative", "dw.com", "reputable", "2026-10-09"),
+        ]
+        r = self._build(arts)
+        self.assertEqual((r["deaths"]["value"], r["cases"]["value"]), (0, 0))
+        self.assertEqual(r["deaths"]["revised"]["reason"], "ruled out")
+        # A single outlet is not enough to overturn a figure.
+        self.assertEqual(self._build(arts[:3])["deaths"]["value"], 1)
+
+    def test_corrections_file(self):
+        from tracker.counts import load_corrections
+        arts = [
+            self.art(1, "Two people died of plague in Irkutsk", "reuters.com", "reputable", "2026-10-06"),
+            self.art(2, "2 people died of plague at Irkutsk lab", "apnews.com", "reputable", "2026-10-06"),
+        ]
+        # Throwing one report out leaves a single source, so the figure is no longer verified.
+        self.assertEqual(self._build(arts, corrections={"exclude_urls": ["https://apnews.com/2"]})["deaths"]["value"], 0)
+        r = self._build(arts, corrections={"pin": {"deaths": {"value": 1, "note": "WHO DON", "url": "https://who.int/x"}}})
+        self.assertEqual((r["deaths"]["value"], r["deaths"]["revised"]["reason"]), (1, "pinned by hand"))
+        self.assertEqual(r["deaths"]["reported"]["sources"][0]["url"], "https://who.int/x")
+        expired = {"pin": {"deaths": {"value": 0, "until": "2026-10-01"}}}
+        self.assertEqual(self._build(arts, corrections=expired)["deaths"]["value"], 2)
+        with tempfile.TemporaryDirectory() as d:
+            f = Path(d) / "c.json"
+            f.write_text(json.dumps({"topics": {"T": {"exclude_domains": ["x.com"]}}}), encoding="utf-8")
+            self.assertEqual(load_corrections("T", str(f)), {"exclude_domains": ["x.com"]})
+            self.assertEqual(load_corrections("other", str(f)), {})
+        self.assertEqual(load_corrections("T", "/nonexistent.json"), {})
+
+    def test_history_and_carry_over(self):
+        from tracker.insights import track_counts
+        with tempfile.TemporaryDirectory() as d:
+            store = Store(str(Path(d) / "t.db"))
+            topic = store.create_topic(normalize_topic(SEED))
+            arts = [
+                self.art(1, "Two people died of plague in Irkutsk", "reuters.com", "reputable", "2026-10-06"),
+                self.art(2, "2 people died of plague at Irkutsk lab", "apnews.com", "reputable", "2026-10-06"),
+            ]
+            first = self._build(arts)
+            track_counts(store, topic, first)
+            self.assertEqual([h["reason"] for h in first["history"]], ["first record", "first record"])
+            # Same figures again: nothing new is logged.
+            again = self._build(arts)
+            track_counts(store, topic, again)
+            self.assertEqual(len(again["history"]), 2)
+            # The reports age out of the window: the figure is carried over, not dropped.
+            with mock.patch("tracker.insights._since", return_value="2026-11-01"):
+                empty = self._build([])
+                track_counts(store, topic, empty)
+            self.assertEqual((empty["deaths"]["value"], empty["cases"]["value"]), (2, 2))
+            self.assertTrue(empty["deaths"]["carried_over"])
+            # A correction while the reports are still fresh is a real revision and is logged.
+            fixed = self._build(arts + [self.art(3, "Роспотребнадзор: от чумы умер 1 человек", "rospotrebnadzor.ru",
+                                                 "official", "2026-10-08")])
+            track_counts(store, topic, fixed)
+            self.assertEqual(fixed["deaths"]["value"], 1)
+            self.assertEqual([h["reason"] for h in fixed["history"][:2]],
+                             ["follows deaths (official figure): 2 → 1", "official figure: 2 → 1"])
 
     def test_facets_with_coordinates(self):
         t = normalize_topic({"name": "x", "queries": ["a"], "facets": {"Tuva": {"keywords": ["tuva"], "lat": "51.7", "lon": 94.4}, "Old": ["kw"]}})

@@ -144,7 +144,8 @@ def facets(topic: dict, articles: list[dict], region_counts: dict | None = None)
 
 def build(store, topic: dict, days: int = 14) -> dict:
     window = store.recent(topic["id"], days=counts.WINDOW_DAYS, limit=5000)
-    case_counts = counts.build(window, facet_defs(topic))
+    case_counts = counts.build(window, facet_defs(topic), corrections=counts.load_corrections(topic["name"]))
+    track_counts(store, topic, case_counts)
     articles = [a for a in window if a["published_at"] >= _since(days)]
     timeline = store.timeline(topic["id"], days=30)
     clusters = cluster(articles)
@@ -165,6 +166,41 @@ def build(store, topic: dict, days: int = 14) -> dict:
         "counts": case_counts,
         "tier_counts": store.tier_counts(topic["id"]),
     }
+
+
+def track_counts(store, topic: dict, result: dict) -> None:
+    """Keep figures from silently disappearing, and log every change.
+
+    A figure whose supporting reports have simply aged out of the counting window is carried over from the
+    last recorded state. A drop for any other reason (a correction, a pin, an excluded article, a trust
+    change) is a real revision and is applied. Every change is written to count_history with its reason."""
+    last = store.last_counts(topic["id"])
+    since = _since(counts.WINDOW_DAYS)
+    for metric in ("deaths", "cases"):
+        m, prev = result[metric], last.get(metric)
+        if prev and prev["value"] > m["value"] and not m.get("revised"):
+            backing = prev["detail"].get("reported", {}).get("sources", [])
+            if backing and all(s["published_at"] < since for s in backing if s.get("published_at")):
+                result[metric] = {**prev["detail"], "carried_over": True}
+                continue
+        state = (m["value"], m["confirmed"]["value"])
+        if prev and (prev["value"], prev["confirmed"]) == state:
+            continue
+        if m.get("revised"):
+            reason = f"{m['revised']['reason']}: {m['revised']['from']} → {m['revised']['to']}"
+        elif metric == "cases" and result["deaths"].get("revised") and prev and m["value"] < prev["value"]:
+            r = result["deaths"]["revised"]
+            reason = f"follows deaths ({r['reason']}): {prev['value']} → {m['value']}"
+        elif not prev:
+            reason = "first record"
+        else:
+            reason = "new reports" if m["value"] > prev["value"] else "recounted"
+        store.record_counts(topic["id"], metric, m["value"], m["confirmed"]["value"], reason, m)
+    # Everyone who died of a (suspected) infection was infected, carried-over figures included.
+    if result["deaths"]["value"] > result["cases"]["value"]:
+        result["cases"] = {**result["cases"], "value": result["deaths"]["value"],
+                           "suspected_only": result["deaths"]["value"] > result["cases"]["confirmed"]["value"]}
+    result["history"] = store.count_history(topic["id"], limit=50)
 
 
 def _since(days: int) -> str:
