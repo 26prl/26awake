@@ -3,6 +3,8 @@
 // Each puzzle comes from a server seed (a local one when there is no server). When the grid is full and right,
 // it's sent to the server, which rebuilds the puzzle, checks the grid and times the solve itself.
 // The puzzle in progress (with pencil notes) is kept on this device.
+// Nothing is timed until Start is pressed, and leaving the page (other tab, closed, phone locked) pauses the
+// game: the board is covered and both the page's clock and the server's clock stop until Continue.
 
 (() => {
   const gridEl = document.getElementById("sd-grid");
@@ -12,7 +14,8 @@
   const $ = (id) => document.getElementById(id);
 
   let diff = S.DIFFS[store.get("sudoku-diff", "easy")] ? store.get("sudoku-diff", "easy") : "easy";
-  let g = null;       // {diff, seed, game, puzzle[], entries[], notes[], started, solved, time}
+  let g = null;       // {diff, seed, game, puzzle[], entries[], notes[], elapsed, runSince, solved, time}
+  let phase = "idle"; // idle (Start button) | running | paused (Continue button) | solved
   let sel = -1, notesMode = false, ticker = null, ranking = null, busy = false;
 
   const save = () => store.set("sudoku-game", g);
@@ -52,18 +55,33 @@
     $("sd-notes").setAttribute("aria-pressed", String(notesMode));
     gridEl.classList.toggle("busy", busy);
     gridEl.classList.toggle("done", !!(g && g.solved));
+    gridEl.classList.toggle("covered", phase === "idle" || phase === "paused");
+    const cover = $("sd-cover");
+    cover.hidden = !(phase === "idle" || phase === "paused");
+    $("sd-cover-text").textContent = phase === "paused" ? "paused" : `${diff} sudoku`;
+    $("sd-go").textContent = busy ? "…" : phase === "paused" ? "Continue" : "Start";
   }
 
+  const elapsed = () => (g ? g.elapsed + (g.runSince ? Date.now() - g.runSince : 0) : 0);
+
   function tick() {
-    $("sd-time").textContent = g ? secs((g.solved ? g.time : Date.now() - g.started) || 0) : "0.0 s";
+    $("sd-time").textContent = secs(g ? (g.solved ? g.time : elapsed()) : 0);
   }
 
   // ---- game ----------------------------------------------------------------------------
 
-  async function newGame() {
-    busy = true; g = null; sel = -1; clearInterval(ticker); draw();
+  // Back to the Start button (for the chosen difficulty). The previous unfinished puzzle doesn't count.
+  function newGame() {
+    g = null; sel = -1; phase = "idle"; clearInterval(ticker);
+    store.set("sudoku-game", null);
     $("sd-result").textContent = "";
     document.querySelectorAll(".ms-diff button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.diff === diff)));
+    tick(); draw();
+  }
+
+  // Start: get the seed from the server (its clock starts now), make the puzzle, start the timer.
+  async function startGame() {
+    busy = true; draw();
     let seed = null, game = null;
     if (ranking !== false) {
       try {
@@ -76,18 +94,44 @@
     }
     if (seed === null) seed = (Math.random() * 2 ** 32) >>> 0; // unranked
     const { puzzle } = S.make(diff, seed);
-    g = { diff, seed, game, puzzle, entries: puzzle.slice(), notes: new Array(81).fill(0), started: Date.now(), solved: false };
-    busy = false;
-    save(); start(); draw();
+    g = { diff, seed, game, puzzle, entries: puzzle.slice(), notes: new Array(81).fill(0), elapsed: 0, runSince: Date.now(), solved: false };
+    busy = false; phase = "running";
+    save(); run(); draw();
   }
 
-  function start() {
+  function run() {
     clearInterval(ticker); tick();
-    if (!g.solved) ticker = setInterval(tick, 100);
+    ticker = setInterval(tick, 100);
+  }
+
+  function serverClock(action) {
+    const p = P.current();
+    if (!g || !g.game || !p) return null;
+    const body = JSON.stringify({ action, id: p.id, key: p.key, game: g.game });
+    if (action === "spause" && navigator.sendBeacon) { // still gets sent while the page is closing
+      navigator.sendBeacon("api/scores", new Blob([body], { type: "application/json" }));
+      return null;
+    }
+    return fetch("api/scores", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
+  }
+
+  function pause() {
+    if (phase !== "running") return;
+    g.elapsed = elapsed(); g.runSince = 0; phase = "paused";
+    clearInterval(ticker); tick(); save(); draw();
+    serverClock("spause");
+  }
+
+  async function resume() {
+    if (phase !== "paused") return;
+    busy = true; draw();
+    await serverClock("sresume");
+    busy = false; g.runSince = Date.now(); phase = "running";
+    save(); run(); draw();
   }
 
   function put(d) {
-    if (!g || g.solved || sel < 0 || g.puzzle[sel]) return;
+    if (!g || phase !== "running" || sel < 0 || g.puzzle[sel]) return;
     if (notesMode && d) {
       if (!g.entries[sel]) g.notes[sel] ^= 1 << d;
     } else {
@@ -100,7 +144,7 @@
   }
 
   async function solved() {
-    g.solved = true; g.time = Date.now() - g.started; save();
+    g.time = elapsed(); g.elapsed = g.time; g.runSince = 0; g.solved = true; phase = "solved"; save();
     clearInterval(ticker); tick(); draw();
     const res = $("sd-result");
     res.textContent = `solved in ${secs(g.time)}`;
@@ -116,31 +160,33 @@
 
   // ---- input ---------------------------------------------------------------------------
 
+  $("sd-go").onclick = () => { if (busy) return; phase === "paused" ? resume() : startGame(); };
+  document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
+  addEventListener("pagehide", pause);
+
   gridEl.addEventListener("click", (e) => {
     const c = e.target.closest(".sd-cell");
-    if (!c) return;
+    if (!c || phase !== "running") return;
     sel = Number(c.dataset.i);
     draw();
   });
   document.querySelectorAll(".sd-pad [data-d]").forEach((b) => { b.onclick = () => put(Number(b.dataset.d)); });
   $("sd-erase").onclick = () => {
-    if (!g || g.solved || sel < 0 || g.puzzle[sel]) return;
+    if (!g || phase !== "running" || sel < 0 || g.puzzle[sel]) return;
     g.entries[sel] = 0; g.notes[sel] = 0; save(); draw();
   };
   $("sd-notes").onclick = () => { notesMode = !notesMode; draw(); };
-  $("sd-new").onclick = () => {
-    if (g && !g.solved && g.entries.some((d, i) => d && !g.puzzle[i]) && !confirm("Start a new puzzle? This one won't count.")) return;
-    newGame();
-  };
+  const leaving = () => !(g && !g.solved && g.entries.some((d, i) => d && !g.puzzle[i])) || confirm("Start a new puzzle? This one won't count.");
+  $("sd-new").onclick = () => { if (leaving()) newGame(); };
   document.querySelectorAll(".ms-diff button").forEach((x) => {
     x.onclick = () => {
-      if (x.dataset.diff === diff && g && !g.solved) return;
-      if (g && !g.solved && g.entries.some((d, i) => d && !g.puzzle[i]) && !confirm("Start a new puzzle? This one won't count.")) return;
+      if (x.dataset.diff === diff && phase === "idle") return;
+      if (!leaving()) return;
       diff = x.dataset.diff; store.set("sudoku-diff", diff); newGame(); loadBoard();
     };
   });
   document.addEventListener("keydown", (e) => {
-    if (e.target.matches?.("input, textarea") || !g) return;
+    if (e.target.matches?.("input, textarea") || !g || phase !== "running") return;
     const k = e.key;
     if (/^[1-9]$/.test(k)) { put(Number(k)); e.preventDefault(); return; }
     if (k === "Backspace" || k === "Delete" || k === "0") { $("sd-erase").click(); e.preventDefault(); return; }
@@ -171,8 +217,12 @@
     document.querySelectorAll(".ms-diff button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.diff === diff)));
     await loadBoard();
     const saved = store.get("sudoku-game", null);
-    if (saved && saved.diff === diff && Array.isArray(saved.puzzle) && saved.puzzle.length === 81 && !saved.solved) {
-      g = saved; start(); draw();
+    if (saved && saved.diff === diff && Array.isArray(saved.puzzle) && saved.puzzle.length === 81 && !saved.solved
+        && typeof saved.elapsed === "number") {
+      // an unfinished puzzle: it was paused when the page closed; Continue picks it up
+      g = saved;
+      if (g.runSince) { g.elapsed += Math.max(0, Date.now() - g.runSince); g.runSince = 0; } // page closed without a pause
+      phase = "paused"; tick(); draw();
     } else {
       newGame();
     }

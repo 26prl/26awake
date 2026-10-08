@@ -19,7 +19,9 @@
 //   POST /api/scores {action:"msubmit", id, key, game, opens}  → {won, time, best, rank, players, newBest, ...}
 //   GET  /api/scores?game=sudoku&diff=easy&id=N   same for sudoku
 //   POST /api/scores {action:"sstart", id, key, diff}          → {game, seed}   (the page makes the puzzle from it)
+//   POST /api/scores {action:"spause"|"sresume", id, key, game} → pauses/resumes the server's clock for that game
 //   POST /api/scores {action:"ssubmit", id, key, game, grid}   → {won, time, best, rank, players, newBest, ...}
+//   (sudoku game record: "s:<player>:<seed>:<diff>:<started ms>:<paused ms so far>:<paused since ms, 0 = running>")
 
 const crypto = require("crypto");
 const core = require("../g2048-core.js");
@@ -177,15 +179,31 @@ module.exports = async (req, res) => {
       return send(res, 200, { game, seed });
     }
 
+    if (b.action === "spause" || b.action === "sresume") {
+      if (typeof b.game !== "string") return send(res, 400, { error: "bad game" });
+      const [stored] = await redis(["GET", `g:${b.game}`]);
+      if (!stored || !stored.startsWith("s:")) return send(res, 409, { error: "game already counted or expired" });
+      const [, owner, seed, diff, started, pausedMs = "0", since = "0"] = stored.split(":");
+      if (Number(owner) !== id) return send(res, 403, { error: "not your game" });
+      let paused = Number(pausedMs), at = Number(since);
+      const now = Date.now();
+      if (b.action === "spause" && !at) at = now;
+      if (b.action === "sresume" && at) { paused += now - at; at = 0; }
+      await redis(["SET", `g:${b.game}`, ["s", owner, seed, diff, started, paused, at].join(":"), "KEEPTTL"]);
+      return send(res, 200, { paused: !!at });
+    }
+
     if (b.action === "ssubmit") {
       if (typeof b.game !== "string" || typeof b.grid !== "string" || !/^[1-9]{81}$/.test(b.grid)) return send(res, 400, { error: "bad grid" });
       const [stored] = await redis(["GETDEL", `g:${b.game}`]); // each game counts once
       if (!stored || !stored.startsWith("s:")) return send(res, 409, { error: "game already counted or expired" });
-      const [, owner, seed, diff, started] = stored.split(":");
+      const [, owner, seed, diff, started, pausedMs = "0", since = "0"] = stored.split(":");
       if (Number(owner) !== id) return send(res, 403, { error: "not your game" });
       const { puzzle } = sudoku.make(diff, Number(seed));
       if (!sudoku.check(puzzle, [...b.grid].map(Number))) return send(res, 400, { error: "that grid isn't solved" });
-      const time = Date.now() - Number(started); // measured here, not by the page
+      // measured here, not by the page: time since start, minus the time the game was paused
+      const now = Date.now();
+      const time = now - Number(started) - Number(pausedMs) - (Number(since) ? now - Number(since) : 0);
       const before = await tStanding("sudoku", id, diff);
       await redis(["HINCRBY", `p:${id}`, `s:${diff}:games`, "1"], ["HINCRBY", `p:${id}`, `s:${diff}:wins`, "1"],
         ["ZADD", `lbs:${diff}`, "LT", String(time), String(id)]);

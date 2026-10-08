@@ -139,7 +139,8 @@ Each thing has its own page, all styled by `static/site.css` (white, system font
   server replays the opened cells and times the game itself; ranking = fastest win per difficulty. Players,
   nicknames and recovery codes are shared by all games (`static/players.js`).
 * `/game3.html` — sudoku (`static/sudoku.js`, rules and puzzle maker in `static/sudoku-core.js`): easy/medium/hard
-  (38/30/~24 givens, always exactly one solution), pencil notes, keyboard, resumes after a reload. Puzzles come
+  (38/30/~24 givens, always exactly one solution), pencil notes, keyboard. Nothing is timed until Start; leaving
+  the page pauses the game (board covered, clocks stopped) until Continue, also after a reload. Puzzles come
   from a server seed; the server rebuilds the puzzle, checks the finished grid and times the solve.
 * **Visitor count** — the home page shows "N people here today · M all time" (`static/api/visits.js`, same
   Redis). Each browser gets a random anonymous id (no IPs or names stored) and counts once per UTC day; visits to

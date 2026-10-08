@@ -23,7 +23,10 @@
       <div class="ms-diff" role="group" aria-label="Difficulty">
         <button type="button" data-diff="easy">easy</button><button type="button" data-diff="medium">medium</button><button type="button" data-diff="hard">hard</button>
       </div>
-      <div id="sd-grid" class="sd-grid" aria-label="Sudoku grid"></div>
+      <div class="sd-board">
+        <div id="sd-grid" class="sd-grid" aria-label="Sudoku grid"></div>
+        <div id="sd-cover" class="sd-cover"><p id="sd-cover-text">sudoku</p><button id="sd-go" class="btn" type="button">Start</button></div>
+      </div>
       <div class="sd-pad">
         <button type="button" data-d="1">1</button><button type="button" data-d="2">2</button><button type="button" data-d="3">3</button>
         <button type="button" data-d="4">4</button><button type="button" data-d="5">5</button><button type="button" data-d="6">6</button>

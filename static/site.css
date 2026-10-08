@@ -170,3 +170,12 @@ body.gifs { background: #000; }
 /* ---- home: visitor count ---- */
 .visits { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0; font-size: .78rem; color: #999; white-space: nowrap; }
 .visits[hidden] { display: none; }
+
+.sd-board { position: relative; }
+.sd-cover { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  background: rgb(255 255 255 / .94); }
+.sd-cover[hidden] { display: none; }
+.sd-cover p { margin: 0; font-size: .8rem; text-transform: uppercase; letter-spacing: .12em; color: #888; }
+.sd-cover .btn { font-size: 1.05rem; padding: 10px 34px; }
+.sd-grid.covered .sd-cell { color: transparent; background: #fff; }
+.sd-grid.covered .sd-notes span { color: transparent; }
