@@ -55,9 +55,10 @@
     bestEl.textContent = best.toLocaleString();
     overlay.hidden = phase === "playing";
     if (phase !== "playing") {
-      msg.replaceChildren(phase === "won" ? "you reached 2048." : "no more moves.",
-        Object.assign(document.createElement("strong"), { textContent: score.toLocaleString() }),
-        Object.assign(document.createElement("em"), { textContent: score >= best && score > 0 ? "a new best" : `best ${best.toLocaleString()}` }));
+      msg.replaceChildren(
+        Object.assign(document.createElement("span"), { className: "g8-sub", textContent: phase === "won" ? "you reached 2048!" : "game over" }),
+        Object.assign(document.createElement("strong"), { className: `g8-big${phase === "won" ? " won" : ""}`, textContent: score.toLocaleString() }),
+        score >= best && score > 0 ? Object.assign(document.createElement("span"), { className: "g8-sub", textContent: "new best" }) : "");
       keepBtn.hidden = phase !== "won";
     }
   }

@@ -11,7 +11,8 @@
   const hue0 = Math.random() * 360;
   links.forEach((a, i) => {
     const hue = (hue0 + (360 / links.length) * i + Math.random() * 30) % 360;
-    a.style.color = `hsl(${Math.round(hue)} 85% 40%)`; // dark enough to read on white
+    // dark enough to read on white pages, light enough on dark ones (body.dark)
+    a.style.color = `hsl(${Math.round(hue)} 85% ${document.body.classList.contains("dark") ? 65 : 40}%)`;
   });
 
   const box = (r) => ({ l: r.left + scrollX - GAP, t: r.top + scrollY - GAP, r: r.right + scrollX + GAP, b: r.bottom + scrollY + GAP });
