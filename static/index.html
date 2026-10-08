@@ -4,96 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>26awake</title>
-  <meta name="description" content="26awake by 26prl. A quiet corner of the internet: games, art, music.">
-  <meta name="theme-color" content="#16131f">
+  <meta name="description" content="26awake by 26prl.">
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=IBM+Plex+Mono:wght@300;400&display=swap">
-  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="site.css">
+  <script>
+    // Old links from the tracker page (./#games, ./#music) go to the pages that replaced those sections.
+    const moved = { "#games": "game.html", "#music": "music.html" }[location.hash];
+    if (moved) location.replace(moved);
+  </script>
 </head>
 <body class="home">
-  <div class="sky" aria-hidden="true">
-    <div class="fog f1"></div><div class="fog f2"></div><div class="fog f3"></div>
-    <div class="horizon"></div>
-  </div>
-  <div class="grain" aria-hidden="true"></div>
-
-  <header class="drift-bar">
-    <a href="./" class="mark"><img src="icons/favicon-32.png" alt="26awake home" width="22" height="22"></a>
-    <nav aria-label="Site">
-      <a href="#play">play</a><a href="#walls">walls</a><a href="#sound">sound</a><a href="watch.html">watch</a>
-    </nav>
-  </header>
-
   <main>
-    <section class="threshold">
-      <img class="float-logo" src="icons/logo-26awake.png" alt="26awake" width="459" height="144">
-      <p class="whisper"><span id="clock">--:--</span> <span class="sep">·</span> <span id="still">you're still awake.</span></p>
-      <p class="hush">a quiet corner of the internet. nothing important happens here.</p>
-      <a class="descend" href="#play" aria-label="Scroll down"><span>wander</span><i></i></a>
-    </section>
-
-    <section id="play" class="room">
-      <p class="room-no">01 — play</p>
-      <h2>Something to do with your hands.</h2>
-      <p class="room-note">arrows / wasd, or swipe. your best score stays on this device.</p>
-      <article class="game g2048">
-        <div class="game-head">
-          <h3>2048</h3>
-          <span class="game-score"><b id="g8-score">0</b> <i>best <span id="g8-best">0</span></i></span>
-        </div>
-        <div class="g8-board" id="g8-board" tabindex="0" aria-label="2048 board">
-          <div class="g8-grid" id="g8-grid"></div>
-          <div class="game-overlay" id="g8-overlay" hidden>
-            <p id="g8-msg"></p>
-            <div class="g8-actions">
-              <button class="soft-btn" id="g8-keep" type="button" hidden>keep going</button>
-              <button class="soft-btn" id="g8-new" type="button">new game</button>
-            </div>
-          </div>
-        </div>
-        <div class="g8-foot"><button class="g8-reset" id="g8-reset" type="button">start over</button></div>
-      </article>
-    </section>
-
-    <section id="walls" class="room">
-      <p class="room-no">02 — walls</p>
-      <h2>Things hung up to look at.</h2>
-      <div id="art-grid" class="art-grid"></div>
-    </section>
-
-    <section id="sound" class="room">
-      <p class="room-no">03 — sound</p>
-      <h2>What's playing in here.</h2>
-      <div id="me" class="me" hidden></div>
-      <div id="music-list" class="music"></div>
-    </section>
-
-    <section id="elsewhere" class="room">
-      <p class="room-no">04 — elsewhere</p>
-      <h2>Windows to the outside.</h2>
-      <p class="room-note">small trackers that read the news every ten minutes, so I don't have to.</p>
-      <div id="topic-cards" class="topic-cards">
-        <div class="topic-card ghost-card" aria-hidden="true"></div>
-      </div>
-    </section>
+    <img class="logo" src="icons/logo-26awake.png" alt="26awake" width="459" height="144">
+    <nav class="links" aria-label="Pages">
+      <a href="music.html">Music</a>
+      <a href="game.html">Game</a>
+      <a href="watch.html">Plague</a>
+    </nav>
   </main>
-
-  <footer class="end">
-    <p>26awake <span class="sep">·</span> made by 26prl <span class="sep">·</span> lights stay on</p>
-  </footer>
-
-  <dialog id="art-view" class="art-view">
-    <form method="dialog"><button class="art-close" aria-label="Close">×</button></form>
-    <img id="art-view-img" alt="">
-    <p id="art-view-caption"></p>
-  </dialog>
-
-  <script src="home.js"></script>
-  <script src="games.js"></script>
 </body>
 </html>

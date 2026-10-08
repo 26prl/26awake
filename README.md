@@ -89,15 +89,16 @@ laboratory confirmation; "officially disputed" means trusted or state media repo
 Sentences about history ("Black Death") or worldwide yearly statistics are ignored. It is pattern matching,
 not reading comprehension, so treat the result as approximate and follow the links.
 
-## Home page, art and music
+## Home page, game and music
 
-`/` is the home page (`static/index.html`, styled by `static/home.css`): a quiet, late-night page split into
-"rooms": **play** (2048, in `static/games.js`; the game in progress and best score are saved per device), **walls** (art),
-**sound** (what I'm listening to on Spotify, plus any players or tracks you add) and **elsewhere** (a live card
-for every tracker topic). The tracker itself is `/watch.html` (`/watch.html#2` opens topic 2).
+`/` is the home page (`static/index.html`): a plain white page with the logo and links to the other pages.
+Each thing has its own page, all styled by `static/site.css` (white, system font):
 
-* **Art** — put images in `static/art/` (or anywhere under `static/`) and list them in `static/art.json`:
-  `{"items": [{"src": "art/drawing.png", "title": "Name", "by": "Artist"}]}`. Empty list = empty frames.
+* `/game.html` — 2048 (`static/games.js`); the game in progress and best score are saved per device.
+* `/music.html` — what I'm listening to on Spotify plus the players/tracks in `music.json` (`static/music.js`).
+* `/watch.html` — the plague tracker (`/watch.html#2` opens topic 2). It has its own `style.css` and is not
+  touched by home page changes.
+
 * **Spotify players** — add share links (track, album, playlist, artist or podcast) to `static/music.json`:
   `{"spotify": ["https://open.spotify.com/playlist/…"]}`. They show as Spotify's player; visitors logged in to
   Spotify hear full songs, others 30-second previews.
@@ -116,8 +117,8 @@ your own Spotify login, so the secrets live only in Vercel, never in this repo:
 3. In Vercel → the project → **Settings → Environment Variables**, add `SPOTIFY_CLIENT_ID` and
    `SPOTIFY_CLIENT_SECRET` (Production), then redeploy (Deployments → ⋯ → Redeploy).
 4. Open `https://YOUR-SITE/api/spotify?setup`, log in to Spotify and agree. The page shows a refresh token.
-5. Add it in Vercel as `SPOTIFY_REFRESH_TOKEN` and redeploy once more. Setup switches itself off; the "sound"
-   room now shows what you're playing (refreshed every minute) and your month's favourites.
+5. Add it in Vercel as `SPOTIFY_REFRESH_TOKEN` and redeploy once more. Setup switches itself off; the music
+   page now shows what you're playing (refreshed every minute) and your month's favourites.
 
 If the site uses a different domain than the one Spotify redirects to, set `SPOTIFY_REDIRECT_URI` to the exact URI
 you registered. The local Python server doesn't run this function, so the card only appears on Vercel.
