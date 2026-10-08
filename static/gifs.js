@@ -1,9 +1,20 @@
 "use strict";
-// GIF wall: every entry in gifs.json, edge to edge, newest first. Entries are URLs (a .gif/.webp/.png/.jpg image,
-// an .mp4/.webm clip, or a giphy.com page link) or {"src": "...", "title": "..."}.
+// GIF wall: every entry in gifs.json, edge to edge, in a new random order on every visit.
+// Entries: a URL (.gif/.webp/.png/.jpg image, .mp4/.webm clip, giphy.com or tenor.com page link) or
+// {"src": gif, "mp4": clip, "page": link} as written by tools/resolve_gifs.py.
 
 (() => {
   const wall = document.getElementById("wall");
+
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  const TENOR = /^https?:\/\/(www\.)?tenor\.com\/(\w{2}\/)?view\/.*?(\d{6,})\/?$/i;
 
   // giphy.com/gifs/some-name-ID → the GIF file itself
   function direct(url) {
@@ -19,25 +30,40 @@
     }
   }
 
+  const image = (src) => Object.assign(document.createElement("img"), { src, alt: "", loading: "lazy", decoding: "async" });
+
+  function video(src, fallback) {
+    const v = Object.assign(document.createElement("video"), { src, autoplay: true, loop: true, muted: true, playsInline: true, preload: "metadata" });
+    v.setAttribute("muted", "");
+    v.setAttribute("playsinline", "");
+    v.addEventListener("error", () => (fallback ? v.replaceWith(withDrop(image(fallback))) : v.remove()));
+    return v;
+  }
+
+  // dead links just disappear
+  function withDrop(el) {
+    el.addEventListener("error", () => el.remove());
+    return el;
+  }
+
   function tile(item) {
-    const src = direct(typeof item === "string" ? item : item.src);
-    const title = typeof item === "string" ? "" : item.title || "";
-    let media;
-    if (/\.(mp4|webm)(\?|$)/i.test(src)) {
-      media = Object.assign(document.createElement("video"), { src, autoplay: true, loop: true, muted: true, playsInline: true });
-      media.setAttribute("muted", "");
-    } else {
-      media = Object.assign(document.createElement("img"), { src, alt: title, loading: "lazy", decoding: "async" });
+    const entry = typeof item === "string" ? { src: item } : item;
+    const tenor = (entry.src || entry.page || "").match(TENOR);
+    if (!entry.mp4 && tenor && !/media\d*\.tenor\.com/.test(entry.src || "")) {
+      // not resolved yet: Tenor's own player
+      const f = Object.assign(document.createElement("iframe"), { src: `https://tenor.com/embed/${tenor[3]}`, loading: "lazy", title: "gif" });
+      f.className = "tenor";
+      return f;
     }
-    media.title = title;
-    media.addEventListener("error", () => media.remove()); // dead links just disappear
-    return media;
+    if (entry.mp4) return video(entry.mp4, entry.src);
+    const src = direct(entry.src);
+    return /\.(mp4|webm)(\?|$)/i.test(src) ? video(src) : withDrop(image(src));
   }
 
   fetch("gifs.json", { cache: "no-cache" })
     .then((r) => r.json())
     .then((data) => {
-      const items = (data.gifs || []).slice().reverse();
+      const items = shuffle((data.gifs || []).slice());
       if (!items.length) {
         wall.replaceChildren(Object.assign(document.createElement("p"), { className: "empty wall-empty", textContent: "no gifs yet" }));
         return;
