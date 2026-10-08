@@ -67,6 +67,13 @@
     }
   }
 
+  // Pages that add content later fire "relayout"; a link that is now covering something moves.
+  addEventListener("relayout", () => {
+    const avoid = [...document.querySelectorAll("[data-avoid]")].map((e) => box(e.getBoundingClientRect()));
+    const covering = links.some((a) => a.classList.contains("placed") && avoid.some((t) => hits(box(a.getBoundingClientRect()), t)));
+    if (covering) place();
+  });
+
   // Wait for images (the logo) so their size is known.
   if (document.readyState === "complete") place();
   else addEventListener("load", place);

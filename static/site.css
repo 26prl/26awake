@@ -64,6 +64,11 @@ a { color: inherit; }
   border-bottom: 1px solid #ddd; padding: 6px 4px; }
 .g8-table td { padding: 7px 4px; border-bottom: 1px solid #eee; }
 .g8-table tr.me td { background: #f2f2f2; font-weight: 700; }
+.g8-recovery { margin-top: 22px; padding-top: 14px; border-top: 1px solid #eee; }
+.g8-recovery p { margin: 6px 0; }
+.g8-code code { font-size: .8rem; background: #f2f2f2; padding: 3px 6px; word-break: break-all; }
+.g8-recovery summary { cursor: pointer; color: #777; }
+.g8-input { width: min(320px, 100%); font: inherit; font-size: .85rem; padding: 6px 8px; border: 1px solid #ccc; }
 
 /* ---- music ---- */
 .section { margin-top: 32px; }

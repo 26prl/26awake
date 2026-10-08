@@ -90,6 +90,7 @@
     if (p?.id && p?.key) return p;
     p = await api("POST", { action: "register" });
     store.set("player-2048", p);
+    recoveryPanel();
     return p;
   }
 
@@ -165,6 +166,8 @@
       return;
     }
     ranking = true;
+    $("g8-recovery").hidden = false;
+    if (!$("g8-recovery").children.length) recoveryPanel();
     if (data.me) showStanding(data.me);
     else $("g8-me").textContent = "Finish a game to get your player number and a rank.";
     if (!data.top.length) {
@@ -176,6 +179,60 @@
       el("tbody", {}, ...data.top.map((r) => el("tr", { className: p && r.id === p.id ? "me" : "" },
         el("td", { textContent: r.rank }), el("td", { textContent: `#${r.id}` }), el("td", { textContent: fmt(r.score) }),
         el("td", { textContent: r.tile ? fmt(r.tile) : "–" }), el("td", { textContent: fmt(r.games) }))))));
+    dispatchEvent(new Event("relayout"));
+  }
+
+  // ---- recovery code: player number + key, to keep the same player on another browser or device ----
+
+  const codeOf = (p) => `26awake-${p.id}-${p.key}`;
+
+  function recoveryPanel() {
+    const box = $("g8-recovery");
+    const p = store.get("player-2048", null);
+    const out = el("p", { className: "small g8-code" });
+    const status = el("p", { className: "small muted" });
+    const input = el("input", { type: "text", placeholder: "26awake-…", autocomplete: "off", spellcheck: false, className: "g8-input" });
+    const restore = el("button", { type: "button", className: "g8-reset", textContent: "restore" });
+
+    const kids = [];
+    if (p) {
+      const show = el("button", { type: "button", className: "g8-reset", textContent: "show recovery code" });
+      show.onclick = () => {
+        const code = codeOf(store.get("player-2048", p));
+        const copy = el("button", { type: "button", className: "g8-reset", textContent: "copy" });
+        copy.onclick = async () => {
+          try { await navigator.clipboard.writeText(code); copy.textContent = "copied"; } catch { copy.textContent = "select and copy it"; }
+        };
+        out.replaceChildren(el("code", { textContent: code }), " ", copy,
+          el("br"), el("span", { className: "muted", textContent: "Keep it somewhere safe and don't share it: anyone with it can play as you." }));
+        show.remove();
+      };
+      kids.push(el("p", { className: "small" }, show), out);
+    }
+    restore.onclick = async () => {
+      const m = input.value.trim().match(/^(?:26awake-)?(\d+)-([a-f0-9]{32})$/i);
+      if (!m) { status.textContent = "That doesn't look like a recovery code."; return; }
+      const next = { id: Number(m[1]), key: m[2].toLowerCase() };
+      status.textContent = "Checking…";
+      try {
+        await api("POST", { action: "whoami", ...next });
+      } catch (e) {
+        status.textContent = e.status === 403 ? "That code isn't right." : "Couldn't reach the server, try again.";
+        return;
+      }
+      if (g && g.moves.length && phase !== "over") await finish(); // the game in progress still counts for the old number
+      await flush();
+      store.set("player-2048", next);
+      status.textContent = `Welcome back, player #${next.id}.`;
+      input.value = "";
+      await loadBoard();
+      recoveryPanel();
+      newGame();
+    };
+    kids.push(el("details", { className: "small" }, el("summary", { textContent: "use a recovery code" }),
+      el("p", { className: "g8-restore" }, input, " ", restore), status));
+    box.replaceChildren(...kids);
+    dispatchEvent(new Event("relayout"));
   }
 
   // ---- controls ------------------------------------------------------------------------

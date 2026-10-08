@@ -8,6 +8,7 @@
 //
 //   GET  /api/scores?id=N                         top 20 + player N's rank and stats
 //   POST /api/scores {action:"register"}          → {id, key}
+//   POST /api/scores {action:"whoami", id, key}   → player's standing (403 if the key is wrong)
 //   POST /api/scores {action:"start", id, key}    → {game, seed}
 //   POST /api/scores {action:"submit", id, key, game, moves}  → {score, tile, best, rank, players, newBest}
 
@@ -94,6 +95,8 @@ module.exports = async (req, res) => {
 
     const id = toInt(b.id);
     if (!(await checkPlayer(id, b.key))) return send(res, 403, { error: "unknown player" });
+
+    if (b.action === "whoami") return send(res, 200, await standing(id)); // checks a recovery code
 
     if (b.action === "start") {
       const game = crypto.randomBytes(9).toString("base64url");
