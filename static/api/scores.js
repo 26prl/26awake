@@ -1,0 +1,128 @@
+"use strict";
+// Vercel serverless function: the 2048 ranking at /api/scores, stored in a free Upstash Redis database
+// (Vercel → Storage → Upstash for Redis; it adds KV_REST_API_URL / KV_REST_API_TOKEN by itself).
+//
+// Players have no names: each device gets the next player number plus a secret key on first play.
+// The server hands out each game's random seed and, when a game ends, replays its moves with the same rules
+// as the page (g2048-core.js), so a score can't be typed in: it is what the moves really scored.
+//
+//   GET  /api/scores?id=N                         top 20 + player N's rank and stats
+//   POST /api/scores {action:"register"}          → {id, key}
+//   POST /api/scores {action:"start", id, key}    → {game, seed}
+//   POST /api/scores {action:"submit", id, key, game, moves}  → {score, tile, best, rank, players, newBest}
+
+const crypto = require("crypto");
+const core = require("../g2048-core.js");
+
+const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+const GAME_TTL = 60 * 60 * 24 * 30; // an unfinished game can be submitted for 30 days
+const MAX_MOVES = 50000;
+
+function send(res, status, body) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  res.end(JSON.stringify(body));
+}
+
+async function redis(...commands) {
+  const r = await fetch(`${URL_}/pipeline`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify(commands),
+  });
+  if (!r.ok) throw new Error(`database: ${r.status}`);
+  const out = await r.json();
+  for (const x of out) if (x.error) throw new Error(`database: ${x.error}`);
+  return out.map((x) => x.result);
+}
+
+const sha = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
+const toInt = (v) => (Number.isSafeInteger(Number(v)) ? Number(v) : 0);
+
+async function body(req) {
+  if (req.body && typeof req.body === "object") return req.body;
+  if (typeof req.body === "string") return JSON.parse(req.body || "{}");
+  let raw = "";
+  for await (const chunk of req) { raw += chunk; if (raw.length > 200000) throw new Error("too big"); }
+  return JSON.parse(raw || "{}");
+}
+
+async function checkPlayer(id, key) {
+  if (!Number.isSafeInteger(id) || id < 1 || typeof key !== "string") return false;
+  const [hash] = await redis(["HGET", `p:${id}`, "key"]);
+  return hash && hash === sha(key);
+}
+
+async function standing(id) {
+  const [rank, best, stats, players] = await redis(
+    ["ZREVRANK", "lb", String(id)], ["ZSCORE", "lb", String(id)], ["HMGET", `p:${id}`, "games", "points", "tile"], ["ZCARD", "lb"]);
+  return {
+    id, rank: rank === null ? null : rank + 1, best: toInt(best), players: toInt(players),
+    games: toInt(stats[0]), points: toInt(stats[1]), tile: toInt(stats[2]),
+  };
+}
+
+async function top(n = 20) {
+  const flat = await redis(["ZREVRANGE", "lb", "0", String(n - 1), "WITHSCORES"]);
+  const rows = [];
+  for (let i = 0; i < flat[0].length; i += 2) rows.push({ rank: rows.length + 1, id: toInt(flat[0][i]), score: toInt(flat[0][i + 1]) });
+  if (!rows.length) return rows;
+  const stats = await redis(...rows.map((r) => ["HMGET", `p:${r.id}`, "games", "tile"]));
+  rows.forEach((r, i) => { r.games = toInt(stats[i][0]); r.tile = toInt(stats[i][1]); });
+  return rows;
+}
+
+module.exports = async (req, res) => {
+  if (!URL_ || !TOKEN) return send(res, 200, { configured: false });
+  try {
+    if (req.method === "GET") {
+      const id = toInt(new URL(req.url, "http://x").searchParams.get("id"));
+      const [rows, me] = await Promise.all([top(20), id > 0 ? standing(id) : null]);
+      return send(res, 200, { configured: true, top: rows, me });
+    }
+    if (req.method !== "POST") return send(res, 405, { error: "GET or POST" });
+
+    const b = await body(req);
+    if (b.action === "register") {
+      const key = crypto.randomBytes(16).toString("hex");
+      const [id] = await redis(["INCR", "players"]);
+      await redis(["HSET", `p:${id}`, "key", sha(key), "joined", new Date().toISOString(), "games", "0", "points", "0", "tile", "0"]);
+      return send(res, 200, { id, key });
+    }
+
+    const id = toInt(b.id);
+    if (!(await checkPlayer(id, b.key))) return send(res, 403, { error: "unknown player" });
+
+    if (b.action === "start") {
+      const game = crypto.randomBytes(9).toString("base64url");
+      const seed = crypto.randomBytes(4).readUInt32LE(0);
+      await redis(["SET", `g:${game}`, `${id}:${seed}`, "EX", String(GAME_TTL)]);
+      return send(res, 200, { game, seed });
+    }
+
+    if (b.action === "submit") {
+      const moves = String(b.moves || "");
+      if (typeof b.game !== "string" || moves.length > MAX_MOVES) return send(res, 400, { error: "bad game" });
+      const [stored] = await redis(["GETDEL", `g:${b.game}`]); // each game counts once
+      if (!stored) return send(res, 409, { error: "game already counted or expired" });
+      const [owner, seed] = stored.split(":").map(Number);
+      if (owner !== id) return send(res, 403, { error: "not your game" });
+      const result = core.replay(seed, moves);
+      if (!result.valid) return send(res, 400, { error: "moves don't add up" });
+
+      const before = await standing(id);
+      await redis(
+        ["ZADD", "lb", "GT", String(result.score), String(id)],
+        ["HINCRBY", `p:${id}`, "games", "1"],
+        ["HINCRBY", `p:${id}`, "points", String(result.score)],
+        ...(result.maxTile > before.tile ? [["HSET", `p:${id}`, "tile", String(result.maxTile)]] : []));
+      const after = await standing(id);
+      return send(res, 200, { score: result.score, tile: result.maxTile, newBest: result.score > before.best, ...after });
+    }
+    return send(res, 400, { error: "unknown action" });
+  } catch (e) {
+    return send(res, 500, { error: String(e.message || e) });
+  }
+};

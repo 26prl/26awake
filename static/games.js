@@ -1,103 +1,184 @@
 "use strict";
-// 2048 for the home page. Best score and the game in progress are kept in localStorage (per device).
+// 2048 page: the board (rules in g2048-core.js) and the ranking (api/scores.js).
+// The game in progress (seed + moves), the best score and this device's player number are kept in localStorage.
+// When the ranking server is set up, each game gets its seed from the server and is sent there when it ends
+// (or when you start over); the server replays it to count the score. Without the server the game still works.
 
 (() => {
   const board = document.getElementById("g8-board");
-  if (!board) return;
-  const gridEl = document.getElementById("g8-grid");
-  const scoreEl = document.getElementById("g8-score");
-  const bestEl = document.getElementById("g8-best");
-  const overlay = document.getElementById("g8-overlay");
-  const msg = document.getElementById("g8-msg");
-  const keepBtn = document.getElementById("g8-keep");
+  if (!board || !window.G2048) return;
+  const core = window.G2048;
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, props = {}, ...kids) => {
+    const n = Object.assign(document.createElement(tag), props);
+    for (const k of kids) if (k != null && k !== false) n.append(k);
+    return n;
+  };
+  const gridEl = $("g8-grid"), scoreEl = $("g8-score"), bestEl = $("g8-best");
+  const overlay = $("g8-overlay"), msg = $("g8-msg"), keepBtn = $("g8-keep");
+  const fmt = (n) => Number(n || 0).toLocaleString();
 
   const store = {
     get(k, fallback) { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } },
   };
 
-  // Cell indices of each line, listed in the direction tiles slide towards.
-  const LINES = { L: [], R: [], U: [], D: [] };
-  for (let i = 0; i < 4; i++) {
-    const row = [0, 1, 2, 3].map((c) => i * 4 + c), col = [0, 1, 2, 3].map((r) => r * 4 + i);
-    LINES.L.push(row); LINES.R.push([...row].reverse());
-    LINES.U.push(col); LINES.D.push([...col].reverse());
-  }
-
-  let cells, score, best = store.get("best-2048", 0), won, phase; // phase: playing | won | over
+  let g = null;              // {cells, score, rng, moves}
+  let meta = {};             // {seed, game (server id or null), won}
+  let phase = "playing";     // playing | won | over | loading
+  let best = store.get("best-2048", 0);
+  let ranking = null;        // null = unknown, false = not set up, true = on
   const cellEls = Array.from({ length: 16 }, () => gridEl.appendChild(document.createElement("div")));
 
-  function addRandom(fresh) {
-    const free = cells.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0);
-    if (!free.length) return;
-    const i = free[Math.floor(Math.random() * free.length)];
-    cells[i] = Math.random() < 0.9 ? 2 : 4;
-    fresh.add(i);
-  }
+  // ---- board ---------------------------------------------------------------------------
 
-  function canMove() {
-    for (let i = 0; i < 16; i++) {
-      if (!cells[i]) return true;
-      if (i % 4 < 3 && cells[i] === cells[i + 1]) return true;
-      if (i < 12 && cells[i] === cells[i + 4]) return true;
-    }
-    return false;
-  }
-
-  function render(fresh = new Set(), merged = new Set()) {
-    cells.forEach((v, i) => {
+  function render(fresh = [], merged = []) {
+    (g ? g.cells : Array(16).fill(0)).forEach((v, i) => {
       const n = cellEls[i];
       n.className = "g8-cell" + (v ? ` v${v <= 2048 ? v : "max"}` : "") + (v >= 1024 ? " huge" : v >= 128 ? " big" : "")
-        + (fresh.has(i) ? " new" : merged.has(i) ? " merged" : "");
+        + (fresh.includes(i) ? " new" : merged.includes(i) ? " merged" : "");
       n.textContent = v || "";
     });
-    scoreEl.textContent = score.toLocaleString();
-    bestEl.textContent = best.toLocaleString();
-    overlay.hidden = phase === "playing";
-    if (phase !== "playing") {
+    scoreEl.textContent = fmt(g?.score);
+    bestEl.textContent = fmt(best);
+    overlay.hidden = phase === "playing" || phase === "loading";
+    board.classList.toggle("loading", phase === "loading");
+    if (phase === "won" || phase === "over") {
       msg.replaceChildren(
-        Object.assign(document.createElement("span"), { className: "g8-sub", textContent: phase === "won" ? "you reached 2048!" : "game over" }),
-        Object.assign(document.createElement("strong"), { className: `g8-big${phase === "won" ? " won" : ""}`, textContent: score.toLocaleString() }),
-        score >= best && score > 0 ? Object.assign(document.createElement("span"), { className: "g8-sub", textContent: "new best" }) : "");
+        el("span", { className: "g8-sub", textContent: phase === "won" ? "you reached 2048!" : "game over" }),
+        el("strong", { className: "g8-big", textContent: fmt(g.score) }),
+        el("span", { className: "g8-sub", id: "g8-result", textContent: g.score >= best && g.score > 0 ? "new best" : "" }));
       keepBtn.hidden = phase !== "won";
     }
   }
 
-  const save = () => store.set("game-2048", { cells, score, won, over: phase === "over" });
+  const save = () => store.set("game-2048", { seed: meta.seed, moves: g.moves, game: meta.game, won: meta.won, over: phase === "over" });
 
-  function newGame() {
-    cells = Array(16).fill(0); score = 0; won = false; phase = "playing";
-    const fresh = new Set();
-    addRandom(fresh); addRandom(fresh);
-    render(fresh); save();
+  function begin(seed, gameId) {
+    const s = core.start(seed);
+    g = s.game; meta = { seed, game: gameId, won: false }; phase = "playing";
+    render(s.fresh); save();
   }
 
   function move(dir) {
     if (phase !== "playing") return;
-    let moved = false;
-    const merged = new Set();
-    for (const line of LINES[dir]) {
-      const vals = line.map((i) => cells[i]).filter(Boolean);
-      const out = [];
-      for (let k = 0; k < vals.length; k++) {
-        if (vals[k] === vals[k + 1]) {
-          out.push(vals[k] * 2); score += vals[k] * 2; merged.add(line[out.length - 1]); k++;
-        } else out.push(vals[k]);
-      }
-      line.forEach((i, k) => {
-        const v = out[k] || 0;
-        if (cells[i] !== v) moved = true;
-        cells[i] = v;
-      });
-    }
-    if (!moved) return;
-    const fresh = new Set();
-    addRandom(fresh);
-    if (score > best) { best = score; store.set("best-2048", best); }
-    if (!won && cells.includes(2048)) { won = true; phase = "won"; }
-    else if (!canMove()) phase = "over";
-    render(fresh, merged); save();
+    const r = core.move(g, dir);
+    if (!r) return;
+    if (g.score > best) { best = g.score; store.set("best-2048", best); }
+    if (!meta.won && g.cells.includes(2048)) { meta.won = true; phase = "won"; }
+    else if (!core.canMove(g)) phase = "over";
+    render(r.fresh >= 0 ? [r.fresh] : [], r.merged); save();
+    if (phase === "over") finish();
   }
+
+  // ---- ranking server ------------------------------------------------------------------
+
+  async function api(method, payload) {
+    const r = await fetch(method === "GET" ? `api/scores${payload || ""}` : "api/scores", {
+      method, cache: "no-store",
+      headers: method === "POST" ? { "Content-Type": "application/json" } : {},
+      body: method === "POST" ? JSON.stringify(payload) : undefined,
+    });
+    if (!(r.headers.get("content-type") || "").includes("json")) throw new Error("no ranking server here");
+    const data = await r.json();
+    if (!r.ok) throw Object.assign(new Error(data.error || r.status), { status: r.status });
+    return data;
+  }
+
+  async function player() {
+    let p = store.get("player-2048", null);
+    if (p?.id && p?.key) return p;
+    p = await api("POST", { action: "register" });
+    store.set("player-2048", p);
+    return p;
+  }
+
+  async function newGame() {
+    // Send the game being left (if it counts) before starting another.
+    if (g && g.moves.length && phase !== "over") await finish();
+    phase = "loading"; g = null; render();
+    if (ranking !== false) {
+      try {
+        const p = await player();
+        const s = await api("POST", { action: "start", id: p.id, key: p.key });
+        ranking = true;
+        return begin(s.seed, s.game);
+      } catch (e) {
+        if (e.status === 403) store.set("player-2048", null); // unknown player (database reset): get a new number next time
+      }
+    }
+    begin((Math.random() * 2 ** 32) >>> 0, null); // unranked game
+  }
+
+  // Send a finished (or abandoned) game. Kept in a queue until the server has it.
+  async function finish() {
+    if (!meta.game) return;
+    const queue = store.get("pending-2048", []);
+    queue.push({ game: meta.game, moves: g.moves });
+    meta.game = null; save();
+    store.set("pending-2048", queue);
+    await flush();
+  }
+
+  async function flush() {
+    let queue = store.get("pending-2048", []);
+    const p = store.get("player-2048", null);
+    if (!queue.length || !p) return;
+    for (const item of [...queue]) {
+      try {
+        const r = await api("POST", { action: "submit", id: p.id, key: p.key, ...item });
+        showStanding(r);
+        if (r.newBest) $("g8-result") && ($("g8-result").textContent = `new personal best · rank ${r.rank} of ${r.players}`);
+        else if ($("g8-result")) $("g8-result").textContent = `rank ${r.rank} of ${r.players}`;
+      } catch (e) {
+        if (!e.status || e.status >= 500) break; // offline: try again later
+        // 4xx: the server won't take it (already counted, expired); drop it
+      }
+      queue = queue.filter((q) => q.game !== item.game);
+      store.set("pending-2048", queue);
+    }
+    loadBoard();
+  }
+
+  // ---- ranking panel -------------------------------------------------------------------
+
+  function showStanding(me) {
+    const box = $("g8-me");
+    if (!me) return;
+    box.replaceChildren(
+      el("b", { textContent: `player #${me.id}` }),
+      me.rank ? ` · rank ${me.rank} of ${fmt(me.players)}` : " · no ranked game yet",
+      el("br"),
+      el("span", { className: "muted", textContent:
+        `best ${fmt(me.best)} · ${fmt(me.games)} game${me.games === 1 ? "" : "s"} · ${fmt(me.points)} points in total` +
+        (me.tile ? ` · biggest tile ${fmt(me.tile)}` : "") }));
+  }
+
+  async function loadBoard() {
+    const box = $("g8-top");
+    const p = store.get("player-2048", null);
+    let data;
+    try { data = await api("GET", p ? `?id=${p.id}` : ""); } catch { data = { configured: false }; }
+    if (!data.configured) {
+      ranking = false;
+      box.replaceChildren(el("p", { className: "muted small", textContent: "Rankings aren't switched on yet. Your best score is saved on this device." }));
+      return;
+    }
+    ranking = true;
+    if (data.me) showStanding(data.me);
+    else $("g8-me").textContent = "Finish a game to get your player number and a rank.";
+    if (!data.top.length) {
+      box.replaceChildren(el("p", { className: "muted small", textContent: "No ranked games yet — be the first." }));
+      return;
+    }
+    box.replaceChildren(el("table", { className: "g8-table" },
+      el("thead", {}, el("tr", {}, ...["#", "player", "best", "tile", "games"].map((h) => el("th", { textContent: h })))),
+      el("tbody", {}, ...data.top.map((r) => el("tr", { className: p && r.id === p.id ? "me" : "" },
+        el("td", { textContent: r.rank }), el("td", { textContent: `#${r.id}` }), el("td", { textContent: fmt(r.score) }),
+        el("td", { textContent: r.tile ? fmt(r.tile) : "–" }), el("td", { textContent: fmt(r.games) }))))));
+  }
+
+  // ---- controls ------------------------------------------------------------------------
 
   const KEYS = { ArrowLeft: "L", ArrowRight: "R", ArrowUp: "U", ArrowDown: "D", a: "L", d: "R", w: "U", s: "D",
                  A: "L", D: "R", W: "U", S: "D" };
@@ -124,15 +205,26 @@
     touch = null;
   });
 
-  document.getElementById("g8-new").onclick = () => { newGame(); board.focus({ preventScroll: true }); armed = true; };
-  document.getElementById("g8-reset").onclick = () => { newGame(); board.focus({ preventScroll: true }); armed = true; };
-  keepBtn.onclick = () => { phase = "playing"; render(); save(); board.focus({ preventScroll: true }); armed = true; };
+  const focus = () => { board.focus({ preventScroll: true }); armed = true; };
+  $("g8-new").onclick = () => { newGame(); focus(); };
+  $("g8-reset").onclick = () => { newGame(); focus(); };
+  keepBtn.onclick = () => { phase = "playing"; render(); save(); focus(); };
 
-  // Pick up where this device left off.
-  const saved = store.get("game-2048", null);
-  if (saved && Array.isArray(saved.cells) && saved.cells.length === 16 && saved.cells.some(Boolean)) {
-    cells = saved.cells.map((v) => Number(v) || 0); score = Number(saved.score) || 0; won = !!saved.won;
-    phase = saved.over ? "over" : "playing";
-    render();
-  } else newGame();
+  // ---- start: resume this device's game, or begin a new one -----------------------------
+
+  (async () => {
+    await loadBoard();
+    flush();
+    const saved = store.get("game-2048", null);
+    if (saved && Number.isInteger(saved.seed) && typeof saved.moves === "string") {
+      const s = core.start(saved.seed);
+      for (const d of saved.moves) if (!core.move(s.game, d)) break;
+      g = s.game; meta = { seed: saved.seed, game: saved.game || null, won: !!saved.won };
+      phase = saved.over || !core.canMove(g) ? "over" : "playing";
+      render();
+      if (phase === "over" && meta.game) finish();
+    } else {
+      newGame();
+    }
+  })();
 })();
