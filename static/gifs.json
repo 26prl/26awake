@@ -165,16 +165,56 @@
       "mp4": "https://media.tenor.com/5dsTvfXB0uQAAAPo/death-note-misa-amane.mp4",
       "page": "https://tenor.com/view/death-note-misa-amane-death-gif-gif-16562853761177998052"
     },
-    "https://tenor.com/view/bocchi-the-rock-bocchi-hitori-gif-27014251",
-    "https://tenor.com/view/bocchi-the-rock-bocchi-the-rock-gif-bocchi-hitori-gotoh-gif-27266644",
-    "https://tenor.com/view/bocchi-the-rock-bocchi-hehe-hehehe-anime-gif-27028096",
-    "https://tenor.com/view/tomodachi-game-gif-25610323",
-    "https://tenor.com/view/tatsuki-fujimoto-17-26-toshihide-anime-anime-shock-gif-4596727816167142804",
-    "https://tenor.com/view/look-back-movie-anime-tatsuki-fujimoto-chainsaw-man-gif-4597077522436958594",
+    {
+      "src": "https://media1.tenor.com/m/qkPV6_DL-NAAAAAC/bocchi-the-rock-bocchi.gif",
+      "mp4": "https://media.tenor.com/qkPV6_DL-NAAAAPo/bocchi-the-rock-bocchi.mp4",
+      "page": "https://tenor.com/view/bocchi-the-rock-bocchi-hitori-gif-27014251"
+    },
+    {
+      "src": "https://media1.tenor.com/m/zXCbu7b7qA8AAAAC/bocchi-the-rock-bocchi-the-rock-gif.gif",
+      "mp4": "https://media.tenor.com/zXCbu7b7qA8AAAPo/bocchi-the-rock-bocchi-the-rock-gif.mp4",
+      "page": "https://tenor.com/view/bocchi-the-rock-bocchi-the-rock-gif-bocchi-hitori-gotoh-gif-27266644"
+    },
+    {
+      "src": "https://media1.tenor.com/m/m9cbqYvXEhAAAAAC/bocchi-the-rock-bocchi.gif",
+      "mp4": "https://media.tenor.com/m9cbqYvXEhAAAAPo/bocchi-the-rock-bocchi.mp4",
+      "page": "https://tenor.com/view/bocchi-the-rock-bocchi-hehe-hehehe-anime-gif-27028096"
+    },
+    {
+      "src": "https://media1.tenor.com/m/l4svGEKT_cEAAAAC/tomodachi-game.gif",
+      "mp4": "https://media.tenor.com/l4svGEKT_cEAAAPo/tomodachi-game.mp4",
+      "page": "https://tenor.com/view/tomodachi-game-gif-25610323"
+    },
+    {
+      "src": "https://media1.tenor.com/m/P8rbmCPMtZQAAAAC/tatsuki-fujimoto-17-26.gif",
+      "mp4": "https://media.tenor.com/P8rbmCPMtZQAAAPo/tatsuki-fujimoto-17-26.mp4",
+      "page": "https://tenor.com/view/tatsuki-fujimoto-17-26-toshihide-anime-anime-shock-gif-4596727816167142804"
+    },
+    {
+      "src": "https://media1.tenor.com/m/P8wZpnnJqYIAAAAC/look-back-movie.gif",
+      "mp4": "https://media.tenor.com/P8wZpnnJqYIAAAPo/look-back-movie.mp4",
+      "page": "https://tenor.com/view/look-back-movie-anime-tatsuki-fujimoto-chainsaw-man-gif-4597077522436958594"
+    },
     "https://tenor.com/view/fujimoto-17-26-tatsuki-fujimoto-17-26-ami-a-couple-clucking-chickens-were-still-kickin'",
-    "https://tenor.com/view/blue-box-chinatsu-kano-ao-no-hako-aquarium-cute-gif-4525953093540870146",
-    "https://tenor.com/view/blue-box-chii-chinatsu-kano-ao-no-hako-la-caja-azul-gif-13733989134084459623",
-    "https://tenor.com/view/blue-box-chinatsu-kano-ao-no-hako-smile-gif-1482811899483247020",
-    "https://tenor.com/view/chouno-hina-hina-chouno-anime-girl-anime-pink-anime-smirk-gif-751900764830723016"
+    {
+      "src": "https://media1.tenor.com/m/Ps9qW-qVeAIAAAAC/blue-box-chinatsu-kano.gif",
+      "mp4": "https://media.tenor.com/Ps9qW-qVeAIAAAPo/blue-box-chinatsu-kano.mp4",
+      "page": "https://tenor.com/view/blue-box-chinatsu-kano-ao-no-hako-aquarium-cute-gif-4525953093540870146"
+    },
+    {
+      "src": "https://media1.tenor.com/m/vpjuWgYtzGcAAAAC/blue-box-chii.gif",
+      "mp4": "https://media.tenor.com/vpjuWgYtzGcAAAPo/blue-box-chii.mp4",
+      "page": "https://tenor.com/view/blue-box-chii-chinatsu-kano-ao-no-hako-la-caja-azul-gif-13733989134084459623"
+    },
+    {
+      "src": "https://media1.tenor.com/m/FJQBkPlr0awAAAAC/blue-box-chinatsu-kano.gif",
+      "mp4": "https://media.tenor.com/FJQBkPlr0awAAAPo/blue-box-chinatsu-kano.mp4",
+      "page": "https://tenor.com/view/blue-box-chinatsu-kano-ao-no-hako-smile-gif-1482811899483247020"
+    },
+    {
+      "src": "https://media1.tenor.com/m/Cm9JwwoUa8gAAAAC/chouno-hina-hina-chouno.gif",
+      "mp4": "https://media.tenor.com/Cm9JwwoUa8gAAAPo/chouno-hina-hina-chouno.mp4",
+      "page": "https://tenor.com/view/chouno-hina-hina-chouno-anime-girl-anime-pink-anime-smirk-gif-751900764830723016"
+    }
   ]
 }
