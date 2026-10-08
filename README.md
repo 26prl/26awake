@@ -138,6 +138,9 @@ Each thing has its own page, all styled by `static/site.css` (white, system font
   hard 30×16/99 (turned upright on phones). The first click is always safe; mines come from a server seed and the
   server replays the opened cells and times the game itself; ranking = fastest win per difficulty. Players,
   nicknames and recovery codes are shared by all games (`static/players.js`).
+* `/game3.html` — sudoku (`static/sudoku.js`, rules and puzzle maker in `static/sudoku-core.js`): easy/medium/hard
+  (38/30/~24 givens, always exactly one solution), pencil notes, keyboard, resumes after a reload. Puzzles come
+  from a server seed; the server rebuilds the puzzle, checks the finished grid and times the solve.
 * `/nothing.html` — coffee link, contacts and a BTC address with its QR code, from `static/nothing.json`. The QR is
   a static SVG (`static/btc-qr.svg`) made once from the address with the Python `qrcode` package.
 * `/music.html` — what I'm listening to on Spotify plus the players/tracks in `music.json` (`static/music.js`).

@@ -13,14 +13,20 @@
 //   POST /api/scores {action:"start", id, key}    → {game, seed}
 //   POST /api/scores {action:"submit", id, key, game, moves}  → {score, tile, best, rank, players, newBest}
 //
-// Minesweeper (fastest win per difficulty; the server times the game itself, from the first click to the end):
+// Minesweeper and sudoku (fastest win per difficulty; the server times each game itself):
 //   GET  /api/scores?game=mines&diff=easy&id=N    top 20 fastest + player N's rank and stats for that difficulty
 //   POST /api/scores {action:"mstart", id, key, diff}          → {game, seed}   (sent on the first click)
 //   POST /api/scores {action:"msubmit", id, key, game, opens}  → {won, time, best, rank, players, newBest, ...}
+//   GET  /api/scores?game=sudoku&diff=easy&id=N   same for sudoku
+//   POST /api/scores {action:"sstart", id, key, diff}          → {game, seed}   (the page makes the puzzle from it)
+//   POST /api/scores {action:"ssubmit", id, key, game, grid}   → {won, time, best, rank, players, newBest, ...}
 
 const crypto = require("crypto");
 const core = require("../g2048-core.js");
 const mines = require("../mines-core.js");
+const sudoku = require("../sudoku-core.js");
+// Timed games: ranking key prefix and per-player field prefix.
+const TIMED = { mines: { lb: "lbm", field: "m", rules: mines }, sudoku: { lb: "lbs", field: "s", rules: sudoku } };
 
 const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -83,22 +89,24 @@ async function top(n = 20) {
   return rows;
 }
 
-async function mStanding(id, diff) {
-  const lb = `lbm:${diff}`;
+async function tStanding(kind, id, diff) {
+  const { lb: prefix, field } = TIMED[kind];
+  const lb = `${prefix}:${diff}`;
   const [rank, best, stats, players] = await redis(
-    ["ZRANK", lb, String(id)], ["ZSCORE", lb, String(id)], ["HMGET", `p:${id}`, `m:${diff}:wins`, `m:${diff}:games`, "name"], ["ZCARD", lb]);
+    ["ZRANK", lb, String(id)], ["ZSCORE", lb, String(id)], ["HMGET", `p:${id}`, `${field}:${diff}:wins`, `${field}:${diff}:games`, "name"], ["ZCARD", lb]);
   return {
     id, diff, name: stats[2] || null, rank: rank === null ? null : rank + 1, best: best === null ? null : toInt(best),
     players: toInt(players), wins: toInt(stats[0]), games: toInt(stats[1]),
   };
 }
 
-async function mTop(diff, n = 20) {
-  const [flat] = await redis(["ZRANGE", `lbm:${diff}`, "0", String(n - 1), "WITHSCORES"]);
+async function tTop(kind, diff, n = 20) {
+  const { lb, field } = TIMED[kind];
+  const [flat] = await redis(["ZRANGE", `${lb}:${diff}`, "0", String(n - 1), "WITHSCORES"]);
   const rows = [];
   for (let i = 0; i < flat.length; i += 2) rows.push({ rank: rows.length + 1, id: toInt(flat[i]), time: toInt(flat[i + 1]) });
   if (!rows.length) return rows;
-  const stats = await redis(...rows.map((r) => ["HMGET", `p:${r.id}`, `m:${diff}:wins`, "name"]));
+  const stats = await redis(...rows.map((r) => ["HMGET", `p:${r.id}`, `${field}:${diff}:wins`, "name"]));
   rows.forEach((r, i) => { r.wins = toInt(stats[i][0]); r.name = stats[i][1] || null; });
   return rows;
 }
@@ -109,10 +117,11 @@ module.exports = async (req, res) => {
     if (req.method === "GET") {
       const q = new URL(req.url, "http://x").searchParams;
       const id = toInt(q.get("id"));
-      if (q.get("game") === "mines") {
+      const kind = q.get("game");
+      if (TIMED[kind]) {
         const diff = q.get("diff");
-        if (!mines.DIFFS[diff]) return send(res, 400, { error: "diff: easy, medium or hard" });
-        const [rows, me] = await Promise.all([mTop(diff), id > 0 ? mStanding(id, diff) : null]);
+        if (!TIMED[kind].rules.DIFFS[diff]) return send(res, 400, { error: "diff: easy, medium or hard" });
+        const [rows, me] = await Promise.all([tTop(kind, diff), id > 0 ? tStanding(kind, id, diff) : null]);
         return send(res, 200, { configured: true, top: rows, me });
       }
       const [rows, me] = await Promise.all([top(20), id > 0 ? standing(id) : null]);
@@ -160,6 +169,30 @@ module.exports = async (req, res) => {
       return send(res, 200, { game, seed });
     }
 
+    if (b.action === "sstart") {
+      if (!sudoku.DIFFS[b.diff]) return send(res, 400, { error: "diff: easy, medium or hard" });
+      const game = crypto.randomBytes(9).toString("base64url");
+      const seed = crypto.randomBytes(4).readUInt32LE(0);
+      await redis(["SET", `g:${game}`, `s:${id}:${seed}:${b.diff}:${Date.now()}`, "EX", String(GAME_TTL)]);
+      return send(res, 200, { game, seed });
+    }
+
+    if (b.action === "ssubmit") {
+      if (typeof b.game !== "string" || typeof b.grid !== "string" || !/^[1-9]{81}$/.test(b.grid)) return send(res, 400, { error: "bad grid" });
+      const [stored] = await redis(["GETDEL", `g:${b.game}`]); // each game counts once
+      if (!stored || !stored.startsWith("s:")) return send(res, 409, { error: "game already counted or expired" });
+      const [, owner, seed, diff, started] = stored.split(":");
+      if (Number(owner) !== id) return send(res, 403, { error: "not your game" });
+      const { puzzle } = sudoku.make(diff, Number(seed));
+      if (!sudoku.check(puzzle, [...b.grid].map(Number))) return send(res, 400, { error: "that grid isn't solved" });
+      const time = Date.now() - Number(started); // measured here, not by the page
+      const before = await tStanding("sudoku", id, diff);
+      await redis(["HINCRBY", `p:${id}`, `s:${diff}:games`, "1"], ["HINCRBY", `p:${id}`, `s:${diff}:wins`, "1"],
+        ["ZADD", `lbs:${diff}`, "LT", String(time), String(id)]);
+      const after = await tStanding("sudoku", id, diff);
+      return send(res, 200, { won: true, time, newBest: before.best === null || time < before.best, ...after });
+    }
+
     if (b.action === "msubmit") {
       const opens = String(b.opens || "").split(",").filter(Boolean).map(Number);
       if (typeof b.game !== "string" || opens.length > 2000) return send(res, 400, { error: "bad game" });
@@ -170,11 +203,11 @@ module.exports = async (req, res) => {
       const result = mines.replay(diff, Number(seed), opens);
       if (!result.valid || (!result.won && !result.lost)) return send(res, 400, { error: "moves don't add up" });
       const time = Date.now() - Number(started); // measured here, not by the page
-      const before = await mStanding(id, diff);
+      const before = await tStanding("mines", id, diff);
       await redis(
         ["HINCRBY", `p:${id}`, `m:${diff}:games`, "1"],
         ...(result.won ? [["HINCRBY", `p:${id}`, `m:${diff}:wins`, "1"], ["ZADD", `lbm:${diff}`, "LT", String(time), String(id)]] : []));
-      const after = await mStanding(id, diff);
+      const after = await tStanding("mines", id, diff);
       return send(res, 200, { won: result.won, time: result.won ? time : null,
         newBest: result.won && (before.best === null || time < before.best), ...after });
     }

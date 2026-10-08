@@ -7,7 +7,7 @@
   const gridEl = document.getElementById("ms-grid");
   if (!gridEl || !window.Mines || !window.Players) return;
   const M = window.Mines, P = window.Players;
-  const { el, store, fmt, who, api } = P;
+  const { el, store, fmt, api } = P;
   const $ = (id) => document.getElementById(id);
 
   let diff = M.DIFFS[store.get("mines-diff", "easy")] ? store.get("mines-diff", "easy") : "easy";
@@ -16,10 +16,7 @@
   let started = 0, ticker = null, busy = false, flagMode = false, transposed = false;
   let ranking = null;           // null unknown, false off, true on
 
-  const secs = (ms) => {
-    const s = ms / 1000;
-    return s < 60 ? `${s.toFixed(1)} s` : `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
-  };
+  const secs = P.secs;
   const dims = () => M.DIFFS[diff];
 
   // ---- board ---------------------------------------------------------------------------
@@ -173,42 +170,8 @@
   // ---- ranking -------------------------------------------------------------------------
 
   async function loadBoard() {
-    const box = $("ms-top"), meBox = $("ms-me");
-    const p = P.current();
-    let data;
-    try { data = await api("GET", `?game=mines&diff=${diff}` + (p ? `&id=${p.id}` : "")); } catch { data = { configured: false }; }
-    if (!data.configured) {
-      ranking = false;
-      box.replaceChildren(el("p", { className: "muted small", textContent: "Rankings aren't switched on yet." }));
-      return;
-    }
-    ranking = true;
-    if ($("ms-recovery").dataset.player !== String(p?.id)) {
-      P.recoveryPanel($("ms-recovery"), { beforeSwitch: async () => { game = null; }, afterSwitch: async () => { reset(); await loadBoard(); } });
-      $("ms-recovery").dataset.player = String(p?.id);
-    }
-    const me = data.me;
-    if (me) {
-      meBox.replaceChildren(
-        el("b", { textContent: me.name ? `${me.name} (#${me.id})` : `player #${me.id}` }),
-        me.rank ? ` · ${diff}: rank ${me.rank} of ${fmt(me.players)}` : ` · no ${diff} win yet`,
-        el("br"),
-        el("span", { className: "muted", textContent: (me.best !== null ? `best ${secs(me.best)} · ` : "") + `${fmt(me.wins)} won of ${fmt(me.games)}` }),
-        ...(me.name ? [] : [P.nicknameForm(loadBoard)]));
-    } else {
-      meBox.textContent = "Finish a game to get your player number and a rank.";
-    }
-    if (!data.top.length) {
-      box.replaceChildren(el("p", { className: "muted small", textContent: `No ${diff} wins yet — be the first.` }));
-    } else {
-      box.replaceChildren(el("table", { className: "g8-table" },
-        el("thead", {}, el("tr", {}, ...["#", "player", "fastest", "wins"].map((h) => el("th", { textContent: h })))),
-        el("tbody", {}, ...data.top.map((r) => el("tr", { className: p && r.id === p.id ? "me" : "" },
-          el("td", { textContent: r.rank }), el("td", { textContent: who(r) }),
-          el("td", { textContent: secs(r.time) }), el("td", { textContent: fmt(r.wins) }))))));
-    }
-    $("ms-rank-title").textContent = `Ranking · ${diff}`;
-    dispatchEvent(new Event("relayout"));
+    ranking = await P.timedRanking("mines", diff, { me: "ms-me", top: "ms-top", title: "ms-rank-title", recovery: "ms-recovery" },
+      () => { game = null; reset(); });
   }
 
   reset();

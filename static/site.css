@@ -139,3 +139,30 @@ body.gifs { background: #000; }
 .ms .g8-head { flex-wrap: wrap; gap: 10px; }
 .ms .g8-head h1 { font-size: clamp(1.9rem, 9vw, 3rem); }
 .ms { min-width: 0; max-width: 100%; }
+
+/* ---- game3: sudoku ---- */
+.sd { width: min(460px, 100%); }
+.sd .g8-head h1 { font-size: clamp(1.9rem, 9vw, 3rem); }
+.sd-grid { display: grid; grid-template-columns: repeat(9, 1fr); border: 2px solid #111; user-select: none; -webkit-user-select: none;
+  touch-action: manipulation; }
+.sd-grid.busy { opacity: .4; }
+.sd-cell { aspect-ratio: 1; display: grid; place-items: center; border-right: 1px solid #d0d0d0; border-bottom: 1px solid #d0d0d0;
+  font-size: clamp(1.1rem, 5.4vw, 1.6rem); color: #1f5fbf; cursor: pointer; position: relative; background: #fff; }
+.sd-cell:nth-child(9n) { border-right: 0; }
+.sd-cell:nth-child(n+73) { border-bottom: 0; }
+.sd-cell.bR { border-right: 2px solid #111; }
+.sd-cell.bB { border-bottom: 2px solid #111; }
+.sd-cell.given { color: #111; font-weight: 700; }
+.sd-cell.zone { background: #f3f3f3; }
+.sd-cell.same { background: #dcdcdc; }
+.sd-cell.sel { background: #cfe0f7; }
+.sd-cell.bad { color: #c62828; }
+.sd-grid.done .sd-cell { cursor: default; }
+.sd-notes { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; height: 100%; padding: 1px; }
+.sd-notes span { display: grid; place-items: center; font-size: clamp(.45rem, 1.9vw, .62rem); color: #777; line-height: 1; }
+.sd-pad { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; margin-top: 12px; }
+.sd-pad button { font: inherit; font-size: 1.15rem; padding: 9px 0; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+.sd-pad button:hover { background: #f2f2f2; }
+.sd-pad button:disabled { color: #ccc; cursor: default; }
+.sd-pad .tool { grid-column: span 3; font-size: .85rem; color: #555; }
+.sd-pad #sd-notes[aria-pressed="true"] { background: #111; color: #fff; border-color: #111; }

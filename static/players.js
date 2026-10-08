@@ -111,5 +111,53 @@ window.Players = (() => {
     dispatchEvent(new Event("relayout"));
   }
 
-  return { el, store, fmt, who, api, current, forget, player, nicknameForm, recoveryPanel };
+  const secs = (ms) => {
+    const t = ms / 1000;
+    return t < 60 ? `${t.toFixed(1)} s` : `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
+  };
+
+  // Ranking panel for the timed games (fastest win per difficulty). Returns false when rankings are off.
+  // ids: {me, top, title, recovery} element ids; onSwitch runs after this device became another player.
+  async function timedRanking(kind, diff, ids, onSwitch) {
+    const $ = (id) => document.getElementById(id);
+    const box = $(ids.top), meBox = $(ids.me);
+    const p = current();
+    let data;
+    try { data = await api("GET", `?game=${kind}&diff=${diff}` + (p ? `&id=${p.id}` : "")); } catch { data = { configured: false }; }
+    if (!data.configured) {
+      box.replaceChildren(el("p", { className: "muted small", textContent: "Rankings aren't switched on yet." }));
+      return false;
+    }
+    const again = () => timedRanking(kind, diff, ids, onSwitch);
+    const rec = $(ids.recovery);
+    if (rec.dataset.player !== String(p?.id)) {
+      recoveryPanel(rec, { afterSwitch: async () => { await onSwitch?.(); await again(); } });
+      rec.dataset.player = String(p?.id);
+    }
+    const me = data.me;
+    if (me) {
+      meBox.replaceChildren(
+        el("b", { textContent: me.name ? `${me.name} (#${me.id})` : `player #${me.id}` }),
+        me.rank ? ` · ${diff}: rank ${me.rank} of ${fmt(me.players)}` : ` · no ${diff} win yet`,
+        el("br"),
+        el("span", { className: "muted", textContent: (me.best !== null ? `best ${secs(me.best)} · ` : "") + `${fmt(me.wins)} won of ${fmt(me.games)}` }),
+        ...(me.name ? [] : [nicknameForm(again)]));
+    } else {
+      meBox.textContent = "Finish a game to get your player number and a rank.";
+    }
+    if (!data.top.length) {
+      box.replaceChildren(el("p", { className: "muted small", textContent: `No ${diff} wins yet — be the first.` }));
+    } else {
+      box.replaceChildren(el("table", { className: "g8-table" },
+        el("thead", {}, el("tr", {}, ...["#", "player", "fastest", "wins"].map((h) => el("th", { textContent: h })))),
+        el("tbody", {}, ...data.top.map((r) => el("tr", { className: p && r.id === p.id ? "me" : "" },
+          el("td", { textContent: r.rank }), el("td", { textContent: who(r) }),
+          el("td", { textContent: secs(r.time) }), el("td", { textContent: fmt(r.wins) }))))));
+    }
+    $(ids.title).textContent = `Ranking · ${diff}`;
+    dispatchEvent(new Event("relayout"));
+    return true;
+  }
+
+  return { el, store, fmt, who, secs, api, current, forget, player, nicknameForm, recoveryPanel, timedRanking };
 })();
