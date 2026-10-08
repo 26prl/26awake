@@ -166,3 +166,7 @@ body.gifs { background: #000; }
 .sd-pad button:disabled { color: #ccc; cursor: default; }
 .sd-pad .tool { grid-column: span 3; font-size: .85rem; color: #555; }
 .sd-pad #sd-notes[aria-pressed="true"] { background: #111; color: #fff; border-color: #111; }
+
+/* ---- home: visitor count ---- */
+.visits { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0; font-size: .78rem; color: #999; white-space: nowrap; }
+.visits[hidden] { display: none; }

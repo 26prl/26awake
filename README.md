@@ -141,6 +141,9 @@ Each thing has its own page, all styled by `static/site.css` (white, system font
 * `/game3.html` — sudoku (`static/sudoku.js`, rules and puzzle maker in `static/sudoku-core.js`): easy/medium/hard
   (38/30/~24 givens, always exactly one solution), pencil notes, keyboard, resumes after a reload. Puzzles come
   from a server seed; the server rebuilds the puzzle, checks the finished grid and times the solve.
+* **Visitor count** — the home page shows "N people here today · M all time" (`static/api/visits.js`, same
+  Redis). Each browser gets a random anonymous id (no IPs or names stored) and counts once per UTC day; visits to
+  every page except the tracker count. Counts are approximate (Redis HyperLogLog, ~1%).
 * `/nothing.html` — coffee link, contacts and a BTC address with its QR code, from `static/nothing.json`. The QR is
   a static SVG (`static/btc-qr.svg`) made once from the address with the Python `qrcode` package.
 * `/music.html` — what I'm listening to on Spotify plus the players/tracks in `music.json` (`static/music.js`).
