@@ -470,9 +470,25 @@
       "mp4": "https://media.tenor.com/TxGyqhRFx1wAAAPo/clannad-parapara-trump-playing-cards-nagisa-furukawa.mp4",
       "page": "https://tenor.com/view/clannad-parapara-trump-playing-cards-nagisa-furukawa-suit-anime-clannad-gif-5697531447154689884"
     },
-    "https://tenor.com/view/aki-chainsaw-man-gif-27647022",
-    "https://tenor.com/view/reze-sticks-tongue-out-chainsaw-man-gif-183179092824055853",
-    "https://tenor.com/view/reze-chainsaw-man-chainsaw-man-reze-reze-chainsaw-man-reze-arc-gif-10943685439860131186",
-    "https://tenor.com/view/chainsaw-man-power-denji-aki-dancing-gif-2097932410184306937"
+    {
+      "src": "https://media1.tenor.com/m/pYMlrAelCnoAAAAC/aki-chainsaw-man.gif",
+      "mp4": "https://media.tenor.com/pYMlrAelCnoAAAPo/aki-chainsaw-man.mp4",
+      "page": "https://tenor.com/view/aki-chainsaw-man-gif-27647022"
+    },
+    {
+      "src": "https://media1.tenor.com/m/AorIahYOYC0AAAAC/reze-sticks-tongue-out.gif",
+      "mp4": "https://media.tenor.com/AorIahYOYC0AAAPo/reze-sticks-tongue-out.mp4",
+      "page": "https://tenor.com/view/reze-sticks-tongue-out-chainsaw-man-gif-183179092824055853"
+    },
+    {
+      "src": "https://media1.tenor.com/m/l9_H7Oh6RXIAAAAC/reze-chainsaw-man.gif",
+      "mp4": "https://media.tenor.com/l9_H7Oh6RXIAAAPo/reze-chainsaw-man.mp4",
+      "page": "https://tenor.com/view/reze-chainsaw-man-chainsaw-man-reze-reze-chainsaw-man-reze-arc-gif-10943685439860131186"
+    },
+    {
+      "src": "https://media1.tenor.com/m/HR1aaWfQkPkAAAAC/chainsaw-man-power.gif",
+      "mp4": "https://media.tenor.com/HR1aaWfQkPkAAAPo/chainsaw-man-power.mp4",
+      "page": "https://tenor.com/view/chainsaw-man-power-denji-aki-dancing-gif-2097932410184306937"
+    }
   ]
 }
