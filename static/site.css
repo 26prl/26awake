@@ -77,3 +77,11 @@ a { color: inherit; }
   border-bottom: 1px solid #eee; background: none; font: inherit; cursor: pointer; }
 .track:hover, .track.playing { background: #f2f2f2; }
 
+
+/* ---- gif wall ---- */
+body.gifs { background: #000; }
+.wall { column-width: 220px; column-gap: 0; line-height: 0; }
+.wall img, .wall video { display: block; width: 100%; height: auto; margin: 0; break-inside: avoid; }
+.wall-empty { line-height: 1.5; margin: 80px 16px; color: #999; border-color: #444; }
+.scatter.on-wall { position: fixed; z-index: 5; background: #fff; padding: 4px 10px; font-size: 1.1rem; }
+@media (max-width: 520px) { .wall { column-width: 150px; } }

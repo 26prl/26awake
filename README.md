@@ -125,6 +125,7 @@ to show it as suspected). Remove the entry to go back to the computed figure.
 Each thing has its own page, all styled by `static/site.css` (white, system font):
 
 * `/game.html` — 2048 (`static/games.js`); the game in progress and best score are saved per device.
+* `/gifs.html` — a wall of GIFs listed in `static/gifs.json` (`{"gifs": ["https://…gif", …]}`, newest last; .gif/.webp/.mp4 links or giphy.com page links).
 * `/music.html` — what I'm listening to on Spotify plus the players/tracks in `music.json` (`static/music.js`).
 * `/watch.html` — the plague tracker (`/watch.html#2` opens topic 2). It has its own `style.css` and is not
   touched by home page changes.
