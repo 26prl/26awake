@@ -1,7 +1,7 @@
 "use strict";
 // Vercel serverless function: unique visitor counts at /api/visits, in the same Upstash Redis as the rankings.
-// Each browser keeps a random anonymous id (no names, no IP addresses are stored) and is counted once per day
-// (UTC) and once overall, with Redis HyperLogLogs, so the counts are approximate (within about 1%).
+// Each browser keeps a random anonymous id (no names, no IP addresses are stored). The ids are kept in Redis
+// sets — one for all time, one per day (UTC) — so each id counts exactly once and the counts are exact.
 //
 //   POST /api/visits {v: "<anonymous id>"}  → records the visit, returns {today, total}
 //   GET  /api/visits                        → {today, total}
@@ -38,17 +38,17 @@ async function body(req) {
 
 module.exports = async (req, res) => {
   if (!URL_ || !TOKEN) return send(res, 200, { configured: false });
-  const day = `visits:${new Date().toISOString().slice(0, 10)}`;
+  const day = `visitors:${new Date().toISOString().slice(0, 10)}`;
   try {
     if (req.method === "POST") {
       const { v } = await body(req);
       if (typeof v !== "string" || !/^[a-f0-9]{32}$/.test(v)) return send(res, 400, { error: "bad id" });
       const [, , , today, total] = await redis(
-        ["PFADD", day, v], ["PFADD", "visits:all", v], ["EXPIRE", day, String(60 * 60 * 24 * 400)],
-        ["PFCOUNT", day], ["PFCOUNT", "visits:all"]);
+        ["SADD", day, v], ["SADD", "visitors:all", v], ["EXPIRE", day, String(60 * 60 * 24 * 400)],
+        ["SCARD", day], ["SCARD", "visitors:all"]);
       return send(res, 200, { configured: true, today, total });
     }
-    const [today, total] = await redis(["PFCOUNT", day], ["PFCOUNT", "visits:all"]);
+    const [today, total] = await redis(["SCARD", day], ["SCARD", "visitors:all"]);
     return send(res, 200, { configured: true, today, total });
   } catch (e) {
     return send(res, 500, { error: String(e.message || e) });
