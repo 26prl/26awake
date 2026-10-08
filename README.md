@@ -133,6 +133,8 @@ Each thing has its own page, all styled by `static/site.css` (white, system font
   connect it to the project (it adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`) → redeploy. Without it the game
   works and the best score stays on the device.
 * `/gifs.html` — a wall of GIFs listed in `static/gifs.json` (`{"gifs": ["https://…gif", …]}`, shown in a new random order on every visit; .gif/.webp/.mp4 links, giphy.com links, or tenor.com page links — the "Resolve GIF links" workflow turns Tenor pages into direct links (`tools/resolve_gifs.py`) and republishes).
+* `/nothing.html` — coffee link, contacts and a BTC address with its QR code, from `static/nothing.json`. The QR is
+  a static SVG (`static/btc-qr.svg`) made once from the address with the Python `qrcode` package.
 * `/music.html` — what I'm listening to on Spotify plus the players/tracks in `music.json` (`static/music.js`).
 * `/watch.html` — the plague tracker (`/watch.html#2` opens topic 2). It has its own `style.css` and is not
   touched by home page changes.
