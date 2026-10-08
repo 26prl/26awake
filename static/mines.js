@@ -1,5 +1,5 @@
 "use strict";
-// game2: minesweeper (rules in mines-core.js, players in players.js, ranking in api/scores.js).
+// Minesweeper (game2.html) (rules in mines-core.js, players in players.js, ranking in api/scores.js).
 // The first click asks the server for this game's seed (unranked with a local seed if there is no server);
 // when the game ends, the list of opened cells is sent and the server checks it and times the game.
 

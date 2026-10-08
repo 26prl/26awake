@@ -1,5 +1,5 @@
 "use strict";
-// Players shared by all games (game1 = 2048, game2 = minesweeper): this device's player number + secret key,
+// Players shared by all games (2048, minesweeper, sudoku): this device's player number + secret key,
 // the one-time nickname and the recovery code. Talks to api/scores.js. Exposes window.Players.
 
 window.Players = (() => {

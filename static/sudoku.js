@@ -1,5 +1,5 @@
 "use strict";
-// game3: sudoku (rules and puzzle maker in sudoku-core.js, players in players.js, ranking in api/scores.js).
+// Sudoku (game3.html) (rules and puzzle maker in sudoku-core.js, players in players.js, ranking in api/scores.js).
 // Each puzzle comes from a server seed (a local one when there is no server). When the grid is full and right,
 // it's sent to the server, which rebuilds the puzzle, checks the grid and times the solve itself.
 // The puzzle in progress (with pencil notes) is kept on this device.

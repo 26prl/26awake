@@ -124,7 +124,7 @@ to show it as suspected). Remove the entry to go back to the computed figure.
 `/` is the home page (`static/index.html`): a white page with the logo in the middle and links (music, game, plague) scattered at random spots in random colours (`static/scatter.js`). The other pages have a randomly placed "go back" link the same way.
 Each thing has its own page, all styled by `static/site.css` (white, system font):
 
-* `/game1.html` — 2048 (`static/games.js`, rules in `static/g2048-core.js`) with a ranking (`static/api/scores.js`).
+* `/game1.html` — **2048** (`static/games.js`, rules in `static/g2048-core.js`) with a ranking (`static/api/scores.js`).
   (`/game.html` forwards here.)
   Players get a number automatically (no names); the server deals each game's tiles from its own seed and replays
   the moves when the game ends, so scores can't be faked. Shows rank, best, games, total points, biggest tile and
@@ -134,11 +134,11 @@ Each thing has its own page, all styled by `static/site.css` (white, system font
   connect it to the project (it adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`) → redeploy. Without it the game
   works and the best score stays on the device.
 * `/gifs.html` — a wall of GIFs listed in `static/gifs.json` (`{"gifs": ["https://…gif", …]}`, shown in a new random order on every visit; .gif/.webp/.mp4 links, giphy.com links, or tenor.com page links — the "Resolve GIF links" workflow turns Tenor pages into direct links (`tools/resolve_gifs.py`) and republishes).
-* `/game2.html` — minesweeper (`static/mines.js`, rules in `static/mines-core.js`): easy 9×9/10, medium 16×16/40,
+* `/game2.html` — **minesweeper** (`static/mines.js`, rules in `static/mines-core.js`): easy 9×9/10, medium 16×16/40,
   hard 30×16/99 (turned upright on phones). The first click is always safe; mines come from a server seed and the
   server replays the opened cells and times the game itself; ranking = fastest win per difficulty. Players,
   nicknames and recovery codes are shared by all games (`static/players.js`).
-* `/game3.html` — sudoku (`static/sudoku.js`, rules and puzzle maker in `static/sudoku-core.js`): easy/medium/hard
+* `/game3.html` — **sudoku** (`static/sudoku.js`, rules and puzzle maker in `static/sudoku-core.js`): easy/medium/hard
   (38/30/~24 givens, always exactly one solution), pencil notes, keyboard. Nothing is timed until Start; leaving
   the page pauses the game (board covered, clocks stopped) until Continue, also after a reload. Puzzles come
   from a server seed; the server rebuilds the puzzle, checks the finished grid and times the solve.

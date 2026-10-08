@@ -1,5 +1,5 @@
 "use strict";
-// Vercel serverless function: the game rankings (game1 = 2048, game2 = minesweeper) at /api/scores, stored in a free Upstash Redis database
+// Vercel serverless function: the game rankings (2048, minesweeper, sudoku) at /api/scores, stored in a free Upstash Redis database
 // (Vercel → Storage → Upstash for Redis; it adds KV_REST_API_URL / KV_REST_API_TOKEN by itself).
 //
 // Players have no names: each device gets the next player number plus a secret key on first play.
