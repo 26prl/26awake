@@ -65,16 +65,16 @@
 
     const lists = [];
     const list = (title, items) => items.length && lists.push(el("div", {}, el("h2", { textContent: title }), el("ul", { className: "me-list" }, ...items)));
-    list("Most played lately", (data.top_tracks || []).map((t) => row(t, t.artists.join(", "))));
-    list("Top artists this month", (data.top_artists || []).map((a) => row(a, "")));
-    list("Recently played", (data.recent || []).slice(data.now?.track ? 0 : 1, 6).map((t) => row(t, `${t.artists.join(", ")} · ${ago(t.played_at)}`)));
+    list("my most played songs", (data.top_tracks || []).map((t) => row(t, t.artists.join(", "))));
+    list("my fav artists this month", (data.top_artists || []).map((a) => row(a, "")));
+    list("recently played", (data.recent || []).slice(data.now?.track ? 0 : 1, 6).map((t) => row(t, `${t.artists.join(", ")} · ${ago(t.played_at)}`)));
 
     const card = nowCard(data);
     if (!card && !lists.length) return;
     $("#me").replaceChildren(
       card ? el("div", { className: "section" }, card) : null,
       lists.length ? el("div", { className: "section lists" }, ...lists) : null,
-      data.profile?.url ? el("p", { className: "small" }, el("a", { ...link(data.profile.url), textContent: "My Spotify profile ↗" })) : null);
+      data.profile?.url ? el("p", { className: "small" }, el("a", { ...link(data.profile.url), textContent: ">> add me on spotify <<" })) : null);
     $("#music-list .empty")?.remove();
   }
 
@@ -123,7 +123,7 @@
       parts.push(audio, el("div", {}, ...rows));
     }
 
-    if (!parts.length && !$("#me").children.length) parts.push(el("p", { className: "empty", textContent: "Nothing here yet." }));
+    if (!parts.length && !$("#me").children.length) parts.push(el("p", { className: "empty", textContent: "nothing here yet... check back later!!" }));
     box.replaceChildren(...parts);
   }
 

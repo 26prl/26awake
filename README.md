@@ -91,8 +91,8 @@ not reading comprehension, so treat the result as approximate and follow the lin
 
 ## Home page, game and music
 
-`/` is the home page (`static/index.html`): a plain white page with the logo and links to the other pages.
-Each thing has its own page, all styled by `static/site.css` (white, system font):
+`/` is the home page (`static/index.html`): an early-2000s homepage (logo, marquee, table of links, "under construction").
+Each thing has its own page, all styled by `static/site.css` (deliberately amateur 2000s HTML/CSS):
 
 * `/game.html` — 2048 (`static/games.js`); the game in progress and best score are saved per device.
 * `/music.html` — what I'm listening to on Spotify plus the players/tracks in `music.json` (`static/music.js`).
