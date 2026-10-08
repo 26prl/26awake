@@ -208,7 +208,7 @@ class CollectorAndApiTests(unittest.TestCase):
         self.assertEqual(self.req(f"{base}/api/topics/{created['id']}", "DELETE")[0], 200)
 
         with urllib.request.urlopen(f"{base}/") as resp:
-            self.assertIn(b"PlagueWeb", resp.read())
+            self.assertIn(b"26awake", resp.read())
         self.assertEqual(self.req(f"{base}/api/nope")[0], 404)
         with self.assertRaises(urllib.error.HTTPError):
             urllib.request.urlopen(f"{base}/../tracker/store.py")

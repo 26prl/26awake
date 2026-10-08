@@ -172,7 +172,7 @@ def make_handler(store: Store, collector: Collector, token: str | None):
         return store.runs(int(tid))
 
     class Handler(BaseHTTPRequestHandler):
-        server_version = "PlagueWeb/0.1"
+        server_version = "26awake/0.1"
 
         def log_message(self, fmt, *args):
             log.debug("%s - %s", self.address_string(), fmt % args)

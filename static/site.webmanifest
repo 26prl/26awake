@@ -1,10 +1,10 @@
 {
-  "name": "PlagueWeb Tracker",
-  "short_name": "PlagueWeb",
+  "name": "26awake · Plague Watch",
+  "short_name": "26awake",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#b42318",
+  "theme_color": "#a52a2a",
   "icons": [
     {
       "src": "icons/icon-192.png",

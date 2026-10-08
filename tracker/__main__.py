@@ -41,7 +41,7 @@ def sync_topics(store: Store, path: Path) -> None:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="PlagueWeb — keep tracking topics across the internet.")
+    p = argparse.ArgumentParser(description="26awake — keep tracking topics across the internet.")
     p.add_argument("--host", default=os.environ.get("HOST", "127.0.0.1"))
     p.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8000")))
     p.add_argument("--db", default=os.environ.get("TRACKER_DB", str(ROOT / "data" / "tracker.db")))

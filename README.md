@@ -1,4 +1,4 @@
-# PlagueWeb — internet topic tracker
+# 26awake — Plague Watch
 
 A small self-hosted website that keeps watching the internet for the topics you define
 (for example, **plague cases in Russia**), rates every source for trustworthiness, and shows:
@@ -186,9 +186,9 @@ GitHub Pages works the same way: Settings → Pages → Deploy from branch → `
 Any host that runs Docker with a persistent disk: Render, Railway, Fly.io, or a small VPS.
 
 ```bash
-docker build -t plagueweb .
-docker run -d -p 8000:8000 -v plagueweb-data:/data \
-  -e TRACKER_TOKEN=change-me -e ANTHROPIC_API_KEY=sk-ant-... plagueweb
+docker build -t 26awake .
+docker run -d -p 8000:8000 -v 26awake-data:/data \
+  -e TRACKER_TOKEN=change-me -e ANTHROPIC_API_KEY=sk-ant-... 26awake
 ```
 
 ## API

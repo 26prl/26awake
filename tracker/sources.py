@@ -17,7 +17,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
-USER_AGENT = "Mozilla/5.0 (compatible; PlagueWebTracker/0.1; +https://github.com/26prl/plagueweb)"
+USER_AGENT = "Mozilla/5.0 (compatible; 26awake/0.1; +https://github.com/26prl/plagueweb)"
 TIMEOUT = 15
 RETRY_WAIT = 5  # seconds; fail fast rather than hold up a check
 
