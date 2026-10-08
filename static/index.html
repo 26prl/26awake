@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>26awake</title>
-  <meta name="description" content="26awake: live news trackers that rate every source and show only verified numbers. Plus games, art and music.">
+  <meta name="description" content="26awake by 26prl: games, art, music and whatever else.">
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -14,43 +14,34 @@
 <body class="home">
   <header class="topbar">
     <div class="brand"><a href="./" class="brand-home"><img class="brand-logo" src="icons/logo-26awake.png" alt="26awake home" width="140" height="44"></a>
-      <nav class="site-nav" aria-label="Site"><a href="./" aria-current="page">Home</a><a href="watch.html">Watch</a><a href="#games">Games</a><a href="#art">Art</a><a href="#music">Music</a></nav>
+      <nav class="site-nav" aria-label="Site"><a href="./" aria-current="page">Home</a><a href="#games">Games</a><a href="#art">Art</a><a href="#music">Music</a><a href="watch.html">Watch</a></nav>
     </div>
   </header>
 
   <main class="home-main">
     <section class="hero">
       <img class="hero-logo" src="icons/logo-26awake.png" alt="26awake" width="459" height="144">
-      <p class="hero-lead">Stay awake to what's actually happening.</p>
-      <p class="hero-text">Live trackers that read the news every 10 minutes, rate every source, and only count numbers that
-        official bodies or several trusted outlets confirm. Plus a few games, some art and music.</p>
+      <p class="hero-lead">Just for fun.</p>
+      <p class="hero-text">Games, art, music and whatever else I feel like putting here.</p>
       <div class="hero-actions">
-        <a class="btn" href="#topics">Pick a topic</a>
-        <a class="btn ghost" href="#games">Play something</a>
-      </div>
-    </section>
-
-    <section id="topics" class="home-section">
-      <h2 class="section-title">Topics</h2>
-      <p class="section-sub muted">Each tracker checks Google News and the WHO every 10 minutes and updates itself while you watch.</p>
-      <div id="topic-cards" class="topic-cards">
-        <div class="card topic-card skeleton" aria-hidden="true"></div>
+        <a class="btn" href="#games">Play something</a>
+        <a class="btn ghost" href="#music">Put on music</a>
       </div>
     </section>
 
     <section id="games" class="home-section">
       <h2 class="section-title">Games</h2>
-      <p class="section-sub muted">Quick breaks between headlines. Best scores are saved on this device.</p>
+      <p class="section-sub muted">Best scores are saved on this device.</p>
       <div class="games">
         <article class="card game">
           <div class="game-head">
-            <h3>Flea Flick</h3>
+            <h3>Bonk!</h3>
             <span class="muted small">Score <strong id="ff-score">0</strong> · Best <strong id="ff-best">0</strong> · <span id="ff-time">30</span>s</span>
           </div>
           <div class="game-stage">
-            <canvas id="ff-canvas" width="360" height="360" aria-label="Flea Flick game board"></canvas>
+            <canvas id="ff-canvas" width="360" height="360" aria-label="Bonk game board"></canvas>
             <div class="game-overlay" id="ff-overlay">
-              <p id="ff-msg">Tap the fleas before they hop away.<br><strong>Don't hit Marmot-kun</strong> (−3).</p>
+              <p id="ff-msg">Bonk the moles before they hide.<br><strong>Don't hit the bombs</strong> (−3).</p>
               <button class="btn" id="ff-start" type="button">Start</button>
             </div>
           </div>
@@ -58,13 +49,13 @@
 
         <article class="card game">
           <div class="game-head">
-            <h3>Pill Snake</h3>
+            <h3>Snake</h3>
             <span class="muted small">Score <strong id="ps-score">0</strong> · Best <strong id="ps-best">0</strong></span>
           </div>
           <div class="game-stage">
-            <canvas id="ps-canvas" width="360" height="360" tabindex="0" aria-label="Pill Snake game board"></canvas>
+            <canvas id="ps-canvas" width="360" height="360" tabindex="0" aria-label="Snake game board"></canvas>
             <div class="game-overlay" id="ps-overlay">
-              <p id="ps-msg">Collect antibiotics, don't bite your tail.<br>Arrow keys, WASD or swipe.</p>
+              <p id="ps-msg">Eat the apples, don't bite your tail.<br>Arrow keys, WASD or swipe.</p>
               <button class="btn" id="ps-start" type="button">Start</button>
             </div>
           </div>
@@ -80,7 +71,7 @@
 
     <section id="art" class="home-section">
       <h2 class="section-title">Art</h2>
-      <p class="section-sub muted">Logos, stickers and whatever else ends up here. Tap to enlarge.</p>
+      <p class="section-sub muted">Tap to enlarge.</p>
       <div id="art-grid" class="art-grid"></div>
     </section>
 
@@ -89,16 +80,20 @@
       <div id="music-list" class="card music"></div>
     </section>
 
+    <section id="topics" class="home-section">
+      <h2 class="section-title">Watch</h2>
+      <p class="section-sub muted">Live news trackers. They check the news every 10 minutes, rate every source and update while you watch.</p>
+      <div id="topic-cards" class="topic-cards">
+        <div class="card topic-card skeleton" aria-hidden="true"></div>
+      </div>
+    </section>
+
     <section id="about" class="home-section about">
       <h2 class="section-title">About</h2>
       <div class="card about-card">
-        <p><strong>26awake</strong> keeps watch on the news so you don't have to refresh twenty tabs. Every article is rated by
-          where it comes from: health authorities and wire services count, tabloids and anonymous channels don't, and a site
-          repeating its own story isn't counted twice.</p>
-        <p>Case numbers only appear when an official body, or at least two independent trusted outlets, report them —
-          and official denials are shown right next to them.</p>
-        <p class="muted small">Everything is collected automatically, so it can be wrong. Follow the source links and official
-          health guidance.</p>
+        <p><strong>26awake</strong> is my corner of the internet: a couple of small games, art, music, and a few side projects
+          like the news trackers under Watch. Nothing serious, just stuff I like.</p>
+        <p class="muted small">Made by 26prl.</p>
       </div>
     </section>
   </main>

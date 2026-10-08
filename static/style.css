@@ -479,6 +479,6 @@ a.topic-card:hover { transform: translateY(-2px); border-color: var(--accent); b
   .topic-cards { grid-template-columns: 1fr; }
 }
 @media (max-width: 520px) {
-  .site-nav a:nth-child(n+4) { display: none; } /* keep Home · Watch · Games on small phones */
+  .site-nav a:nth-child(3), .site-nav a:nth-child(4) { display: none; } /* Home · Games · Watch on small phones */
   .topbar .brand small { display: none; }
 }

@@ -2,7 +2,7 @@
   "items": [
     {
       "src": "icons/logo-26awake.png",
-      "title": "26awake logo",
+      "title": "26awake",
       "by": "26prl"
     },
     {
@@ -11,32 +11,20 @@
       "by": "26prl"
     },
     {
-      "src": "gifs/begone-sickness.gif",
-      "title": "Begone sickness"
-    },
-    {
       "src": "gifs/bocchi.gif",
-      "title": "Refreshing the news again"
-    },
-    {
-      "src": "gifs/sick-girl.gif",
-      "title": "After one flea bite"
+      "title": "Bocchi"
     },
     {
       "src": "gifs/rainbow.gif",
-      "title": "Reading tabloid sources"
+      "title": "Rainbow"
     },
     {
       "src": "gifs/they-got-me.jpg",
       "title": "They got me."
     },
     {
-      "src": "gifs/pikachu-hospital.jpg",
-      "title": "Get well soon, Pikachu"
-    },
-    {
       "src": "gifs/god-bless.gif",
-      "title": "Verified. Blessed."
+      "title": "God bless"
     }
   ]
 }

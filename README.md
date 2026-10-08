@@ -1,4 +1,7 @@
-# 26awake — Plague Watch
+# 26awake
+
+A personal site for fun — games, art, music — with one serious side project: **Plague Watch**, a live news tracker.
+Most of this README is about the tracker.
 
 A small self-hosted website that keeps watching the internet for the topics you define
 (for example, **plague cases in Russia**), rates every source for trustworthiness, and shows:
@@ -88,8 +91,8 @@ not reading comprehension, so treat the result as approximate and follow the lin
 
 ## Home page, art and music
 
-`/` is the home page (`static/index.html`): an intro, a live card for every topic, two small games
-(Flea Flick and Pill Snake, `static/games.js`), an art gallery and a music player. The tracker itself is
+`/` is the home page (`static/index.html`): an intro, two small games (Bonk! and Snake, `static/games.js`),
+an art gallery, a music player and, under "Watch", a live card for every tracker topic. The tracker itself is
 `/watch.html` (`/watch.html#2` opens topic 2).
 
 * **Art** — put images in `static/art/` (or anywhere under `static/`) and list them in `static/art.json`:

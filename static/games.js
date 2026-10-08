@@ -15,7 +15,7 @@
   }
 
   // ====================================================================================
-  // Flea Flick — whack the fleas, spare the marmot. 30-second rounds.
+  // Bonk! — whack the moles, avoid the bombs. 30-second rounds.
   // ====================================================================================
   (() => {
     const canvas = document.getElementById("ff-canvas");
@@ -31,7 +31,7 @@
     bestEl.textContent = best.get("ff");
 
     const reset = () => {
-      holes = Array.from({ length: N * N }, () => null); // { kind: "flea" | "marmot", until, hit }
+      holes = Array.from({ length: N * N }, () => null); // { kind: "mole" | "bomb", until, hit }
       score = 0; pops = []; started = performance.now(); nextSpawn = started + 400;
       scoreEl.textContent = 0;
     };
@@ -41,32 +41,30 @@
       if (!free.length) return;
       const i = free[Math.floor(Math.random() * free.length)];
       const progress = (now - started) / ROUND; // gets faster over the round
-      holes[i] = { kind: Math.random() < 0.16 ? "marmot" : "flea", born: now, until: now + 1000 - 450 * progress, hit: false };
+      holes[i] = { kind: Math.random() < 0.16 ? "bomb" : "mole", born: now, until: now + 1000 - 450 * progress, hit: false };
       nextSpawn = now + 650 - 380 * progress + Math.random() * 200;
     }
 
-    function drawFlea(x, y, s, t) {
-      ctx.save(); ctx.translate(x, y + Math.sin(t / 90) * 2);
-      ctx.strokeStyle = "#5a2a1a"; ctx.lineWidth = 3 * s; ctx.lineCap = "round";
-      for (const [dx, dy] of [[-14, 10], [-5, 14], [6, 14], [15, 10]]) {
-        ctx.beginPath(); ctx.moveTo(dx * s * 0.6, 4 * s); ctx.lineTo(dx * s, dy * s + 6 * s); ctx.stroke();
-      }
-      ctx.fillStyle = "#8a3b22"; ctx.beginPath(); ctx.ellipse(0, 0, 20 * s, 14 * s, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(-14 * s, -8 * s, 10 * s, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(-17 * s, -10 * s, 3.4 * s, 0, Math.PI * 2); ctx.arc(-10 * s, -10 * s, 3.4 * s, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#1d0f0a"; ctx.beginPath(); ctx.arc(-16.5 * s, -9.5 * s, 1.8 * s, 0, Math.PI * 2); ctx.arc(-9.5 * s, -9.5 * s, 1.8 * s, 0, Math.PI * 2); ctx.fill();
+    function drawMole(x, y, s) {
+      ctx.save(); ctx.translate(x, y);
+      ctx.fillStyle = "#6d4c3d"; ctx.beginPath(); ctx.ellipse(0, 4 * s, 22 * s, 26 * s, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#c9a38b"; ctx.beginPath(); ctx.ellipse(0, 12 * s, 13 * s, 12 * s, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#1b120d"; ctx.beginPath(); ctx.arc(-8 * s, -6 * s, 3 * s, 0, Math.PI * 2); ctx.arc(8 * s, -6 * s, 3 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(-7 * s, -7 * s, 1 * s, 0, Math.PI * 2); ctx.arc(9 * s, -7 * s, 1 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#f08aa0"; ctx.beginPath(); ctx.ellipse(0, 2 * s, 5 * s, 3.6 * s, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.fillRect(-3 * s, 7 * s, 2.6 * s, 4 * s); ctx.fillRect(0.4 * s, 7 * s, 2.6 * s, 4 * s);
+      ctx.fillStyle = "rgb(255 143 163 / .55)"; ctx.beginPath(); ctx.ellipse(-14 * s, 4 * s, 4.5 * s, 2.4 * s, 0, 0, Math.PI * 2); ctx.ellipse(14 * s, 4 * s, 4.5 * s, 2.4 * s, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
 
-    function drawMarmot(x, y, s) {
+    function drawBomb(x, y, s, t) {
       ctx.save(); ctx.translate(x, y);
-      ctx.fillStyle = "#9a6d40"; ctx.beginPath(); ctx.arc(-14 * s, -18 * s, 6 * s, 0, Math.PI * 2); ctx.arc(14 * s, -18 * s, 6 * s, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#b58552"; ctx.beginPath(); ctx.arc(0, 0, 24 * s, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#ebcb9e"; ctx.beginPath(); ctx.ellipse(0, 8 * s, 13 * s, 10 * s, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#2b1d12"; ctx.beginPath(); ctx.arc(-9 * s, -4 * s, 3 * s, 0, Math.PI * 2); ctx.arc(9 * s, -4 * s, 3 * s, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#4a2f1a"; ctx.beginPath(); ctx.ellipse(0, 3 * s, 3.5 * s, 2.5 * s, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#fff"; ctx.fillRect(-3 * s, 7 * s, 2.6 * s, 4 * s); ctx.fillRect(0.4 * s, 7 * s, 2.6 * s, 4 * s);
-      ctx.fillStyle = "rgb(255 143 163 / .6)"; ctx.beginPath(); ctx.ellipse(-16 * s, 6 * s, 5 * s, 2.6 * s, 0, 0, Math.PI * 2); ctx.ellipse(16 * s, 6 * s, 5 * s, 2.6 * s, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#24262b"; ctx.beginPath(); ctx.arc(0, 6 * s, 20 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgb(255 255 255 / .25)"; ctx.beginPath(); ctx.arc(-7 * s, -1 * s, 5 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#4a4d55"; ctx.fillRect(-5 * s, -18 * s, 10 * s, 8 * s);
+      ctx.strokeStyle = "#a0805a"; ctx.lineWidth = 2.5 * s; ctx.beginPath(); ctx.moveTo(0, -18 * s); ctx.quadraticCurveTo(8 * s, -28 * s, 14 * s, -24 * s); ctx.stroke();
+      const flick = 0.6 + 0.4 * Math.sin(t / 60);
+      ctx.fillStyle = `rgb(255 ${Math.round(140 + 80 * flick)} 40)`; ctx.beginPath(); ctx.arc(15 * s, -25 * s, 4 * s * flick + 2, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
 
@@ -80,8 +78,8 @@
         if (h && !h.hit) {
           const rise = Math.min(1, (now - h.born) / 120);
           ctx.save(); ctx.beginPath(); ctx.rect(cx - 50, cy - 60, 100, 82); ctx.clip();
-          if (h.kind === "flea") drawFlea(cx, cy + 4 + (1 - rise) * 30, 1.2, now);
-          else drawMarmot(cx, cy - 2 + (1 - rise) * 40, 1.15);
+          if (h.kind === "mole") drawMole(cx, cy + 2 + (1 - rise) * 40, 1.15);
+          else drawBomb(cx, cy + 4 + (1 - rise) * 40, 1.1, now);
           ctx.restore();
         }
       }
@@ -111,7 +109,7 @@
       const b = best.get("ff");
       if (score > b) { best.set("ff", score); bestEl.textContent = score; }
       msg.innerHTML = "";
-      msg.append(`Time! You flicked `, Object.assign(document.createElement("strong"), { textContent: `${score}` }), ` points.`,
+      msg.append(`Time! You scored `, Object.assign(document.createElement("strong"), { textContent: `${score}` }), ` points.`,
         score > b ? " New best! 🎉" : "");
       overlay.hidden = false;
       document.getElementById("ff-start").textContent = "Play again";
@@ -124,10 +122,10 @@
       const h = holes[i];
       if (!h || h.hit) return;
       h.hit = true; h.until = 0;
-      const good = h.kind === "flea";
+      const good = h.kind === "mole";
       score = Math.max(0, score + (good ? 1 : -3));
       scoreEl.textContent = score;
-      pops.push({ x, y, t: performance.now(), good, text: good ? "+1" : "−3 not the marmot!" });
+      pops.push({ x, y, t: performance.now(), good, text: good ? "+1" : "BOOM −3" });
     });
 
     document.getElementById("ff-start").onclick = () => {
@@ -137,7 +135,7 @@
   })();
 
   // ====================================================================================
-  // Pill Snake — classic snake; eat antibiotic pills, don't hit walls or yourself.
+  // Snake — eat the apples, don't hit the walls or yourself.
   // ====================================================================================
   (() => {
     const canvas = document.getElementById("ps-canvas");
@@ -149,16 +147,16 @@
     const bestEl = document.getElementById("ps-best");
     const G = 18, C = canvas.width / G;
     const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
-    let snake, dir, queue, pill, score, running = false, timer, speed;
+    let snake, dir, queue, apple, score, running = false, timer, speed;
     bestEl.textContent = best.get("ps");
 
-    const placePill = () => {
-      do pill = [Math.floor(Math.random() * G), Math.floor(Math.random() * G)];
-      while (snake.some(([x, y]) => x === pill[0] && y === pill[1]));
+    const placeApple = () => {
+      do apple = [Math.floor(Math.random() * G), Math.floor(Math.random() * G)];
+      while (snake.some(([x, y]) => x === apple[0] && y === apple[1]));
     };
     const reset = () => {
       snake = [[8, 9], [7, 9], [6, 9]]; dir = "right"; queue = []; score = 0; speed = 130;
-      scoreEl.textContent = 0; placePill();
+      scoreEl.textContent = 0; placeApple();
     };
 
     function turn(d) {
@@ -173,17 +171,16 @@
       ctx.fillStyle = css("--panel") || "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = dark ? "rgb(255 255 255 / .03)" : "rgb(0 0 0 / .03)";
       for (let x = 0; x < G; x++) for (let y = 0; y < G; y++) if ((x + y) % 2) ctx.fillRect(x * C, y * C, C, C);
-      // pill: half red, half white capsule
-      const [px, py] = pill, cx = px * C + C / 2, cy = py * C + C / 2;
-      ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.6);
-      ctx.fillStyle = "#fff"; ctx.strokeStyle = "#8a2a20"; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.roundRect(-C * 0.42, -C * 0.22, C * 0.84, C * 0.44, C * 0.22); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = "#e0453a"; ctx.beginPath(); ctx.roundRect(-C * 0.42, -C * 0.22, C * 0.42, C * 0.44, [C * 0.22, 0, 0, C * 0.22]); ctx.fill();
-      ctx.restore();
+      // apple
+      const [px, py] = apple, cx = px * C + C / 2, cy = py * C + C / 2 + 1;
+      ctx.fillStyle = "#e0453a"; ctx.beginPath(); ctx.arc(cx - C * 0.13, cy, C * 0.3, 0, Math.PI * 2); ctx.arc(cx + C * 0.13, cy, C * 0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgb(255 255 255 / .35)"; ctx.beginPath(); ctx.arc(cx - C * 0.18, cy - C * 0.1, C * 0.08, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#6b4a2e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx, cy - C * 0.22); ctx.lineTo(cx + 1, cy - C * 0.42); ctx.stroke();
+      ctx.fillStyle = "#3aa655"; ctx.beginPath(); ctx.ellipse(cx + C * 0.12, cy - C * 0.38, C * 0.12, C * 0.06, -0.5, 0, Math.PI * 2); ctx.fill();
       // snake (head drawn last)
       snake.slice().reverse().forEach(([x, y], i, arr) => {
         const head = i === arr.length - 1;
-        ctx.fillStyle = head ? "#a52a2a" : `hsl(${3 + (i % 4) * 2} 55% ${dark ? 48 : 42}%)`;
+        ctx.fillStyle = head ? "#2f8f46" : `hsl(${130 + (i % 4) * 3} 45% ${dark ? 45 : 40}%)`;
         ctx.beginPath(); ctx.roundRect(x * C + 1.5, y * C + 1.5, C - 3, C - 3, head ? 7 : 5); ctx.fill();
         if (head) {
           const [dx, dy] = DIRS[dir];
@@ -201,14 +198,14 @@
       const [dx, dy] = DIRS[dir];
       const [hx, hy] = snake[0];
       const next = [hx + dx, hy + dy];
-      const ate = next[0] === pill[0] && next[1] === pill[1];
+      const ate = next[0] === apple[0] && next[1] === apple[1];
       const body = ate ? snake : snake.slice(0, -1);
       if (next[0] < 0 || next[1] < 0 || next[0] >= G || next[1] >= G || body.some(([x, y]) => x === next[0] && y === next[1])) {
         return end();
       }
       snake.unshift(next);
       if (ate) {
-        score++; scoreEl.textContent = score; placePill();
+        score++; scoreEl.textContent = score; placeApple();
         speed = Math.max(65, speed - 3);
       } else snake.pop();
       draw();
@@ -221,7 +218,7 @@
       if (score > b) { best.set("ps", score); bestEl.textContent = score; }
       msg.innerHTML = "";
       msg.append("Ouch! ", Object.assign(document.createElement("strong"), { textContent: `${score}` }),
-        ` pill${score === 1 ? "" : "s"} collected.`, score > b ? " New best! 🎉" : "");
+        ` apple${score === 1 ? "" : "s"} eaten.`, score > b ? " New best! 🎉" : "");
       overlay.hidden = false;
       document.getElementById("ps-start").textContent = "Play again";
     }
