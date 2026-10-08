@@ -4,88 +4,39 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>2048 · 26awake</title>
-  <meta name="theme-color" content="#050505">
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
-  <style>
-    /* 2048: black, neon green, scanlines, system monospace. Only this page. */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #050505; color: #c8c8c8; font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-      min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 64px 20px 64px; }
-    body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 9999;
-      background: repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0px, rgba(0,0,0,.06) 1px, transparent 1px, transparent 3px); }
-    .scatter { position: absolute; text-decoration: underline; white-space: nowrap; font-size: 13px; letter-spacing: 2px; z-index: 10; }
-    .js .scatter { visibility: hidden; }
-    .js .scatter.placed { visibility: visible; }
-
-    .g8-header { width: 380px; max-width: 100%; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .g8-title { font-size: 14px; letter-spacing: 4px; text-transform: uppercase; color: rgba(200,200,200,.5); }
-    .g8-scores { display: flex; gap: 20px; }
-    .g8-sbox { text-align: center; }
-    .g8-sval { font-size: 20px; font-weight: 600; color: #39ff14; }
-    .g8-slabel { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: rgba(200,200,200,.3); }
-
-    #g8-board { width: 380px; max-width: 100%; position: relative; background: #0c0c0c; border: 1px solid #2a2a2a; padding: 12px;
-      outline: none; touch-action: none; }
-    #g8-board:focus-visible { border-color: #39ff14; }
-    #g8-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-    .g8-cell { aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; font-weight: 600; letter-spacing: -.5px;
-      transition: background .12s; background: #111111; color: transparent; font-size: clamp(20px, 5vw, 28px); }
-    .g8-cell.big { font-size: clamp(16px, 4vw, 22px); }
-    .g8-cell.huge { font-size: clamp(14px, 3.5vw, 18px); }
-    .v2    { background: #1a1a1a; color: #888; }
-    .v4    { background: #1f2a1a; color: #aaa; }
-    .v8    { background: #1a3a1a; color: #c8c8c8; }
-    .v16   { background: #1e4a1e; color: #d8d8d8; }
-    .v32   { background: #1e5a1e; color: #e0e0e0; }
-    .v64   { background: #1a6a1a; color: #f0f0f0; }
-    .v128  { background: #207a20; color: #fff; }
-    .v256  { background: #25891a; color: #fff; }
-    .v512  { background: #2a9414; color: #fff; }
-    .v1024 { background: #30a00e; color: #fff; }
-    .v2048, .vmax { background: #39ff14; color: #000; }
-
-    .g8-hint { margin-top: 12px; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: rgba(200,200,200,.18); text-align: center; }
-    #g8-overlay { position: absolute; inset: 0; background: rgba(5,5,5,.88); display: flex; flex-direction: column; align-items: center;
-      justify-content: center; gap: 14px; }
-    #g8-overlay[hidden], #g8-overlay [hidden] { display: none; }
-    #g8-msg { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-    .g8-big { font-size: 28px; font-weight: 600; letter-spacing: -1px; color: #fff; }
-    .g8-big.won { color: #39ff14; }
-    .g8-sub { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: rgba(200,200,200,.35); }
-    .g8-btn { padding: 10px 32px; border: 1px solid #39ff14; background: transparent; color: #39ff14; font-family: inherit; font-size: 11px;
-      letter-spacing: 3px; text-transform: uppercase; cursor: pointer; transition: all .2s; }
-    .g8-btn:hover { background: #39ff14; color: #000; }
-    .g8-reset { margin-top: 18px; background: none; border: 0; font-family: inherit; font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
-      color: rgba(200,200,200,.25); cursor: pointer; transition: color .2s; }
-    .g8-reset:hover { color: #39ff14; }
-  </style>
+  <link rel="stylesheet" href="site.css">
 </head>
-<body class="dark">
+<body>
   <a class="scatter" href="./">go back</a>
-
-  <div class="g8-header" data-avoid>
-    <div class="g8-title">2048</div>
-    <div class="g8-scores">
-      <div class="g8-sbox"><div class="g8-sval" id="g8-score">0</div><div class="g8-slabel">score</div></div>
-      <div class="g8-sbox"><div class="g8-sval" id="g8-best">0</div><div class="g8-slabel">best</div></div>
+  <main class="g8-page">
+    <div class="g8" data-avoid>
+      <div class="g8-head">
+        <h1>2048</h1>
+        <div class="g8-scores">
+          <div class="g8-sbox"><span>score</span><b id="g8-score">0</b></div>
+          <div class="g8-sbox"><span>best</span><b id="g8-best">0</b></div>
+        </div>
+      </div>
+      <div class="g8-board" id="g8-board" tabindex="0" aria-label="2048 board">
+        <div class="g8-grid" id="g8-grid"></div>
+        <div class="g8-overlay" id="g8-overlay" hidden>
+          <div id="g8-msg"></div>
+          <div class="g8-actions">
+            <button class="btn" id="g8-keep" type="button" hidden>Keep going</button>
+            <button class="btn" id="g8-new" type="button">New game</button>
+          </div>
+        </div>
+      </div>
+      <div class="g8-foot">
+        <span class="muted small">Arrows / WASD or swipe. Saved on this device.</span>
+        <button class="g8-reset" id="g8-reset" type="button">Start over</button>
+      </div>
     </div>
-  </div>
-
-  <div id="g8-board" tabindex="0" aria-label="2048 board" data-avoid>
-    <div id="g8-grid"></div>
-    <div id="g8-overlay" hidden>
-      <div id="g8-msg"></div>
-      <button class="g8-btn" id="g8-keep" type="button" hidden>keep going →</button>
-      <button class="g8-btn" id="g8-new" type="button">new game →</button>
-    </div>
-  </div>
-
-  <div class="g8-hint" data-avoid>arrows / wasd — move · swipe on mobile</div>
-  <button class="g8-reset" id="g8-reset" type="button" data-avoid>start over</button>
-
+  </main>
   <script src="games.js"></script>
   <script src="scatter.js"></script>
 </body>
