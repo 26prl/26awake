@@ -86,6 +86,18 @@ laboratory confirmation; "officially disputed" means trusted or state media repo
 Sentences about history ("Black Death") or worldwide yearly statistics are ignored. It is pattern matching,
 not reading comprehension, so treat the result as approximate and follow the links.
 
+## Home page, art and music
+
+`/` is the home page (`static/index.html`): an intro, a live card for every topic, two small games
+(Flea Flick and Pill Snake, `static/games.js`), an art gallery and a music player. The tracker itself is
+`/watch.html` (`/watch.html#2` opens topic 2).
+
+* **Art** — put images in `static/art/` (or anywhere under `static/`) and list them in `static/art.json`:
+  `{"items": [{"src": "art/drawing.png", "title": "Name", "by": "Artist"}]}`.
+* **Music** — put MP3/OGG files in `static/music/` and list them in `static/music.json`:
+  `{"tracks": [{"src": "music/track.mp3", "title": "Song", "artist": "Artist"}]}`. Keep files reasonably small
+  (Vercel's free plan serves them fine, but each visitor downloads what they play).
+
 ## GIF stickers
 
 The page has eight spots for GIFs: `header`, `sidebar`, `latest` (next to Latest updates), `trust` (next to
