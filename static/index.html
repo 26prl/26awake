@@ -3,45 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>~*~ 26awake ~*~ welcome to my homepage!!!</title>
-  <meta name="description" content="26awake by 26prl.">
+  <title>26awake</title>
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
   <link rel="stylesheet" href="site.css">
+  <meta name="description" content="26awake by 26prl.">
   <script>
     // Old links from the tracker page (./#games, ./#music) go to the pages that replaced those sections.
     const moved = { "#games": "game.html", "#music": "music.html" }[location.hash];
     if (moved) location.replace(moved);
   </script>
 </head>
-<body>
-<center>
-  <br>
-  <img class="logo" src="icons/logo-26awake.png" alt="26awake" width="459" height="144">
-  <br><br>
-  <marquee scrollamount="5" width="80%"><font color="red"><b>~*~ WELCOME TO 26AWAKE!!! ~*~</b></font> &nbsp; thanx 4 visiting my site :) &nbsp; <font color="blue"><b>~*~ sign my guestbook (coming soon) ~*~</b></font></marquee>
-  <hr width="80%">
-  <table border="1" cellpadding="8" cellspacing="4" bgcolor="#EEEEEE">
-    <tr>
-      <td align="center"><a href="music.html"><b>MUSIC</b></a><br><font size="1">what im listening 2</font></td>
-      <td align="center"><a href="game.html"><b>GAME</b></a><br><font size="1">play 2048!!</font></td>
-      <td align="center"><a href="watch.html"><b>PLAGUE</b></a><br><font size="1">news tracker</font></td>
-    </tr>
-  </table>
-  <hr width="80%">
-  <p><font color="red" face="Arial"><b>*** THIS SITE IS UNDER CONSTRUCTION ***</b></font></p>
-  <p><font size="2">you have been here <b><font color="green" id="visits">1</font></b> time(s) (on this computer)</font></p>
-  <p><font size="1" face="Arial">best viewed in 800x600 with Internet Explorer 6.0<br>(c) 26prl. all rights reserved. dont steal my stuff!!!</font></p>
-</center>
-<script>
-  // a "visitor counter", the honest kind: counts your own visits on this device
-  try {
-    const n = Number(localStorage.getItem("visits") || 0) + 1;
-    localStorage.setItem("visits", String(n));
-    document.getElementById("visits").textContent = n;
-  } catch (e) { /* private mode */ }
-</script>
+<body class="home">
+  <img class="logo" src="icons/logo-26awake.png" alt="26awake" width="459" height="144" data-avoid>
+  <a class="scatter" href="music.html">music</a>
+  <a class="scatter" href="game.html">game</a>
+  <a class="scatter" href="watch.html">plague</a>
+  <script src="scatter.js"></script>
 </body>
 </html>

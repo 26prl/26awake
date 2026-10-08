@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>my music ~ 26awake</title>
+  <title>Music · 26awake</title>
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -11,18 +11,13 @@
   <link rel="stylesheet" href="site.css">
 </head>
 <body>
-<center>
-  <a href="./"><img src="icons/logo-26awake.png" alt="26awake home" width="192" height="60" border="0"></a><br>
-  <span class="nav">[ <a href="./">Home</a> | <a href="music.html">Music</a> | <a href="game.html">Game</a> | <a href="watch.html">Plague</a> ]</span>
-</center>
-<hr>
-<h1>~ my music ~</h1>
-<p><font face="Arial" size="2">this is what im listening 2 right now!!! (updates by itself)</font></p>
-<div id="me"></div>
-<hr>
-<div id="music-list"></div>
-<hr>
-<p><font size="1" face="Arial">all music belongs to the artists. no copyright infringement intended!!</font></p>
+  <a class="scatter" href="./">go back</a>
+  <main class="page">
+    <h1 data-avoid>Music</h1>
+    <div id="me" data-avoid></div>
+    <div id="music-list" class="section" data-avoid></div>
+  </main>
   <script src="music.js"></script>
+  <script src="scatter.js"></script>
 </body>
 </html>
