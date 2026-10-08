@@ -94,6 +94,9 @@ not reading comprehension, so treat the result as approximate and follow the lin
 
 * **Art** — put images in `static/art/` (or anywhere under `static/`) and list them in `static/art.json`:
   `{"items": [{"src": "art/drawing.png", "title": "Name", "by": "Artist"}]}`.
+* **Spotify** — add share links (track, album, playlist, artist or podcast) to `static/music.json`:
+  `{"spotify": ["https://open.spotify.com/playlist/…"]}`. They show as Spotify's player; visitors logged in to
+  Spotify hear full songs, others 30-second previews.
 * **Music** — put MP3/OGG files in `static/music/` and list them in `static/music.json`:
   `{"tracks": [{"src": "music/track.mp3", "title": "Song", "artist": "Artist"}]}`. Keep files reasonably small
   (Vercel's free plan serves them fine, but each visitor downloads what they play).

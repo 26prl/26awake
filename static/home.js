@@ -131,34 +131,66 @@
 
   // ---- music ---------------------------------------------------------------------------
 
+  // Spotify share links (open.spotify.com/…/track|album|playlist|artist|show|episode/ID) → embeddable player URL.
+  const SPOTIFY_KINDS = ["track", "album", "playlist", "artist", "show", "episode"];
+  function spotifyEmbed(link) {
+    try {
+      const u = new URL(link);
+      if (u.hostname !== "open.spotify.com") return null;
+      const parts = u.pathname.split("/").filter((p) => p && !p.startsWith("intl-") && p !== "embed");
+      const [kind, id] = parts;
+      if (!SPOTIFY_KINDS.includes(kind) || !/^[A-Za-z0-9]{10,40}$/.test(id || "")) return null;
+      return { kind, src: `https://open.spotify.com/embed/${kind}/${id}?utm_source=generator` };
+    } catch {
+      return null;
+    }
+  }
+
   async function renderMusic() {
     const box = $("#music-list");
-    let tracks = [];
-    try { tracks = (await getJSON("music.json")).tracks || []; } catch { /* none */ }
-    if (!tracks.length) {
-      box.replaceChildren(
-        el("p", { className: "music-empty", textContent: "🎧 Tracks coming soon." }),
-        el("p", { className: "muted small", textContent: "Once music is added, you can play it right here." }));
-      return;
+    let data = {};
+    try { data = await getJSON("music.json"); } catch { /* none */ }
+    const tracks = data.tracks || [];
+    const embeds = (data.spotify || []).map(spotifyEmbed).filter(Boolean);
+    const parts = [];
+
+    for (const e of embeds) {
+      parts.push(el("iframe", {
+        className: "spotify", src: e.src, title: `Spotify ${e.kind}`, loading: "lazy",
+        allow: "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture",
+        height: e.kind === "track" || e.kind === "episode" ? 152 : 352,
+      }));
     }
-    const audio = el("audio", { controls: true, preload: "none", className: "music-player" });
-    let current = -1;
-    const rows = tracks.map((t, i) => {
-      const row = el("button", { className: "track", type: "button" },
-        el("span", { className: "track-n", textContent: String(i + 1).padStart(2, "0") }),
-        el("span", { className: "track-title", textContent: t.title }),
-        el("span", { className: "muted small", textContent: t.artist || "" }));
-      row.onclick = () => play(i);
-      return row;
-    });
-    const play = (i) => {
-      current = i;
-      audio.src = tracks[i].src;
-      audio.play().catch(() => {});
-      rows.forEach((r, j) => r.classList.toggle("playing", j === i));
-    };
-    audio.addEventListener("ended", () => { if (current + 1 < tracks.length) play(current + 1); });
-    box.replaceChildren(audio, el("div", { className: "tracks" }, ...rows));
+    if (embeds.length) {
+      parts.push(el("p", { className: "muted small", textContent: "Logged in to Spotify in this browser? You get full songs; otherwise 30-second previews." }));
+    }
+
+    if (tracks.length) {
+      const audio = el("audio", { controls: true, preload: "none", className: "music-player" });
+      let current = -1;
+      const rows = tracks.map((t, i) => {
+        const row = el("button", { className: "track", type: "button" },
+          el("span", { className: "track-n", textContent: String(i + 1).padStart(2, "0") }),
+          el("span", { className: "track-title", textContent: t.title }),
+          el("span", { className: "muted small", textContent: t.artist || "" }));
+        row.onclick = () => play(i);
+        return row;
+      });
+      const play = (i) => {
+        current = i;
+        audio.src = tracks[i].src;
+        audio.play().catch(() => {});
+        rows.forEach((r, j) => r.classList.toggle("playing", j === i));
+      };
+      audio.addEventListener("ended", () => { if (current + 1 < tracks.length) play(current + 1); });
+      parts.push(audio, el("div", { className: "tracks" }, ...rows));
+    }
+
+    if (!parts.length) {
+      parts.push(el("p", { className: "music-empty", textContent: "🎧 Tracks coming soon." }),
+        el("p", { className: "muted small", textContent: "Once music is added, you can play it right here." }));
+    }
+    box.replaceChildren(...parts);
   }
 
   renderTopics();

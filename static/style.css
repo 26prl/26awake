@@ -458,6 +458,7 @@ a.topic-card:hover { transform: translateY(-2px); border-color: var(--accent); b
   width: 32px; height: 32px; cursor: pointer; font-size: 1rem; }
 
 .music { margin: 0; }
+.spotify { width: 100%; border: 0; border-radius: 12px; display: block; margin-bottom: .7rem; background: var(--bg); }
 .music-empty { font-size: 1.1rem; font-weight: 600; margin: 0 0 .2rem; }
 .music-player { width: 100%; margin-bottom: .6rem; }
 .tracks { display: flex; flex-direction: column; }
