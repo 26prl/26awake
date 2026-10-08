@@ -113,3 +113,29 @@ body.gifs { background: #000; }
 .contacts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .btc img { display: block; width: 220px; height: 220px; image-rendering: pixelated; border: 1px solid #eee; }
 .btc code { font-size: .8rem; background: #f2f2f2; padding: 3px 6px; word-break: break-all; }
+
+/* ---- game2: minesweeper ---- */
+.ms { width: min(900px, 100%); }
+.ms-diff { display: flex; gap: 6px; margin: 0 0 12px; }
+.ms-diff button { font: inherit; font-size: .85rem; padding: 4px 12px; border: 1px solid #ccc; background: #fff; color: #555; cursor: pointer; }
+.ms-diff button[aria-pressed="true"] { background: #111; color: #fff; border-color: #111; }
+.ms-wrap { display: flex; justify-content: center; }
+.ms-grid { display: grid; gap: 1px; background: #c8c8c8; border: 1px solid #c8c8c8; user-select: none; -webkit-user-select: none;
+  touch-action: manipulation; -webkit-touch-callout: none; }
+.ms-grid.busy { opacity: .6; }
+.ms-cell { width: var(--cell); height: var(--cell); display: grid; place-items: center; background: #e4e4e4; cursor: pointer;
+  font-weight: 700; font-size: calc(var(--cell) * .55); line-height: 1; box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #bdbdbd; }
+.ms-cell:hover { background: #ececec; }
+.ms-cell.open { background: #fafafa; box-shadow: none; cursor: default; }
+.ms-grid.ended .ms-cell { cursor: default; }
+.ms-cell.flag { color: #c0392b; }
+.ms-cell.flag.wrong { background: #f3d6d6; }
+.ms-cell.mine { background: #e8e8e8; color: #111; }
+.ms-cell.boom { background: #e74c3c; color: #111; }
+.ms-cell.n1 { color: #1f5fbf; } .ms-cell.n2 { color: #2e7d32; } .ms-cell.n3 { color: #c62828; } .ms-cell.n4 { color: #283593; }
+.ms-cell.n5 { color: #8d2c1d; } .ms-cell.n6 { color: #00838f; } .ms-cell.n7 { color: #111; } .ms-cell.n8 { color: #777; }
+.ms-result { min-height: 1.5em; margin: 10px 0 0; text-align: center; font-weight: 600; }
+#ms-flagmode[aria-pressed="true"] { color: #c0392b; }
+.ms .g8-head { flex-wrap: wrap; gap: 10px; }
+.ms .g8-head h1 { font-size: clamp(1.9rem, 9vw, 3rem); }
+.ms { min-width: 0; max-width: 100%; }

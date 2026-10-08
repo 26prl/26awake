@@ -1,5 +1,5 @@
 "use strict";
-// Vercel serverless function: the 2048 ranking at /api/scores, stored in a free Upstash Redis database
+// Vercel serverless function: the game rankings (game1 = 2048, game2 = minesweeper) at /api/scores, stored in a free Upstash Redis database
 // (Vercel → Storage → Upstash for Redis; it adds KV_REST_API_URL / KV_REST_API_TOKEN by itself).
 //
 // Players have no names: each device gets the next player number plus a secret key on first play.
@@ -12,9 +12,15 @@
 //   POST /api/scores {action:"name", id, key, name} → set the player's nickname (once, final, unique)
 //   POST /api/scores {action:"start", id, key}    → {game, seed}
 //   POST /api/scores {action:"submit", id, key, game, moves}  → {score, tile, best, rank, players, newBest}
+//
+// Minesweeper (fastest win per difficulty; the server times the game itself, from the first click to the end):
+//   GET  /api/scores?game=mines&diff=easy&id=N    top 20 fastest + player N's rank and stats for that difficulty
+//   POST /api/scores {action:"mstart", id, key, diff}          → {game, seed}   (sent on the first click)
+//   POST /api/scores {action:"msubmit", id, key, game, opens}  → {won, time, best, rank, players, newBest, ...}
 
 const crypto = require("crypto");
 const core = require("../g2048-core.js");
+const mines = require("../mines-core.js");
 
 const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -77,11 +83,38 @@ async function top(n = 20) {
   return rows;
 }
 
+async function mStanding(id, diff) {
+  const lb = `lbm:${diff}`;
+  const [rank, best, stats, players] = await redis(
+    ["ZRANK", lb, String(id)], ["ZSCORE", lb, String(id)], ["HMGET", `p:${id}`, `m:${diff}:wins`, `m:${diff}:games`, "name"], ["ZCARD", lb]);
+  return {
+    id, diff, name: stats[2] || null, rank: rank === null ? null : rank + 1, best: best === null ? null : toInt(best),
+    players: toInt(players), wins: toInt(stats[0]), games: toInt(stats[1]),
+  };
+}
+
+async function mTop(diff, n = 20) {
+  const [flat] = await redis(["ZRANGE", `lbm:${diff}`, "0", String(n - 1), "WITHSCORES"]);
+  const rows = [];
+  for (let i = 0; i < flat.length; i += 2) rows.push({ rank: rows.length + 1, id: toInt(flat[i]), time: toInt(flat[i + 1]) });
+  if (!rows.length) return rows;
+  const stats = await redis(...rows.map((r) => ["HMGET", `p:${r.id}`, `m:${diff}:wins`, "name"]));
+  rows.forEach((r, i) => { r.wins = toInt(stats[i][0]); r.name = stats[i][1] || null; });
+  return rows;
+}
+
 module.exports = async (req, res) => {
   if (!URL_ || !TOKEN) return send(res, 200, { configured: false });
   try {
     if (req.method === "GET") {
-      const id = toInt(new URL(req.url, "http://x").searchParams.get("id"));
+      const q = new URL(req.url, "http://x").searchParams;
+      const id = toInt(q.get("id"));
+      if (q.get("game") === "mines") {
+        const diff = q.get("diff");
+        if (!mines.DIFFS[diff]) return send(res, 400, { error: "diff: easy, medium or hard" });
+        const [rows, me] = await Promise.all([mTop(diff), id > 0 ? mStanding(id, diff) : null]);
+        return send(res, 200, { configured: true, top: rows, me });
+      }
       const [rows, me] = await Promise.all([top(20), id > 0 ? standing(id) : null]);
       return send(res, 200, { configured: true, top: rows, me });
     }
@@ -117,6 +150,33 @@ module.exports = async (req, res) => {
       const seed = crypto.randomBytes(4).readUInt32LE(0);
       await redis(["SET", `g:${game}`, `${id}:${seed}`, "EX", String(GAME_TTL)]);
       return send(res, 200, { game, seed });
+    }
+
+    if (b.action === "mstart") {
+      if (!mines.DIFFS[b.diff]) return send(res, 400, { error: "diff: easy, medium or hard" });
+      const game = crypto.randomBytes(9).toString("base64url");
+      const seed = crypto.randomBytes(4).readUInt32LE(0);
+      await redis(["SET", `g:${game}`, `m:${id}:${seed}:${b.diff}:${Date.now()}`, "EX", String(60 * 60 * 24)]);
+      return send(res, 200, { game, seed });
+    }
+
+    if (b.action === "msubmit") {
+      const opens = String(b.opens || "").split(",").filter(Boolean).map(Number);
+      if (typeof b.game !== "string" || opens.length > 2000) return send(res, 400, { error: "bad game" });
+      const [stored] = await redis(["GETDEL", `g:${b.game}`]); // each game counts once
+      if (!stored || !stored.startsWith("m:")) return send(res, 409, { error: "game already counted or expired" });
+      const [, owner, seed, diff, started] = stored.split(":");
+      if (Number(owner) !== id) return send(res, 403, { error: "not your game" });
+      const result = mines.replay(diff, Number(seed), opens);
+      if (!result.valid || (!result.won && !result.lost)) return send(res, 400, { error: "moves don't add up" });
+      const time = Date.now() - Number(started); // measured here, not by the page
+      const before = await mStanding(id, diff);
+      await redis(
+        ["HINCRBY", `p:${id}`, `m:${diff}:games`, "1"],
+        ...(result.won ? [["HINCRBY", `p:${id}`, `m:${diff}:wins`, "1"], ["ZADD", `lbm:${diff}`, "LT", String(time), String(id)]] : []));
+      const after = await mStanding(id, diff);
+      return send(res, 200, { won: result.won, time: result.won ? time : null,
+        newBest: result.won && (before.best === null || time < before.best), ...after });
     }
 
     if (b.action === "submit") {
