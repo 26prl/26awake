@@ -8,6 +8,7 @@ import re
 import sqlite3
 import threading
 import urllib.parse
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 
 from .sources import domain_of
@@ -74,8 +75,12 @@ MIGRATIONS = {
     "articles": [
         ("domain", "TEXT NOT NULL DEFAULT ''"),
         ("trust", "TEXT NOT NULL DEFAULT 'unknown'"),
+        ("is_repeat", "INTEGER NOT NULL DEFAULT 0"),
     ],
 }
+
+REPEAT_WINDOW = timedelta(days=3)  # a later, similar headline from the same outlet within this window is a repeat
+COMMON_WORD_SHARE = 0.12  # words in more than this share of a topic's headlines don't count as similarity
 
 _TRACKING_PARAMS = re.compile(r"^(utm_|fbclid|gclid|yclid|ref$|rss$|from$)", re.I)
 _NON_WORD = re.compile(r"[\W_]+", re.U)
@@ -122,6 +127,7 @@ class Store:
         finally:
             c.close()
         self.reclassify()
+        self.mark_repeats()
 
     def reclassify(self) -> int:
         """Re-rate every stored article, so edits to trust.json apply to history too."""
@@ -134,6 +140,49 @@ class Store:
                 tier = self.trust.tier(domain)
                 if tier != r["trust"] or domain != r["domain"]:
                     c.execute("UPDATE articles SET trust = ?, domain = ? WHERE id = ?", (tier, domain, r["id"]))
+                    changed += 1
+            return changed
+
+        return self._write(op)
+
+    def mark_repeats(self, topic_id: int | None = None) -> int:
+        """Flag articles where an outlet repeats a story it already published: a similar headline from the same
+        domain within REPEAT_WINDOW. Words that appear in many of the topic's headlines ("plague", "Russia")
+        are ignored, so only distinctive words count. Repeats stay listed but don't count as trusted coverage."""
+        from .insights import _tokens  # local import to keep module loading simple
+
+        def op(c):
+            where, args = ("WHERE topic_id = ?", (topic_id,)) if topic_id is not None else ("", ())
+            rows = c.execute(
+                f"SELECT id, topic_id, domain, title, published_at, is_repeat FROM articles {where} "
+                "ORDER BY published_at, id",
+                args,
+            ).fetchall()
+            tokens = [_tokens(r["title"]) for r in rows]
+            per_topic: dict[int, Counter] = {}
+            sizes: Counter = Counter()
+            for r, toks in zip(rows, tokens):
+                per_topic.setdefault(r["topic_id"], Counter()).update(toks)
+                sizes[r["topic_id"]] += 1
+            # Too few headlines to tell common words apart: compare all words.
+            common = {
+                tid: {t for t, n in df.items() if n > COMMON_WORD_SHARE * sizes[tid]} if sizes[tid] >= 30 else set()
+                for tid, df in per_topic.items()
+            }
+
+            seen: dict[tuple, list] = {}
+            changed = 0
+            for r, toks in zip(rows, tokens):
+                when = datetime.fromisoformat(r["published_at"])
+                words = toks - common[r["topic_id"]]
+                earlier = seen.setdefault((r["topic_id"], r["domain"]), [])
+                repeat = int(any(
+                    when - t <= REPEAT_WINDOW and len(words & w) >= 2 and len(words & w) / min(len(words), len(w)) >= 0.6
+                    for t, w in earlier
+                ))
+                earlier.append((when, words))
+                if repeat != r["is_repeat"]:
+                    c.execute("UPDATE articles SET is_repeat = ? WHERE id = ?", (repeat, r["id"]))
                     changed += 1
             return changed
 
@@ -251,7 +300,10 @@ class Store:
                 added += cur.rowcount
             return added
 
-        return self._write(op)
+        added = self._write(op)
+        if added:
+            self.mark_repeats(topic_id)
+        return added
 
     def articles(
         self,
@@ -265,7 +317,7 @@ class Store:
     ) -> tuple[list[dict], int]:
         where, args = ["topic_id = ?"], [topic_id]
         if tiers:
-            where.append(f"trust IN ({','.join('?' * len(tiers))})")
+            where.append(f"trust IN ({','.join('?' * len(tiers))}) AND is_repeat = 0")
             args += list(tiers)
         if q:
             where.append("(ulower(title) LIKE ? OR ulower(summary) LIKE ? OR ulower(source) LIKE ?)")
@@ -279,7 +331,7 @@ class Store:
         clause = " AND ".join(where)
         total = self._read(f"SELECT COUNT(*) FROM articles WHERE {clause}", tuple(args))[0][0]
         rows = self._read(
-            f"""SELECT id, url, title, summary, source, lang, origin, domain, trust, published_at, fetched_at
+            f"""SELECT id, url, title, summary, source, lang, origin, domain, trust, is_repeat, published_at, fetched_at
                 FROM articles WHERE {clause} ORDER BY published_at DESC, id DESC LIMIT ? OFFSET ?""",
             tuple(args + [limit, offset]),
         )
@@ -289,8 +341,9 @@ class Store:
         """Articles per day, total and split by trust tier."""
         start = (datetime.now(timezone.utc) - timedelta(days=days - 1)).date()
         rows = self._read(
-            """SELECT substr(published_at, 1, 10) AS day, trust, COUNT(*) AS n FROM articles
-               WHERE topic_id = ? AND published_at >= ? GROUP BY day, trust""",
+            """SELECT substr(published_at, 1, 10) AS day, CASE WHEN is_repeat THEN 'repeat' ELSE trust END AS trust,
+                      COUNT(*) AS n FROM articles
+               WHERE topic_id = ? AND published_at >= ? GROUP BY day, 2""",
             (topic_id, start.isoformat()),
         )
         by_day: dict[str, dict] = {}
@@ -307,7 +360,7 @@ class Store:
         """Articles found in the latest update (since its start) first, newest published first;
         then the most recently found older ones."""
         rows = self._read(
-            """SELECT id, url, title, summary, source, lang, origin, domain, trust, published_at, fetched_at
+            """SELECT id, url, title, summary, source, lang, origin, domain, trust, is_repeat, published_at, fetched_at
                FROM articles WHERE topic_id = ?
                ORDER BY fetched_at >= ? DESC, CASE WHEN fetched_at >= ? THEN published_at END DESC,
                         fetched_at DESC, published_at DESC
@@ -319,7 +372,7 @@ class Store:
     def recent(self, topic_id: int, days: int = 14, limit: int = 1000) -> list[dict]:
         since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
         rows = self._read(
-            """SELECT id, url, title, summary, source, lang, origin, domain, trust, published_at, fetched_at
+            """SELECT id, url, title, summary, source, lang, origin, domain, trust, is_repeat, published_at, fetched_at
                FROM articles WHERE topic_id = ? AND published_at >= ? ORDER BY published_at DESC LIMIT ?""",
             (topic_id, since, limit),
         )
@@ -334,7 +387,11 @@ class Store:
         return [{"source": r["source"], "trust": r["trust"], "count": r["n"]} for r in rows]
 
     def tier_counts(self, topic_id: int) -> dict[str, int]:
-        rows = self._read("SELECT trust, COUNT(*) AS n FROM articles WHERE topic_id = ? GROUP BY trust", (topic_id,))
+        rows = self._read(
+            """SELECT CASE WHEN is_repeat THEN 'repeat' ELSE trust END AS trust, COUNT(*) AS n
+               FROM articles WHERE topic_id = ? GROUP BY 1""",
+            (topic_id,),
+        )
         return {r["trust"]: r["n"] for r in rows}
 
     def languages(self, topic_id: int) -> list[dict]:
@@ -351,8 +408,9 @@ class Store:
             f"""SELECT COUNT(*) AS total,
                       SUM(published_at >= ?) AS last24h,
                       SUM(published_at >= ? AND published_at < ?) AS prev7d,
-                      SUM(trust IN ({','.join('?' * len(TRUSTED))})) AS trusted,
-                      SUM(published_at >= ? AND trust IN ({','.join('?' * len(TRUSTED))})) AS trusted24h,
+                      SUM(is_repeat) AS repeats,
+                      SUM(is_repeat = 0 AND trust IN ({','.join('?' * len(TRUSTED))})) AS trusted,
+                      SUM(published_at >= ? AND is_repeat = 0 AND trust IN ({','.join('?' * len(TRUSTED))})) AS trusted24h,
                       MAX(published_at) AS latest,
                       MAX(CASE WHEN trust = 'official' THEN published_at END) AS latest_official
                FROM articles WHERE topic_id = ?""",
@@ -369,6 +427,7 @@ class Store:
             "latest": r["latest"],
             "latest_official": r["latest_official"],
             "trusted": r["trusted"] or 0,
+            "repeats": r["repeats"] or 0,
             "trusted24h": r["trusted24h"] or 0,
             "spike": spike,
         }

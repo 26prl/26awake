@@ -3,7 +3,10 @@
 const $ = (sel) => document.querySelector(sel);
 const POLL_MS = 60_000;
 const PAGE = 50;
-const TIER_ORDER = ["official", "expert", "reputable", "state", "unknown", "low"];
+const TIER_ORDER = ["official", "expert", "reputable", "state", "unknown", "low", "repeat"];
+// Not a trust tier: an outlet repeating a story it already published. Listed, but never counted twice.
+const REPEAT_INFO = { tier: "repeat", label: "Repeat",
+  description: "The same outlet already published this story. Shown for reference, not counted as extra trusted coverage." };
 const TRUSTED = ["official", "expert", "reputable"];
 const LEVEL_LABEL = {
   confirmed: "Confirmed", corroborated: "Corroborated", single_source: "Single trusted source", unverified: "Unverified",
@@ -126,7 +129,7 @@ const staticSource = (() => {
       if (f.lang) items = items.filter((a) => a.lang === f.lang);
       if (f.trust) {
         const tiers = f.trust === "trusted" ? TRUSTED : f.trust.split(",");
-        items = items.filter((a) => tiers.includes(a.trust));
+        items = items.filter((a) => tiers.includes(a.trust) && !a.is_repeat);
       }
       return { total: items.length, items: items.slice(f.offset, f.offset + f.limit) };
     },
@@ -252,8 +255,9 @@ function renderHeader() {
   $("#t-desc").textContent = t.description || "";
   $("#s-24h").textContent = s.last24h;
   $("#s-24h-sub").textContent = `${s.trusted24h} trusted · avg ${s.daily_avg_prev7d}/day before`;
-  $("#s-trusted").textContent = s.total ? `${Math.round((100 * s.trusted) / s.total)}%` : "–";
-  $("#s-trusted-sub").textContent = `${s.trusted} of ${s.total} articles`;
+  const unique = s.total - (s.repeats || 0); // same-outlet repeats don't count as extra coverage
+  $("#s-trusted").textContent = unique ? `${Math.round((100 * s.trusted) / unique)}%` : "–";
+  $("#s-trusted-sub").textContent = `${s.trusted} of ${unique} articles` + (s.repeats ? ` · ${s.repeats} repeats not counted` : "");
   $("#s-official").textContent = s.latest_official ? ago(s.latest_official) : "none yet";
   $("#s-run").textContent = t.collecting ? "collecting…" : `last check ${ago(t.last_run_at)}`;
   $("#btn-refresh").disabled = t.collecting;
@@ -592,7 +596,8 @@ function articleItem(a) {
   link.append(highlight(a.title, keywords));
   const meta = el("div", { className: "meta" },
     isNew ? el("span", { className: "new", textContent: "NEW" }) : null,
-    tierBadge(a.trust || "unknown"),
+    a.is_repeat ? Object.assign(tierBadge("repeat"), { title: `${state.trust[a.trust]?.label || a.trust} outlet — it already published this story, so it isn't counted again` })
+      : tierBadge(a.trust || "unknown"),
     el("span", { textContent: a.source }),
     el("span", { textContent: fmtDate(a.published_at), title: `found ${fmtDate(a.fetched_at)}` }),
     a.lang ? el("span", { textContent: a.lang }) : null,
@@ -632,8 +637,8 @@ async function loadRuns() {
 
 async function loadTrust() {
   const legend = await ds.trust();
-  state.trust = Object.fromEntries(legend.map((t) => [t.tier, t]));
-  $("#trust-legend").replaceChildren(...legend.map((t) => el("li", {}, tierBadge(t.tier), el("p", { textContent: t.description }))));
+  state.trust = Object.fromEntries([...legend, REPEAT_INFO].map((t) => [t.tier, t]));
+  $("#trust-legend").replaceChildren(...[...legend, REPEAT_INFO].map((t) => el("li", {}, tierBadge(t.tier), el("p", { textContent: t.description }))));
   const sel = $("#trust-filter");
   sel.append(...legend.map((t) => el("option", { value: t.tier, textContent: `${t.label} only` })));
 }

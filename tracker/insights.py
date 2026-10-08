@@ -123,7 +123,7 @@ def facets(topic: dict, articles: list[dict], region_counts: dict | None = None)
         hits = [a for a in articles if any(k in f"{a['title']} {a.get('summary', '')}".lower() for k in kws)]
         if not hits:
             continue
-        trusted = [a for a in hits if a["trust"] in TRUSTED]
+        trusted = [a for a in hits if a["trust"] in TRUSTED and not a.get("is_repeat")]
         best = max(hits, key=lambda a: (SCORES.get(a["trust"], 0), a["published_at"]))
         out.append(
             {

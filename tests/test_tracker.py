@@ -484,3 +484,48 @@ class CountTests(unittest.TestCase):
         self.assertEqual(t["facets"]["Old"]["lat"], None)
         with self.assertRaises(ValidationError):
             normalize_topic({"name": "x", "queries": ["a"], "facets": {"Bad": {"keywords": ["k"], "lat": 99, "lon": 1}}})
+
+
+class RepeatTests(unittest.TestCase):
+    def test_same_outlet_repeats_are_not_counted_twice(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Store(str(Path(tmp) / "t.db"))
+            topic = store.create_topic(normalize_topic(SEED))
+
+            def art(i, title, domain, day):
+                return {"url": f"https://{domain}/{i}", "title": title, "domain": domain, "source": domain,
+                        "published_at": f"2026-10-0{day}T10:00:00+00:00"}
+
+            store.add_articles(topic["id"], [
+                art(1, "Russian lab worker dies of suspected plague", "reuters.com", 1),
+                art(2, "Russian lab worker dies of suspected plague in Siberia, officials say", "reuters.com", 2),
+                art(3, "Suspected plague kills Russian lab worker", "apnews.com", 2),
+                art(4, "Russian lab worker dies of suspected plague: five days on", "reuters.com", 6),
+            ])
+            items, _ = store.articles(topic["id"], limit=10)
+            repeat = {(a["domain"], a["published_at"][:10]): a["is_repeat"] for a in items}
+            self.assertEqual(repeat[("reuters.com", "2026-10-01")], 0)  # first report
+            self.assertEqual(repeat[("reuters.com", "2026-10-02")], 1)  # same outlet, same story, next day
+            self.assertEqual(repeat[("apnews.com", "2026-10-02")], 0)   # another outlet: real corroboration
+            self.assertEqual(repeat[("reuters.com", "2026-10-06")], 0)  # outside the 3-day window
+
+            stats = store.stats(topic["id"])
+            self.assertEqual((stats["trusted"], stats["repeats"]), (3, 1))
+            self.assertEqual(store.articles(topic["id"], tiers=["reputable"])[1], 3)
+            self.assertEqual(store.tier_counts(topic["id"]), {"reputable": 3, "repeat": 1})
+
+    def test_topic_words_alone_do_not_make_a_repeat(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Store(str(Path(tmp) / "t.db"))
+            topic = store.create_topic(normalize_topic(SEED))
+            filler = [{"url": f"https://site{i}.example/{i}", "title": f"Случаи чумы в России: новость номер {i}",
+                       "domain": f"site{i}.example", "published_at": "2026-10-03T08:00:00+00:00"} for i in range(40)]
+            bbc = [
+                {"url": "https://bbc.com/1", "title": "Возможна ли в России эпидемия чумы?", "domain": "bbc.com",
+                 "published_at": "2026-10-04T10:00:00+00:00"},
+                {"url": "https://bbc.com/2", "title": "США и Европа обеспокоены сообщениями о возможном случае смерти от чумы в России",
+                 "domain": "bbc.com", "published_at": "2026-10-05T10:00:00+00:00"},
+            ]
+            store.add_articles(topic["id"], filler + bbc)
+            items, _ = store.articles(topic["id"], q="", limit=100)
+            self.assertEqual([a["is_repeat"] for a in items if a["domain"] == "bbc.com"], [0, 0])

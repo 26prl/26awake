@@ -173,12 +173,14 @@ body.static #btn-new, body.static #btn-refresh, body.static #btn-edit, body.stat
 .tier-state { color: var(--t-state); background: var(--t-state-bg); }
 .tier-unknown { color: var(--t-unknown); background: var(--t-unknown-bg); }
 .tier-low { color: var(--t-low); background: var(--t-low-bg); }
+.tier-repeat { color: var(--muted); background: transparent; border: 1px dashed var(--border); }
 .seg-official { fill: var(--c-official); background: var(--c-official); }
 .seg-expert { fill: var(--c-expert); background: var(--c-expert); }
 .seg-reputable { fill: var(--c-reputable); background: var(--c-reputable); }
 .seg-state { fill: var(--c-state); background: var(--c-state); }
 .seg-unknown { fill: var(--c-unknown); background: var(--c-unknown); }
 .seg-low { fill: var(--c-low); background: var(--c-low); }
+.seg-repeat { fill: var(--border); background: var(--border); }
 .swatch { display: inline-block; width: .7rem; height: .7rem; border-radius: 3px; margin-right: .3rem; vertical-align: -1px; }
 #chart-legend { margin-top: .6rem; }
 
