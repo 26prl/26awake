@@ -57,7 +57,7 @@ h3 { font-size: 1rem; margin: 0 0 .6rem; }
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: .7rem 1.2rem; background: var(--panel); border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; z-index: 5;
+  position: sticky; top: 0; z-index: 1100;
 }
 .brand { font-weight: 700; display: flex; align-items: center; gap: .5rem; }
 .brand small { font-weight: 400; color: var(--muted); }
@@ -288,7 +288,7 @@ a.cite { font-size: .7rem; font-weight: 600; text-decoration: none; padding: 0 .
 .danger-text { color: var(--accent); }
 
 /* map */
-.map { height: 380px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); background: var(--bg); }
+.map { position: relative; z-index: 0; isolation: isolate; height: 380px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); background: var(--bg); }
 .map-fallback { padding: 1rem; }
 @media (prefers-color-scheme: dark) {
   .map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); }
