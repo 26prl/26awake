@@ -1,7 +1,9 @@
 "use strict";
-// Home page: topic cards with live numbers, art gallery (art.json) and music player (music.json).
+// Home page: clock, rooms that fade in, art (art.json), what I'm listening to (api/spotify), music (music.json)
+// and topic cards with live numbers.
 
 (() => {
+  document.documentElement.classList.add("js");
   const $ = (sel) => document.querySelector(sel);
   const el = (tag, props = {}, ...kids) => {
     const n = document.createElement(tag);
@@ -87,7 +89,7 @@
         c ? stat("deaths", `${c.deaths.value || 0}`, qual(c.deaths), c.deaths.value ? "bad" : "") : null),
       el("div", { className: "topic-card-foot" },
         el("span", { className: "muted small", textContent: `Updated ${ago(t.updated || t.last_run_at)}` }),
-        el("span", { className: "open", textContent: "Open tracker →" })));
+        el("span", { className: "open", textContent: "look →" })));
   }
 
   async function renderTopics() {
@@ -96,8 +98,8 @@
       const topics = await loadTopics();
       box.replaceChildren(...topics.filter((t) => t.enabled !== false).map(topicCard),
         el("div", { className: "card topic-card more" },
-          el("h3", { textContent: "More topics soon" }),
-          el("p", { className: "muted", textContent: "New trackers appear here automatically when they're added." })));
+          el("h3", { textContent: "more windows later" }),
+          el("p", { textContent: "new trackers show up here on their own." })));
     } catch (e) {
       box.replaceChildren(el("p", { className: "muted", textContent: `Couldn't load topics right now (${e.message}).` }));
     }
@@ -110,7 +112,8 @@
     let items = [];
     try { items = (await getJSON("art.json")).items || []; } catch { /* none */ }
     if (!items.length) {
-      grid.replaceChildren(el("p", { className: "muted", textContent: "No art yet." }));
+      grid.replaceChildren(el("div", { className: "empty-wall" }, el("span"), el("span"), el("span"),
+        el("p", { textContent: "the walls are bare for now." })));
       return;
     }
     const dlg = $("#art-view");
@@ -162,7 +165,7 @@
       }));
     }
     if (embeds.length) {
-      parts.push(el("p", { className: "muted small", textContent: "Logged in to Spotify in this browser? You get full songs; otherwise 30-second previews." }));
+      parts.push(el("p", { className: "small", textContent: "logged in to spotify in this browser? full songs. otherwise 30-second previews." }));
     }
 
     if (tracks.length) {
@@ -186,14 +189,117 @@
       parts.push(audio, el("div", { className: "tracks" }, ...rows));
     }
 
-    if (!parts.length) {
-      parts.push(el("p", { className: "music-empty", textContent: "🎧 Tracks coming soon." }),
-        el("p", { className: "muted small", textContent: "Once music is added, you can play it right here." }));
-    }
+    if (!parts.length && $("#me").hidden) parts.push(el("p", { className: "quiet", textContent: "silence, for now." }));
     box.replaceChildren(...parts);
   }
 
+  // ---- what I'm listening to (Vercel function api/spotify, see README) ------------------
+
+  const mmss = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, "0")}`;
+  const sinceText = (iso) => (iso ? ago(iso).replace("min", "m") : "");
+
+  function trackRow(t, right) {
+    return el("li", {}, el("a", { href: t.url || "#", target: "_blank", rel: "noopener" },
+      el("img", { src: t.image || "", alt: "", loading: "lazy" }),
+      el("span", {}, el("span", { className: "t", textContent: t.title }), el("span", { className: "a", textContent: t.artists.join(", ") })),
+      el("span", { className: "w", textContent: right || "" })));
+  }
+
+  let nowTimer = null;
+  function renderNow(data) {
+    const now = data.now;
+    const last = data.recent?.[0];
+    const t = now?.track || last;
+    if (!t) return null;
+    const playing = !!now?.playing;
+    const fill = el("i");
+    const elapsed = el("span"), total = el("span", { textContent: t.duration_ms ? mmss(t.duration_ms) : "" });
+    const card = el("a", { className: `glass now${playing ? " playing" : ""}`, href: t.url || "#", target: "_blank", rel: "noopener" },
+      el("div", { className: "now-bg", style: `background-image:url("${t.image || ""}")` }),
+      el("img", { className: "now-art", src: t.image || "", alt: "" }),
+      el("div", {},
+        el("p", { className: "now-state" }, el("span", { className: "pulse" }),
+          playing ? "listening right now" : now?.track ? "paused" : `last played ${sinceText(last?.played_at)}`),
+        el("p", { className: "now-title", textContent: t.title }),
+        el("p", { className: "now-sub", textContent: [t.artists.join(", "), t.album].filter(Boolean).join(" — ") }),
+        now?.track && t.duration_ms ? el("div", {}, el("div", { className: "now-bar" }, fill), el("div", { className: "now-time" }, elapsed, total)) : null));
+    clearInterval(nowTimer);
+    if (now?.track && t.duration_ms) {
+      const t0 = Date.now(), p0 = now.progress_ms || 0;
+      const tick = () => {
+        const p = Math.min(t.duration_ms, p0 + (playing ? Date.now() - t0 : 0));
+        fill.style.width = `${(100 * p) / t.duration_ms}%`;
+        elapsed.textContent = mmss(p);
+      };
+      tick();
+      if (playing) nowTimer = setInterval(tick, 1000);
+    }
+    return card;
+  }
+
+  async function renderMe() {
+    const box = $("#me");
+    let data;
+    try {
+      const r = await fetch("api/spotify", { cache: "no-store" });
+      if (!(r.headers.get("content-type") || "").includes("json")) return; // no function here (local server)
+      data = await r.json();
+    } catch { return; }
+    if (!data.configured) return;
+
+    const parts = [renderNow(data)];
+    const cols = [];
+    if (data.top_artists?.length) {
+      cols.push(el("div", { className: "glass me-box" }, el("h3", { textContent: "on repeat this month" }),
+        el("div", { className: "artists" }, ...data.top_artists.map((a) =>
+          el("a", { href: a.url || "#", target: "_blank", rel: "noopener" }, el("img", { src: a.image || "", alt: "", loading: "lazy" }),
+            el("span", { textContent: a.name }))))));
+    }
+    if (data.top_tracks?.length) {
+      cols.push(el("div", { className: "glass me-box" }, el("h3", { textContent: "most played lately" }),
+        el("ol", { className: "me-list" }, ...data.top_tracks.map((t, i) => trackRow(t, String(i + 1).padStart(2, "0"))))));
+    }
+    const recent = (data.recent || []).slice(data.now?.track ? 0 : 1);
+    if (recent.length) {
+      cols.push(el("div", { className: "glass me-box" }, el("h3", { textContent: "recently" }),
+        el("ul", { className: "me-list" }, ...recent.slice(0, 5).map((t) => trackRow(t, sinceText(t.played_at))))));
+    }
+    if (cols.length) parts.push(el("div", { className: "me-cols" }, ...cols));
+    if (data.profile?.url) {
+      parts.push(el("p", { className: "me-foot" }, el("a", { href: data.profile.url, target: "_blank", rel: "noopener",
+        textContent: `${data.profile.name || "me"} on spotify ↗` })));
+    }
+    const kept = parts.filter(Boolean);
+    if (!kept.length) return;
+    box.replaceChildren(...kept);
+    box.hidden = false;
+    $("#music-list .quiet")?.remove();
+  }
+
+  // ---- atmosphere ----------------------------------------------------------------------
+
+  function clock() {
+    const d = new Date();
+    $("#clock").textContent = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const h = d.getHours();
+    $("#still").textContent = h < 5 ? "you're still awake." : h < 11 ? "you're up early." : h < 18 ? "the afternoon hum." : h < 22 ? "the light is going." : "you're still awake.";
+  }
+
+  function reveal() {
+    const rooms = document.querySelectorAll(".room");
+    if (!("IntersectionObserver" in window)) return rooms.forEach((r) => r.classList.add("seen"));
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { e.target.classList.add("seen"); io.unobserve(e.target); }
+    }, { threshold: 0.08 });
+    rooms.forEach((r) => io.observe(r));
+  }
+
+  clock();
+  setInterval(clock, 15_000);
+  reveal();
   renderTopics();
   renderArt();
   renderMusic();
+  renderMe();
+  setInterval(() => { if (!document.hidden) renderMe(); }, 60_000);
 })();

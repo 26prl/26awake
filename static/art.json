@@ -1,30 +1,3 @@
 {
-  "items": [
-    {
-      "src": "icons/logo-26awake.png",
-      "title": "26awake",
-      "by": "26prl"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "title": "26",
-      "by": "26prl"
-    },
-    {
-      "src": "gifs/bocchi.gif",
-      "title": "Bocchi"
-    },
-    {
-      "src": "gifs/rainbow.gif",
-      "title": "Rainbow"
-    },
-    {
-      "src": "gifs/they-got-me.jpg",
-      "title": "They got me."
-    },
-    {
-      "src": "gifs/god-bless.gif",
-      "title": "God bless"
-    }
-  ]
+  "items": []
 }

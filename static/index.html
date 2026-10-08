@@ -4,109 +4,111 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>26awake</title>
-  <meta name="description" content="26awake by 26prl: games, art, music and whatever else.">
+  <meta name="description" content="26awake by 26prl. A quiet corner of the internet: games, art, music.">
+  <meta name="theme-color" content="#16131f">
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
-  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=IBM+Plex+Mono:wght@300;400&display=swap">
+  <link rel="stylesheet" href="home.css">
 </head>
 <body class="home">
-  <header class="topbar">
-    <div class="brand"><a href="./" class="brand-home"><img class="brand-logo" src="icons/logo-26awake.png" alt="26awake home" width="140" height="44"></a>
-      <nav class="site-nav" aria-label="Site"><a href="./" aria-current="page">Home</a><a href="#games">Games</a><a href="#art">Art</a><a href="#music">Music</a><a href="watch.html">Watch</a></nav>
-    </div>
+  <div class="sky" aria-hidden="true">
+    <div class="fog f1"></div><div class="fog f2"></div><div class="fog f3"></div>
+    <div class="horizon"></div>
+  </div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="drift-bar">
+    <a href="./" class="mark"><img src="icons/favicon-32.png" alt="26awake home" width="22" height="22"></a>
+    <nav aria-label="Site">
+      <a href="#play">play</a><a href="#walls">walls</a><a href="#sound">sound</a><a href="watch.html">watch</a>
+    </nav>
   </header>
 
-  <main class="home-main">
-    <section class="hero">
-      <img class="hero-logo" src="icons/logo-26awake.png" alt="26awake" width="459" height="144">
-      <p class="hero-lead">Just for fun.</p>
-      <p class="hero-text">Games, art, music and whatever else I feel like putting here.</p>
-      <div class="hero-actions">
-        <a class="btn" href="#games">Play something</a>
-        <a class="btn ghost" href="#music">Put on music</a>
-      </div>
+  <main>
+    <section class="threshold">
+      <img class="float-logo" src="icons/logo-26awake.png" alt="26awake" width="459" height="144">
+      <p class="whisper"><span id="clock">--:--</span> <span class="sep">·</span> <span id="still">you're still awake.</span></p>
+      <p class="hush">a quiet corner of the internet. nothing important happens here.</p>
+      <a class="descend" href="#play" aria-label="Scroll down"><span>wander</span><i></i></a>
     </section>
 
-    <section id="games" class="home-section">
-      <h2 class="section-title">Games</h2>
-      <p class="section-sub muted">Best scores are saved on this device.</p>
+    <section id="play" class="room">
+      <p class="room-no">01 — play</p>
+      <h2>Something to do with your hands.</h2>
+      <p class="room-note">best scores stay on this device.</p>
       <div class="games">
-        <article class="card game">
+        <article class="game">
           <div class="game-head">
-            <h3>Bonk!</h3>
-            <span class="muted small">Score <strong id="ff-score">0</strong> · Best <strong id="ff-best">0</strong> · <span id="ff-time">30</span>s</span>
+            <h3>Fireflies</h3>
+            <span class="game-score"><b id="ff-score">0</b> <i>best <span id="ff-best">0</span> · <span id="ff-time">30</span>s</i></span>
           </div>
           <div class="game-stage">
-            <canvas id="ff-canvas" width="360" height="360" aria-label="Bonk game board"></canvas>
+            <canvas id="ff-canvas" width="720" height="720" aria-label="Fireflies game"></canvas>
             <div class="game-overlay" id="ff-overlay">
-              <p id="ff-msg">Bonk the moles before they hide.<br><strong>Don't hit the bombs</strong> (−3).</p>
-              <button class="btn" id="ff-start" type="button">Start</button>
+              <p id="ff-msg">Catch the fireflies before they fade.<br><em>leave the dark ones alone.</em></p>
+              <button class="soft-btn" id="ff-start" type="button">begin</button>
             </div>
           </div>
         </article>
 
-        <article class="card game">
+        <article class="game">
           <div class="game-head">
-            <h3>Snake</h3>
-            <span class="muted small">Score <strong id="ps-score">0</strong> · Best <strong id="ps-best">0</strong></span>
+            <h3>Afterglow</h3>
+            <span class="game-score"><b id="ps-score">0</b> <i>best <span id="ps-best">0</span></i></span>
           </div>
           <div class="game-stage">
-            <canvas id="ps-canvas" width="360" height="360" tabindex="0" aria-label="Snake game board"></canvas>
+            <canvas id="ps-canvas" width="720" height="720" tabindex="0" aria-label="Afterglow game"></canvas>
             <div class="game-overlay" id="ps-overlay">
-              <p id="ps-msg">Eat the apples, don't bite your tail.<br>Arrow keys, WASD or swipe.</p>
-              <button class="btn" id="ps-start" type="button">Start</button>
+              <p id="ps-msg">Drift through the empty pool, gather the lights.<br><em>arrows, wasd or swipe.</em></p>
+              <button class="soft-btn" id="ps-start" type="button">begin</button>
             </div>
           </div>
           <div class="dpad" aria-label="Direction buttons">
-            <button type="button" data-dir="up" aria-label="Up">▲</button>
-            <button type="button" data-dir="left" aria-label="Left">◀</button>
-            <button type="button" data-dir="down" aria-label="Down">▼</button>
-            <button type="button" data-dir="right" aria-label="Right">▶</button>
+            <button type="button" data-dir="up" aria-label="Up"></button>
+            <button type="button" data-dir="left" aria-label="Left"></button>
+            <button type="button" data-dir="down" aria-label="Down"></button>
+            <button type="button" data-dir="right" aria-label="Right"></button>
           </div>
         </article>
       </div>
     </section>
 
-    <section id="art" class="home-section">
-      <h2 class="section-title">Art</h2>
-      <p class="section-sub muted">Tap to enlarge.</p>
+    <section id="walls" class="room">
+      <p class="room-no">02 — walls</p>
+      <h2>Things hung up to look at.</h2>
       <div id="art-grid" class="art-grid"></div>
     </section>
 
-    <section id="music" class="home-section">
-      <h2 class="section-title">Music</h2>
-      <div id="music-list" class="card music"></div>
+    <section id="sound" class="room">
+      <p class="room-no">03 — sound</p>
+      <h2>What's playing in here.</h2>
+      <div id="me" class="me" hidden></div>
+      <div id="music-list" class="music"></div>
     </section>
 
-    <section id="topics" class="home-section">
-      <h2 class="section-title">Watch</h2>
-      <p class="section-sub muted">Live news trackers. They check the news every 10 minutes, rate every source and update while you watch.</p>
+    <section id="elsewhere" class="room">
+      <p class="room-no">04 — elsewhere</p>
+      <h2>Windows to the outside.</h2>
+      <p class="room-note">small trackers that read the news every ten minutes, so I don't have to.</p>
       <div id="topic-cards" class="topic-cards">
-        <div class="card topic-card skeleton" aria-hidden="true"></div>
-      </div>
-    </section>
-
-    <section id="about" class="home-section about">
-      <h2 class="section-title">About</h2>
-      <div class="card about-card">
-        <p><strong>26awake</strong> is my corner of the internet: a couple of small games, art, music, and a few side projects
-          like the news trackers under Watch. Nothing serious, just stuff I like.</p>
-        <p class="muted small">Made by 26prl.</p>
+        <div class="topic-card ghost-card" aria-hidden="true"></div>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer home-footer">
-    <img src="icons/favicon-32.png" alt="" width="20" height="20">
-    <p class="muted small">26awake · made by 26prl</p>
+  <footer class="end">
+    <p>26awake <span class="sep">·</span> made by 26prl <span class="sep">·</span> lights stay on</p>
   </footer>
 
   <dialog id="art-view" class="art-view">
-    <form method="dialog"><button class="art-close" aria-label="Close">✕</button></form>
+    <form method="dialog"><button class="art-close" aria-label="Close">×</button></form>
     <img id="art-view-img" alt="">
-    <p id="art-view-caption" class="muted small"></p>
+    <p id="art-view-caption"></p>
   </dialog>
 
   <script src="home.js"></script>

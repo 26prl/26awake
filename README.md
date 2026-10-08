@@ -91,18 +91,36 @@ not reading comprehension, so treat the result as approximate and follow the lin
 
 ## Home page, art and music
 
-`/` is the home page (`static/index.html`): an intro, two small games (Bonk! and Snake, `static/games.js`),
-an art gallery, a music player and, under "Watch", a live card for every tracker topic. The tracker itself is
-`/watch.html` (`/watch.html#2` opens topic 2).
+`/` is the home page (`static/index.html`, styled by `static/home.css`): a quiet, late-night page split into
+"rooms": **play** (two small games, Fireflies and Afterglow, in `static/games.js`), **walls** (art),
+**sound** (what I'm listening to on Spotify, plus any players or tracks you add) and **elsewhere** (a live card
+for every tracker topic). The tracker itself is `/watch.html` (`/watch.html#2` opens topic 2).
 
 * **Art** — put images in `static/art/` (or anywhere under `static/`) and list them in `static/art.json`:
-  `{"items": [{"src": "art/drawing.png", "title": "Name", "by": "Artist"}]}`.
-* **Spotify** — add share links (track, album, playlist, artist or podcast) to `static/music.json`:
+  `{"items": [{"src": "art/drawing.png", "title": "Name", "by": "Artist"}]}`. Empty list = empty frames.
+* **Spotify players** — add share links (track, album, playlist, artist or podcast) to `static/music.json`:
   `{"spotify": ["https://open.spotify.com/playlist/…"]}`. They show as Spotify's player; visitors logged in to
   Spotify hear full songs, others 30-second previews.
-* **Music** — put MP3/OGG files in `static/music/` and list them in `static/music.json`:
+* **Music files** — put MP3/OGG files in `static/music/` and list them in `static/music.json`:
   `{"tracks": [{"src": "music/track.mp3", "title": "Song", "artist": "Artist"}]}`. Keep files reasonably small
   (Vercel's free plan serves them fine, but each visitor downloads what they play).
+
+### Your Spotify on the page (now playing, recently played, top artists and tracks)
+
+`static/api/spotify.js` becomes a Vercel serverless function at `/api/spotify`. It reads your listening data with
+your own Spotify login, so the secrets live only in Vercel, never in this repo:
+
+1. Go to <https://developer.spotify.com/dashboard>, log in, **Create app**. Any name/description; Redirect URI:
+   `https://YOUR-SITE/api/spotify` (for example `https://twenty6.net/api/spotify`); API: **Web API**. Save.
+2. In the app's **Settings** copy the **Client ID** and **Client secret**.
+3. In Vercel → the project → **Settings → Environment Variables**, add `SPOTIFY_CLIENT_ID` and
+   `SPOTIFY_CLIENT_SECRET` (Production), then redeploy (Deployments → ⋯ → Redeploy).
+4. Open `https://YOUR-SITE/api/spotify?setup`, log in to Spotify and agree. The page shows a refresh token.
+5. Add it in Vercel as `SPOTIFY_REFRESH_TOKEN` and redeploy once more. Setup switches itself off; the "sound"
+   room now shows what you're playing (refreshed every minute) and your month's favourites.
+
+If the site uses a different domain than the one Spotify redirects to, set `SPOTIFY_REDIRECT_URI` to the exact URI
+you registered. The local Python server doesn't run this function, so the card only appears on Vercel.
 
 ## GIF stickers
 
