@@ -179,3 +179,5 @@ body.gifs { background: #000; }
 .sd-cover .btn { font-size: 1.05rem; padding: 10px 34px; }
 .sd-grid.covered .sd-cell { color: transparent; background: #fff; }
 .sd-grid.covered .sd-notes span { color: transparent; }
+.ms-board { position: relative; }
+.ms-grid.covered .ms-cell { color: transparent; background: #eee; box-shadow: none; }

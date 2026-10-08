@@ -19,9 +19,10 @@
 //   POST /api/scores {action:"msubmit", id, key, game, opens}  → {won, time, best, rank, players, newBest, ...}
 //   GET  /api/scores?game=sudoku&diff=easy&id=N   same for sudoku
 //   POST /api/scores {action:"sstart", id, key, diff}          → {game, seed}   (the page makes the puzzle from it)
-//   POST /api/scores {action:"spause"|"sresume", id, key, game} → pauses/resumes the server's clock for that game
+//   POST /api/scores {action:"spause"|"sresume"|"mpause"|"mresume", id, key, game}
+//                                                  → pauses/resumes the server's clock for that sudoku/minesweeper game
 //   POST /api/scores {action:"ssubmit", id, key, game, grid}   → {won, time, best, rank, players, newBest, ...}
-//   (sudoku game record: "s:<player>:<seed>:<diff>:<started ms>:<paused ms so far>:<paused since ms, 0 = running>")
+//   (timed game record: "<s|m>:<player>:<seed>:<diff>:<started ms>:<paused ms so far>:<paused since ms, 0 = running>")
 
 const crypto = require("crypto");
 const core = require("../g2048-core.js");
@@ -167,7 +168,7 @@ module.exports = async (req, res) => {
       if (!mines.DIFFS[b.diff]) return send(res, 400, { error: "diff: easy, medium or hard" });
       const game = crypto.randomBytes(9).toString("base64url");
       const seed = crypto.randomBytes(4).readUInt32LE(0);
-      await redis(["SET", `g:${game}`, `m:${id}:${seed}:${b.diff}:${Date.now()}`, "EX", String(60 * 60 * 24)]);
+      await redis(["SET", `g:${game}`, `m:${id}:${seed}:${b.diff}:${Date.now()}:0:0`, "EX", String(60 * 60 * 24 * 7)]);
       return send(res, 200, { game, seed });
     }
 
@@ -179,17 +180,18 @@ module.exports = async (req, res) => {
       return send(res, 200, { game, seed });
     }
 
-    if (b.action === "spause" || b.action === "sresume") {
+    if (["spause", "sresume", "mpause", "mresume"].includes(b.action)) {
+      const kind = b.action[0], pausing = b.action.endsWith("pause");
       if (typeof b.game !== "string") return send(res, 400, { error: "bad game" });
       const [stored] = await redis(["GET", `g:${b.game}`]);
-      if (!stored || !stored.startsWith("s:")) return send(res, 409, { error: "game already counted or expired" });
+      if (!stored || !stored.startsWith(`${kind}:`)) return send(res, 409, { error: "game already counted or expired" });
       const [, owner, seed, diff, started, pausedMs = "0", since = "0"] = stored.split(":");
       if (Number(owner) !== id) return send(res, 403, { error: "not your game" });
       let paused = Number(pausedMs), at = Number(since);
       const now = Date.now();
-      if (b.action === "spause" && !at) at = now;
-      if (b.action === "sresume" && at) { paused += now - at; at = 0; }
-      await redis(["SET", `g:${b.game}`, ["s", owner, seed, diff, started, paused, at].join(":"), "KEEPTTL"]);
+      if (pausing && !at) at = now;
+      if (!pausing && at) { paused += now - at; at = 0; }
+      await redis(["SET", `g:${b.game}`, [kind, owner, seed, diff, started, paused, at].join(":"), "KEEPTTL"]);
       return send(res, 200, { paused: !!at });
     }
 
@@ -216,11 +218,13 @@ module.exports = async (req, res) => {
       if (typeof b.game !== "string" || opens.length > 2000) return send(res, 400, { error: "bad game" });
       const [stored] = await redis(["GETDEL", `g:${b.game}`]); // each game counts once
       if (!stored || !stored.startsWith("m:")) return send(res, 409, { error: "game already counted or expired" });
-      const [, owner, seed, diff, started] = stored.split(":");
+      const [, owner, seed, diff, started, pausedMs = "0", since = "0"] = stored.split(":");
       if (Number(owner) !== id) return send(res, 403, { error: "not your game" });
       const result = mines.replay(diff, Number(seed), opens);
       if (!result.valid || (!result.won && !result.lost)) return send(res, 400, { error: "moves don't add up" });
-      const time = Date.now() - Number(started); // measured here, not by the page
+      // measured here, not by the page: time since the first click, minus paused time
+      const now = Date.now();
+      const time = now - Number(started) - Number(pausedMs) - (Number(since) ? now - Number(since) : 0);
       const before = await tStanding("mines", id, diff);
       await redis(
         ["HINCRBY", `p:${id}`, `m:${diff}:games`, "1"],

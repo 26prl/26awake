@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>minesweeper · 26awake</title>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <a class="scatter" href="./">go back</a>
+  <main class="g8-page">
+    <div id="ms" class="ms" data-avoid>
+      <div class="g8-head">
+        <h1>Minesweeper</h1>
+        <div class="g8-scores">
+          <div class="g8-sbox"><span>mines</span><b id="ms-left">10</b></div>
+          <div class="g8-sbox"><span>time</span><b id="ms-time">0.0 s</b></div>
+        </div>
+      </div>
+      <div class="ms-diff" role="group" aria-label="Difficulty">
+        <button type="button" data-diff="easy">easy</button><button type="button" data-diff="medium">medium</button><button type="button" data-diff="hard">hard</button>
+      </div>
+      <div class="ms-wrap">
+        <div class="ms-board">
+          <div id="ms-grid" class="ms-grid" aria-label="Minesweeper board"></div>
+          <div id="ms-cover" class="sd-cover" hidden><p>paused</p><button id="ms-go" class="btn" type="button">Continue</button></div>
+        </div>
+      </div>
+      <p id="ms-result" class="ms-result"></p>
+      <div class="g8-foot">
+        <button class="g8-reset" id="ms-flagmode" type="button" aria-pressed="false">⚑ flag mode</button>
+        <button class="g8-reset" id="ms-new" type="button">New game</button>
+      </div>
+      <p class="muted small">Click to open, right-click or long-press to flag. Click a number whose flags are all placed to open around it.</p>
+      <section class="g8-rank">
+        <p id="ms-me" class="small"></p>
+        <h2 id="ms-rank-title">Ranking</h2>
+        <div id="ms-top"><p class="muted small">Loading…</p></div>
+        <div id="ms-recovery" class="g8-recovery" hidden></div>
+      </section>
+    </div>
+  </main>
+  <script src="players.js"></script>
+  <script src="mines-core.js"></script>
+  <script src="mines.js"></script>
+  <script src="visits.js"></script>
+  <script src="scatter.js"></script>
+</body>
+</html>
