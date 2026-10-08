@@ -19,6 +19,7 @@ from .trust import TIERS, TRUSTED
 
 log = logging.getLogger("tracker.server")
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 MAX_BODY = 64 * 1024
 
 
