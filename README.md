@@ -146,6 +146,11 @@ Each thing has its own page, all styled by `static/site.css` (white, system font
 * **Visitor count** — the home page shows "N people here today · M all time" (`static/api/visits.js`, same
   Redis). Each browser gets a random anonymous id (no IPs or names stored) and counts once per UTC day; visits to
   every page except the tracker count. Each id is stored once (Redis sets), so the counts are exact.
+* `/restricted.html` — password-locked chat with an AI model of your choice that follows your own rules
+  (`static/restricted.js`, `static/api/agent.js`). Works with any OpenAI-compatible API (Groq by default; OpenRouter,
+  Together, OpenAI, …). Set in Vercel: `RESTRICTED_PASSWORD`, `AGENT_API_KEY`, optionally `AGENT_BASE_URL` and
+  `AGENT_MODEL`. The rules (system prompt) are edited on the page and saved in Redis; chats stay in the browser.
+  10 wrong passwords in an hour lock that connection out for the hour.
 * `/nothing.html` — coffee link, contacts and a BTC address with its QR code, from `static/nothing.json`. The QR is
   a static SVG (`static/btc-qr.svg`) made once from the address with the Python `qrcode` package.
 * `/music.html` — what I'm listening to on Spotify plus the players/tracks in `music.json` (`static/music.js`).

@@ -181,3 +181,21 @@ body.gifs { background: #000; }
 .sd-grid.covered .sd-notes span { color: transparent; }
 .ms-board { position: relative; }
 .ms-grid.covered .ms-cell { color: transparent; background: #eee; box-shadow: none; }
+
+/* ---- restricted ---- */
+.restricted { max-width: 760px; margin: 0 auto; padding: 72px 16px 48px; }
+.restricted h1 { margin: 0 0 24px; font-size: 1.6rem; font-weight: 400; color: #999; }
+.restricted [hidden] { display: none !important; }
+.r-login { display: flex; gap: 8px; flex-wrap: wrap; }
+.r-login .g8-input { width: min(280px, 100%); font-size: 1rem; padding: 8px 10px; }
+.r-rules { margin-bottom: 16px; }
+.r-rules summary { cursor: pointer; }
+.r-rules textarea, .r-compose textarea { width: 100%; font: inherit; font-size: .95rem; padding: 10px; border: 1px solid #ccc; resize: vertical; }
+.r-rules textarea { margin-top: 10px; }
+.r-log { height: min(60vh, 560px); overflow-y: auto; border: 1px solid #e5e5e5; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 85%; padding: 9px 12px; white-space: pre-wrap; word-wrap: break-word; line-height: 1.45; }
+.msg.user { align-self: flex-end; background: #111; color: #fff; }
+.msg.assistant { align-self: flex-start; background: #f2f2f2; }
+.r-compose { display: flex; gap: 8px; margin-top: 10px; align-items: stretch; }
+.r-compose textarea { flex: 1; }
+.r-foot { display: flex; justify-content: space-between; margin-top: 8px; }
