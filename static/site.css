@@ -181,3 +181,14 @@ body.gifs { background: #000; }
 .sd-grid.covered .sd-notes span { color: transparent; }
 .ms-board { position: relative; }
 .ms-grid.covered .ms-cell { color: transparent; background: #eee; box-shadow: none; }
+
+/* ---- anime ---- */
+.anime { max-width: 960px; margin: 0 auto; padding: 64px 16px 64px; }
+.anime h1 { margin: 0 0 18px; font-size: 1.6rem; font-weight: 400; color: #999; }
+.an-stage[hidden] { display: none; }
+.an-stage video { width: 100%; aspect-ratio: 16 / 9; background: #000; display: block; }
+.an-title { margin: 10px 0 0; font-weight: 600; }
+.an-list { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
+.an-list button { width: 100%; text-align: left; font: inherit; font-size: .9rem; padding: 8px 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+.an-list button:hover { background: #f4f4f4; }
+.an-list li.on button { background: #111; color: #fff; border-color: #111; }

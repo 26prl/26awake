@@ -146,6 +146,10 @@ Each thing has its own page, all styled by `static/site.css` (white, system font
 * **Visitor count** — the home page shows "N people here today · M all time" (`static/api/visits.js`, same
   Redis). Each browser gets a random anonymous id (no IPs or names stored) and counts once per UTC day; visits to
   every page except the tracker count. Each id is stored once (Redis sets), so the counts are exact.
+* `/anime.html` — video player for direct links listed in `static/anime.json`
+  (`{"videos": [{"title": "…", "src": "https://…/video.mp4 or …/master.m3u8", "poster": "optional"}]}`).
+  `.mp4`/`.webm` play natively, `.m3u8` streams through hls.js (bundled in `static/vendor/`, MIT licence). The
+  source must allow playback from other sites (CORS). Only for videos you have the right to show.
 * `/nothing.html` — coffee link, contacts and a BTC address with its QR code, from `static/nothing.json`. The QR is
   a static SVG (`static/btc-qr.svg`) made once from the address with the Python `qrcode` package.
 * `/music.html` — what I'm listening to on Spotify plus the players/tracks in `music.json` (`static/music.js`).
