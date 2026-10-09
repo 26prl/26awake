@@ -14,47 +14,10 @@
   <a class="scatter" href="./">go back</a>
   <main class="restricted">
     <h1 data-avoid>restricted</h1>
-
-    <section id="r-lock" data-avoid hidden>
-      <form id="r-login" class="r-login">
-        <input id="r-pass" type="password" placeholder="password" autocomplete="current-password" class="g8-input" required>
-        <button class="btn" type="submit">Enter</button>
-      </form>
-      <p id="r-lock-msg" class="small muted"></p>
-    </section>
-
-    <section id="r-off" data-avoid hidden>
-      <p class="muted">Not set up yet.</p>
-    </section>
-
-    <section id="r-room" class="r-room" data-avoid hidden>
-      <details class="r-rules">
-        <summary>my rules &amp; model <span class="muted small">· <span id="r-model"></span></span></summary>
-        <fieldset class="r-source">
-          <legend class="small muted">model</legend>
-          <label><input type="radio" name="r-source" value="ollama"> my computer (Ollama)</label>
-          <label id="r-source-server" hidden><input type="radio" name="r-source" value="server"> <span id="r-source-server-label"></span></label>
-          <div id="r-ollama" class="r-ollama">
-            <select id="r-ollama-model" aria-label="Ollama model"></select>
-            <button id="r-ollama-refresh" class="g8-reset" type="button">refresh</button>
-            <input id="r-ollama-url" class="g8-input" aria-label="Ollama address" spellcheck="false">
-            <p id="r-ollama-note" class="small muted"></p>
-          </div>
-        </fieldset>
-        <label class="small muted" for="r-rules">rules</label>
-        <textarea id="r-rules" rows="8" placeholder="How the agent should behave, who it is, what it should and shouldn't do…"></textarea>
-        <p><button id="r-save" class="btn" type="button">Save rules</button> <span id="r-rules-note" class="small muted"></span></p>
-      </details>
-      <div id="r-log" class="r-log" aria-live="polite"></div>
-      <div class="r-compose">
-        <textarea id="r-input" rows="2" placeholder="Write anything… (Enter to send, Shift+Enter for a new line)"></textarea>
-        <button id="r-send" class="btn" type="button">Send</button>
-      </div>
-      <p class="r-foot small"><button id="r-clear" class="g8-reset" type="button">clear chat</button>
-        <button id="r-logout" class="g8-reset" type="button">lock</button></p>
-    </section>
+    <p data-avoid>under construction</p>
   </main>
-  <script src="restricted.js"></script>
+  <script src="visits.js"></script>
   <script src="scatter.js"></script>
+  <!-- The password-locked chat (restricted.js + api/agent.js) is kept for later; see README. -->
 </body>
 </html>

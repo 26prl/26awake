@@ -146,7 +146,7 @@ Each thing has its own page, all styled by `static/site.css` (white, system font
 * **Visitor count** — the home page shows "N people here today · M all time" (`static/api/visits.js`, same
   Redis). Each browser gets a random anonymous id (no IPs or names stored) and counts once per UTC day; visits to
   every page except the tracker count. Each id is stored once (Redis sets), so the counts are exact.
-* `/restricted.html` — password-locked chat with your own AI model and your own rules (`static/restricted.js`,
+* `/restricted.html` — *currently just "under construction".* Ready to switch back on: a password-locked chat with your own AI model and your own rules (`static/restricted.js`,
   `static/api/agent.js`). By default the browser talks straight to **Ollama on the same computer** (its
   OpenAI-compatible API at `http://localhost:11434`), so messages never leave the computer: install Ollama,
   `ollama pull <model>`, and start it with `OLLAMA_ORIGINS=https://twenty6.net` so the site may call it.
