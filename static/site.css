@@ -188,7 +188,14 @@ body.gifs { background: #000; }
 .an-stage[hidden] { display: none; }
 .an-stage video { width: 100%; aspect-ratio: 16 / 9; background: #000; display: block; }
 .an-title { margin: 10px 0 0; font-weight: 600; }
-.an-list { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
-.an-list button { width: 100%; text-align: left; font: inherit; font-size: .9rem; padding: 8px 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+.an-under { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.an-sec { margin-top: 22px; }
+.an-sec[hidden] { display: none; }
+.an-sec h2 { font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; color: #888; margin: 0 0 8px; font-weight: 600; }
+.an-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
+.an-list button { position: relative; overflow: hidden; width: 100%; text-align: left; font: inherit; font-size: .9rem; padding: 8px 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
 .an-list button:hover { background: #f4f4f4; }
 .an-list li.on button { background: #111; color: #fff; border-color: #111; }
+.an-list button i { position: absolute; left: 0; bottom: 0; height: 3px; background: #c62828; }
+.an-list button small { color: #2e7d32; font-weight: 700; }
+.an-list li.on button small { color: #9be59f; }

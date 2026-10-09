@@ -22,6 +22,11 @@
 //   POST /api/scores {action:"spause"|"sresume"|"mpause"|"mresume", id, key, game}
 //                                                  → pauses/resumes the server's clock for that sudoku/minesweeper game
 //   POST /api/scores {action:"ssubmit", id, key, game, grid}   → {won, time, best, rank, players, newBest, ...}
+//
+// Anime watchlist and watch history, per player (so the recovery code brings them along):
+//   POST /api/scores {action:"wget", id, key}                 → {list: [video], history: [{v, t, pos, dur}]}
+//   POST /api/scores {action:"wlist", id, key, v, on}         → adds/removes video v on the watchlist
+//   POST /api/scores {action:"wpos", id, key, v, pos, dur}    → remembers where video v was stopped
 //   (timed game record: "<s|m>:<player>:<seed>:<diff>:<started ms>:<paused ms so far>:<paused since ms, 0 = running>")
 
 const crypto = require("crypto");
@@ -144,6 +149,28 @@ module.exports = async (req, res) => {
     if (!(await checkPlayer(id, b.key))) return send(res, 403, { error: "unknown player" });
 
     if (b.action === "whoami") return send(res, 200, await standing(id)); // checks a recovery code
+
+    if (b.action === "wget") {
+      const [list, recent] = await redis(["SMEMBERS", `w:${id}:list`], ["ZREVRANGE", `w:${id}:recent`, "0", "199"]);
+      const pos = recent.length ? (await redis(["HMGET", `w:${id}:pos`, ...recent]))[0] : [];
+      const history = recent.map((v, i) => { try { return { v, ...JSON.parse(pos[i] || "{}") }; } catch { return { v }; } });
+      return send(res, 200, { list, history });
+    }
+
+    if (b.action === "wlist" || b.action === "wpos") {
+      const v = String(b.v || "");
+      if (!v || v.length > 500) return send(res, 400, { error: "bad video" });
+      if (b.action === "wlist") {
+        await redis(b.on ? ["SADD", `w:${id}:list`, v] : ["SREM", `w:${id}:list`, v]);
+        return send(res, 200, { ok: true });
+      }
+      const pos = Math.max(0, Number(b.pos) || 0), dur = Math.max(0, Number(b.dur) || 0), t = Date.now();
+      await redis(
+        ["HSET", `w:${id}:pos`, v, JSON.stringify({ t, pos: Math.round(pos), dur: Math.round(dur) })],
+        ["ZADD", `w:${id}:recent`, String(t), v],
+        ["ZREMRANGEBYRANK", `w:${id}:recent`, "0", "-201"]); // keep the 200 most recent
+      return send(res, 200, { ok: true });
+    }
 
     if (b.action === "name") {
       const name = String(b.name || "").trim().replace(/\s+/g, " ");
