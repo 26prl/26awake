@@ -146,13 +146,6 @@ Each thing has its own page, all styled by `static/site.css` (white, system font
 * **Visitor count** — the home page shows "N people here today · M all time" (`static/api/visits.js`, same
   Redis). Each browser gets a random anonymous id (no IPs or names stored) and counts once per UTC day; visits to
   every page except the tracker count. Each id is stored once (Redis sets), so the counts are exact.
-* `/restricted.html` — password-locked (`RESTRICTED_PASSWORD` in Vercel; 3 wrong tries lock that connection out for an
-  hour). Shows the site's **traffic** (`static/traffic.js`): page views, visitors, top pages, where visitors came from,
-  countries/cities, browsers/devices, languages, and the latest visits with IP addresses. Every page view on the
-  pages that load `visits.js` is logged by `static/api/visits.js` (Vercel's location headers, IP, user agent,
-  referrer, full IP); the newest 100,000 are kept. All pages count, the tracker included. The **ai** part
-  is "under construction"; its code (a password-locked chat with Ollama on your own computer and your own rules,
-  `static/restricted.js` + `static/api/agent.js`) is kept for later.
 * `/nothing.html` — coffee link, contacts and a BTC address with its QR code, from `static/nothing.json`. The QR is
   a static SVG (`static/btc-qr.svg`) made once from the address with the Python `qrcode` package.
 * `/music.html` — what I'm listening to on Spotify plus the players/tracks in `music.json` (`static/music.js`).

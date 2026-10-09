@@ -5,7 +5,7 @@
 //
 //   POST /api/visits {v: "<anonymous id>", p: "/page", r: "<referrer>"}  → records the visit, returns {today, total}
 //
-// Every page view is also written to a log for the owner's traffic page (restricted.html, behind the password):
+// Every page view is also written to a visit log (Redis list log:visits), readable only with the database keys:
 // time, page, where the visitor came from, country/region/city (from Vercel's own headers), IP address,
 // browser (user agent) and language, with the full IP address. The newest LOG_MAX entries are kept (100,000 page
 // views, about 40 MB, well inside Upstash's free 256 MB).
