@@ -146,13 +146,13 @@ Each thing has its own page, all styled by `static/site.css` (white, system font
 * **Visitor count** — the home page shows "N people here today · M all time" (`static/api/visits.js`, same
   Redis). Each browser gets a random anonymous id (no IPs or names stored) and counts once per UTC day; visits to
   every page except the tracker count. Each id is stored once (Redis sets), so the counts are exact.
-* `/restricted.html` — *currently just "under construction".* Ready to switch back on: a password-locked chat with your own AI model and your own rules (`static/restricted.js`,
-  `static/api/agent.js`). By default the browser talks straight to **Ollama on the same computer** (its
-  OpenAI-compatible API at `http://localhost:11434`), so messages never leave the computer: install Ollama,
-  `ollama pull <model>`, and start it with `OLLAMA_ORIGINS=https://twenty6.net` so the site may call it.
-  The page lists the downloaded models. Set `RESTRICTED_PASSWORD` in Vercel (3 wrong passwords lock that
-  connection out for an hour). The rules (system prompt) are saved in Redis behind the password; chats stay in the
-  browser. Optional: `AGENT_API_KEY` (+ `AGENT_BASE_URL`, `AGENT_MODEL`) adds an online OpenAI-compatible model.
+* `/restricted.html` — password-locked (`RESTRICTED_PASSWORD` in Vercel; 3 wrong tries lock that connection out for an
+  hour). Shows the site's **traffic** (`static/traffic.js`): page views, visitors, top pages, where visitors came from,
+  countries/cities, browsers/devices, languages, and the latest visits with IP addresses. Every page view on the
+  pages that load `visits.js` is logged by `static/api/visits.js` (Vercel's location headers, IP, user agent,
+  referrer); only the newest 5,000 are kept. The tracker page doesn't load it, so it isn't counted. The **ai** part
+  is "under construction"; its code (a password-locked chat with Ollama on your own computer and your own rules,
+  `static/restricted.js` + `static/api/agent.js`) is kept for later.
 * `/nothing.html` — coffee link, contacts and a BTC address with its QR code, from `static/nothing.json`. The QR is
   a static SVG (`static/btc-qr.svg`) made once from the address with the Python `qrcode` package.
 * `/music.html` — what I'm listening to on Spotify plus the players/tracks in `music.json` (`static/music.js`).

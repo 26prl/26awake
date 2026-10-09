@@ -1,5 +1,6 @@
 "use strict";
-// Counts this browser once a day for the "people here today" line on the home page (api/visits.js).
+// Counts this browser once a day for the "people here today" line on the home page (api/visits.js), and logs the
+// page view (page + where the visitor came from) for the owner's traffic page.
 // The id is random and anonymous; it isn't linked to the game player number.
 // A page with an element #visits shows the counts there.
 
@@ -14,7 +15,7 @@
   } catch { /* private mode: count without remembering */ }
   if (!id) id = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
-  fetch("api/visits", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ v: id }), cache: "no-store" })
+  fetch("api/visits", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ v: id, p: location.pathname, r: document.referrer }), cache: "no-store" })
     .then((r) => ((r.headers.get("content-type") || "").includes("json") ? r.json() : null))
     .then((d) => {
       const box = document.getElementById("visits");

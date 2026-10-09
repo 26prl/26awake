@@ -204,3 +204,25 @@ body.gifs { background: #000; }
 .r-ollama { margin: 6px 0 0 22px; }
 .r-ollama select { font: inherit; padding: 4px 6px; min-width: 180px; }
 .r-ollama .g8-input { display: block; margin-top: 6px; width: min(280px, 100%); }
+
+/* ---- restricted: traffic ---- */
+.restricted.wide { max-width: 1040px; }
+.restricted h2 { font-size: 1.1rem; margin: 28px 0 10px; }
+.t-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.t-head h2 { margin: 0; }
+.t-range { margin: 0; }
+.t-sum { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+.t-sum div { background: #f4f4f4; padding: 12px; }
+.t-sum b { display: block; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.t-sum span { font-size: .75rem; color: #777; text-transform: uppercase; letter-spacing: .06em; }
+.t-tops { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.t-box h3, .t-sub { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: #888; margin: 0 0 6px; font-weight: 600; }
+.t-sub { margin-top: 22px; }
+.t-top { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.t-top td { padding: 4px 4px; border-bottom: 1px solid #f0f0f0; }
+.t-top td.n { text-align: right; width: 3em; font-variant-numeric: tabular-nums; }
+.t-top td.bar { width: 30%; } .t-top td.bar i { display: block; height: 6px; background: #bbb; }
+.t-log { overflow-x: auto; }
+.t-table { font-size: .82rem; white-space: nowrap; }
+.t-table td.ip { font-family: ui-monospace, Menlo, Consolas, monospace; }
+@media (max-width: 640px) { .t-sum { grid-template-columns: repeat(2, 1fr); } }

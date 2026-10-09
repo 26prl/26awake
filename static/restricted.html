@@ -12,12 +12,42 @@
 </head>
 <body>
   <a class="scatter" href="./">go back</a>
-  <main class="restricted">
+  <main class="restricted wide">
     <h1 data-avoid>restricted</h1>
-    <p data-avoid>under construction</p>
+
+    <section id="r-lock" data-avoid hidden>
+      <form id="r-login" class="r-login">
+        <input id="r-pass" type="password" placeholder="password" autocomplete="current-password" class="g8-input" required>
+        <button class="btn" type="submit">Enter</button>
+      </form>
+      <p id="r-lock-msg" class="small muted"></p>
+    </section>
+
+    <section id="r-off" data-avoid hidden>
+      <p class="muted">Not set up yet.</p>
+    </section>
+
+    <section id="r-room" data-avoid hidden>
+      <div class="t-head">
+        <h2>traffic</h2>
+        <div class="ms-diff t-range" role="group" aria-label="Period">
+          <button type="button" data-range="1">24 h</button><button type="button" data-range="7">7 days</button><button type="button" data-range="30">30 days</button><button type="button" data-range="all">all</button>
+        </div>
+        <button id="t-reload" class="g8-reset" type="button">reload</button>
+      </div>
+      <div id="t-sum" class="t-sum"></div>
+      <div id="t-tops" class="t-tops"></div>
+      <h3 class="t-sub">latest visits</h3>
+      <div id="t-log" class="t-log"></div>
+      <p id="t-note" class="small muted"></p>
+
+      <h2>ai</h2>
+      <p class="muted">under construction</p>
+
+      <p class="r-foot small"><span></span><button id="r-logout" class="g8-reset" type="button">lock</button></p>
+    </section>
   </main>
-  <script src="visits.js"></script>
+  <script src="traffic.js"></script>
   <script src="scatter.js"></script>
-  <!-- The password-locked chat (restricted.js + api/agent.js) is kept for later; see README. -->
 </body>
 </html>
