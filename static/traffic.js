@@ -14,7 +14,8 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } },
   };
   let token = store.get("agent-token", null);
-  let visits = [], range = "1";
+  let visits = [], total = 0, range = "1";
+  const CHUNK = 2000;
 
   function show(view) {
     for (const v of ["r-off", "r-lock", "r-room"]) $(v).hidden = v !== view;
@@ -41,19 +42,40 @@
   $("r-logout").onclick = logout;
   $("t-reload").onclick = () => load();
   document.querySelectorAll(".t-range button").forEach((b) => {
-    b.onclick = () => { range = b.dataset.range; draw(); };
+    b.onclick = async () => { range = b.dataset.range; await more(); draw(); };
   });
+
+  const since = () => (range === "all" ? 0 : Date.now() - Number(range) * 864e5);
+
+  async function chunk(start) {
+    const r = await fetch(`api/agent?traffic&start=${start}&count=${CHUNK}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+    if (!(r.headers.get("content-type") || "").includes("json")) throw Object.assign(new Error("off"), { off: true });
+    const d = await r.json();
+    if (d.configured === false) throw Object.assign(new Error("off"), { off: true });
+    if (r.status === 401) throw Object.assign(new Error("locked"), { locked: true });
+    return d;
+  }
+
+  // Load older chunks until the chosen period is covered (or the log ends).
+  async function more() {
+    while (visits.length < total && (!visits.length || visits[visits.length - 1].t >= since())) {
+      $("t-note").textContent = `loading… ${visits.length.toLocaleString()} of ${total.toLocaleString()}`;
+      const d = await chunk(visits.length);
+      if (!d.visits.length) break;
+      visits.push(...d.visits);
+    }
+  }
 
   async function load() {
     try {
-      const r = await fetch("api/agent?traffic", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
-      if (!(r.headers.get("content-type") || "").includes("json")) return show("r-off");
-      const d = await r.json();
-      if (d.configured === false) return show("r-off");
-      if (r.status === 401) return logout();
-      visits = d.visits || [];
-    } catch { return show("r-off"); }
-    show("r-room");
+      const d = await chunk(0);
+      visits = d.visits || []; total = d.total || visits.length;
+      show("r-room");
+      await more();
+    } catch (e) {
+      if (e.locked) return logout();
+      return show("r-off");
+    }
     draw();
   }
 
@@ -98,8 +120,8 @@
 
   function draw() {
     document.querySelectorAll(".t-range button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.range === range)));
-    const since = range === "all" ? 0 : Date.now() - Number(range) * 864e5;
-    const list = visits.filter((v) => v.t >= since);
+    const from = since();
+    const list = visits.filter((v) => v.t >= from);
     const people = new Set(list.map((v) => v.v)).size;
     const humans = list.filter((v) => browser(v.ua) !== "bot");
     $("t-sum").replaceChildren(
@@ -123,7 +145,7 @@
           el("td", { textContent: `${flag(v.c)} ${place(v)}`.trim() }), el("td", { className: "ip", textContent: v.ip || "–" }),
           el("td", { textContent: browser(v.ua) })))))
       : el("p", { className: "muted small", textContent: "No visits in this period." }));
-    $("t-note").textContent = `${visits.length} page views kept in total (the newest 5,000).`;
+    $("t-note").textContent = `${total.toLocaleString()} page views stored (up to the newest 100,000) · showing the latest 200 here.`;
     dispatchEvent(new Event("relayout"));
   }
 

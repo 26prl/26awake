@@ -7,12 +7,13 @@
 //
 // Every page view is also written to a log for the owner's traffic page (restricted.html, behind the password):
 // time, page, where the visitor came from, country/region/city (from Vercel's own headers), IP address,
-// browser (user agent) and language. Only the newest LOG_MAX entries are kept.
+// browser (user agent) and language, with the full IP address. The newest LOG_MAX entries are kept (100,000 page
+// views, about 40 MB, well inside Upstash's free 256 MB).
 //   GET  /api/visits                        → {today, total}
 
 const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-const LOG_MAX = 5000;
+const LOG_MAX = 100000;
 
 const header = (req, name) => {
   const v = req.headers[name];

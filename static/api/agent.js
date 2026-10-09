@@ -12,7 +12,7 @@
 //
 //   POST /api/agent {action:"login", password}       → {token}   (token lasts 30 days)
 //   GET  /api/agent              (Authorization: Bearer token) → {rules, model, server}
-//   GET  /api/agent?traffic      (Bearer)                      → {visits: [...]} the site's visit log, newest first
+//   GET  /api/agent?traffic&start=N&count=M (Bearer)           → {visits, total} a chunk of the visit log, newest first
 //   POST /api/agent {action:"rules", rules}   (Bearer)          → saves the rules
 //   POST /api/agent {action:"chat", messages} (Bearer)          → streams the reply (text/event-stream from the provider)
 
@@ -87,10 +87,12 @@ module.exports = async (req, res) => {
     if (!validToken(req)) return send(res, 401, { error: "locked" });
 
     if (req.method === "GET" && new URL(req.url, "http://x").searchParams.has("traffic")) {
-      // the owner's traffic log (written by api/visits.js), newest first
-      const [rows] = await redis(["LRANGE", "log:visits", "0", "4999"]);
+      // the owner's traffic log (written by api/visits.js), newest first, in chunks: ?traffic&start=0&count=2000
+      const q = new URL(req.url, "http://x").searchParams;
+      const start = Math.max(0, Number(q.get("start")) || 0), count = Math.min(2000, Math.max(1, Number(q.get("count")) || 2000));
+      const [rows, total] = await redis(["LRANGE", "log:visits", String(start), String(start + count - 1)], ["LLEN", "log:visits"]);
       const visits = (rows || []).map((x) => { try { return JSON.parse(x); } catch { return null; } }).filter(Boolean);
-      return send(res, 200, { visits });
+      return send(res, 200, { visits, total: Number(total) || 0, start });
     }
 
     if (req.method === "GET") {

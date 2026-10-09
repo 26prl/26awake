@@ -150,7 +150,7 @@ Each thing has its own page, all styled by `static/site.css` (white, system font
   hour). Shows the site's **traffic** (`static/traffic.js`): page views, visitors, top pages, where visitors came from,
   countries/cities, browsers/devices, languages, and the latest visits with IP addresses. Every page view on the
   pages that load `visits.js` is logged by `static/api/visits.js` (Vercel's location headers, IP, user agent,
-  referrer); only the newest 5,000 are kept. The tracker page doesn't load it, so it isn't counted. The **ai** part
+  referrer, full IP); the newest 100,000 are kept. All pages count, the tracker included. The **ai** part
   is "under construction"; its code (a password-locked chat with Ollama on your own computer and your own rules,
   `static/restricted.js` + `static/api/agent.js`) is kept for later.
 * `/nothing.html` — coffee link, contacts and a BTC address with its QR code, from `static/nothing.json`. The QR is
