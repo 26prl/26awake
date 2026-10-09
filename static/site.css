@@ -199,3 +199,8 @@ body.gifs { background: #000; }
 .r-compose { display: flex; gap: 8px; margin-top: 10px; align-items: stretch; }
 .r-compose textarea { flex: 1; }
 .r-foot { display: flex; justify-content: space-between; margin-top: 8px; }
+.r-source { border: 1px solid #e5e5e5; padding: 8px 12px 4px; margin: 10px 0; }
+.r-source label { display: block; margin: 2px 0; }
+.r-ollama { margin: 6px 0 0 22px; }
+.r-ollama select { font: inherit; padding: 4px 6px; min-width: 180px; }
+.r-ollama .g8-input { display: block; margin-top: 6px; width: min(280px, 100%); }

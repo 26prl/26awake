@@ -1,6 +1,8 @@
 "use strict";
-// "restricted" page: password, then a chat with the model configured in api/agent.js, following the rules
-// written here (saved on the server). Chats stay in this browser (localStorage).
+// "restricted" page: password, then a chat with your own model in Ollama on this computer (the browser talks to
+// Ollama directly: messages never leave the computer), following the rules written here (saved on the server,
+// behind the password). If an online model is set up on the server, it can be picked instead.
+// Chats and the model settings stay in this browser (localStorage).
 
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -10,7 +12,9 @@
   };
   let token = store.get("agent-token", null);
   let chat = store.get("agent-chat", []); // [{role, content}]
-  let sending = false;
+  let sending = false, serverModel = null;
+  const cfg = Object.assign({ source: "ollama", url: "http://localhost:11434", model: "" }, store.get("agent-cfg", {}));
+  const saveCfg = () => store.set("agent-cfg", cfg);
 
   const auth = () => ({ Authorization: `Bearer ${token}` });
   function show(view) {
@@ -49,7 +53,9 @@
       if (r.status === 401) { logout(); return; }
     } catch { show("r-off"); return; }
     $("r-rules").value = d.rules || "";
-    $("r-model").textContent = d.model || "";
+    serverModel = d.server ? d.model : null;
+    if (!serverModel) cfg.source = "ollama";
+    setupModels();
     $("r-rules-note").textContent = d.saved ? "" : "No database connected: rules can't be saved.";
     show("r-room");
     draw();
@@ -63,6 +69,42 @@
     const d = r ? await r.json().catch(() => ({})) : {};
     $("r-rules-note").textContent = r?.ok ? "saved" : d.error || "couldn't save";
   };
+
+  // ---- model: Ollama on this computer (default) or the server's online model ----------
+
+  async function listOllama() {
+    const sel = $("r-ollama-model"), note = $("r-ollama-note");
+    note.textContent = "looking for Ollama…";
+    try {
+      const r = await fetch(`${cfg.url.replace(/\/+$/, "")}/api/tags`, { cache: "no-store" });
+      const names = ((await r.json()).models || []).map((m) => m.name);
+      sel.replaceChildren(...names.map((n) => Object.assign(document.createElement("option"), { value: n, textContent: n })));
+      if (!names.length) { note.textContent = "Ollama is running but has no models yet: run  ollama pull <model>  first."; return; }
+      if (!names.includes(cfg.model)) cfg.model = names[0];
+      sel.value = cfg.model; saveCfg();
+      note.textContent = `connected · ${names.length} model${names.length > 1 ? "s" : ""}`;
+    } catch {
+      sel.replaceChildren();
+      note.textContent = `Can't reach Ollama on this computer. Make sure it's running and was started with OLLAMA_ORIGINS=${location.origin} — and if the browser asks to access your local network, allow it.`;
+    }
+    $("r-model").textContent = cfg.source === "server" ? serverModel : cfg.model || "none";
+  }
+
+  function setupModels() {
+    $("r-source-server").hidden = !serverModel;
+    $("r-source-server-label").textContent = serverModel ? `online: ${serverModel}` : "";
+    for (const r of document.querySelectorAll('input[name="r-source"]')) r.checked = r.value === cfg.source;
+    $("r-ollama").hidden = cfg.source !== "ollama";
+    $("r-ollama-url").value = cfg.url;
+    $("r-model").textContent = cfg.source === "server" ? serverModel : cfg.model || "none";
+    if (cfg.source === "ollama") listOllama();
+  }
+  document.querySelectorAll('input[name="r-source"]').forEach((r) => {
+    r.onchange = () => { cfg.source = r.value; saveCfg(); setupModels(); };
+  });
+  $("r-ollama-model").onchange = (e) => { cfg.model = e.target.value; saveCfg(); $("r-model").textContent = cfg.model; };
+  $("r-ollama-url").onchange = (e) => { cfg.url = e.target.value.trim() || "http://localhost:11434"; saveCfg(); listOllama(); };
+  $("r-ollama-refresh").onclick = listOllama;
 
   function bubble(m) {
     const div = document.createElement("div");
@@ -88,9 +130,21 @@
     draw();
     const live = $("r-log").lastElementChild;
     try {
-      const r = await fetch("api/agent", { method: "POST", headers: { "Content-Type": "application/json", ...auth() },
-        body: JSON.stringify({ action: "chat", messages: chat.slice(0, -1) }) });
-      if (r.status === 401) { chat.splice(-2); logout(); return; }
+      let r;
+      if (cfg.source === "ollama") {
+        if (!cfg.model) throw new Error("Pick a model first (my rules & model → model).");
+        // straight to Ollama on this computer (its OpenAI-compatible endpoint)
+        const rules = $("r-rules").value.trim();
+        r = await fetch(`${cfg.url.replace(/\/+$/, "")}/v1/chat/completions`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: cfg.model, stream: true,
+            messages: [...(rules ? [{ role: "system", content: rules }] : []), ...chat.slice(0, -1).slice(-40)] }),
+        }).catch(() => { throw new Error("Can't reach Ollama on this computer."); });
+      } else {
+        r = await fetch("api/agent", { method: "POST", headers: { "Content-Type": "application/json", ...auth() },
+          body: JSON.stringify({ action: "chat", messages: chat.slice(0, -1) }) });
+        if (r.status === 401) { chat.splice(-2); logout(); return; }
+      }
       if (!r.ok || !r.body) throw new Error((await r.json().catch(() => ({}))).error || `error ${r.status}`);
       // OpenAI-style stream: lines "data: {json}" with choices[0].delta.content, ending with "data: [DONE]"
       const reader = r.body.getReader(), dec = new TextDecoder();

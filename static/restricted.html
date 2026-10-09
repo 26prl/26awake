@@ -29,7 +29,19 @@
 
     <section id="r-room" class="r-room" data-avoid hidden>
       <details class="r-rules">
-        <summary>my rules <span class="muted small">· model <span id="r-model"></span></span></summary>
+        <summary>my rules &amp; model <span class="muted small">· <span id="r-model"></span></span></summary>
+        <fieldset class="r-source">
+          <legend class="small muted">model</legend>
+          <label><input type="radio" name="r-source" value="ollama"> my computer (Ollama)</label>
+          <label id="r-source-server" hidden><input type="radio" name="r-source" value="server"> <span id="r-source-server-label"></span></label>
+          <div id="r-ollama" class="r-ollama">
+            <select id="r-ollama-model" aria-label="Ollama model"></select>
+            <button id="r-ollama-refresh" class="g8-reset" type="button">refresh</button>
+            <input id="r-ollama-url" class="g8-input" aria-label="Ollama address" spellcheck="false">
+            <p id="r-ollama-note" class="small muted"></p>
+          </div>
+        </fieldset>
+        <label class="small muted" for="r-rules">rules</label>
         <textarea id="r-rules" rows="8" placeholder="How the agent should behave, who it is, what it should and shouldn't do…"></textarea>
         <p><button id="r-save" class="btn" type="button">Save rules</button> <span id="r-rules-note" class="small muted"></span></p>
       </details>

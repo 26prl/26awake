@@ -1,16 +1,17 @@
 "use strict";
-// Vercel serverless function behind the "restricted" page: a password-locked chat with a model of your choice
-// (any OpenAI-compatible API: Groq, OpenRouter, Together, OpenAI, a local server, ...) following your own rules.
+// Vercel serverless function behind the "restricted" page: the password lock and the saved rules.
+// The chat itself normally goes straight from the browser to Ollama on your own computer and never passes through
+// here. Optionally (AGENT_API_KEY set) it can also relay to an OpenAI-compatible API.
 //
 // Environment variables (Vercel → Settings → Environment Variables):
 //   RESTRICTED_PASSWORD   the page's password (required)
-//   AGENT_API_KEY         API key of the model provider (required)
+//   AGENT_API_KEY         optional: API key of an online provider, if you also want the server-side chat
 //   AGENT_BASE_URL        provider's OpenAI-compatible base URL (default Groq: https://api.groq.com/openai/v1)
 //   AGENT_MODEL           model name (default llama-3.3-70b-versatile)
 // The rules (system prompt) are edited on the page and kept in the same Upstash Redis as the games.
 //
 //   POST /api/agent {action:"login", password}       → {token}   (token lasts 30 days)
-//   GET  /api/agent              (Authorization: Bearer token) → {rules, model}
+//   GET  /api/agent              (Authorization: Bearer token) → {rules, model, server}
 //   POST /api/agent {action:"rules", rules}   (Bearer)          → saves the rules
 //   POST /api/agent {action:"chat", messages} (Bearer)          → streams the reply (text/event-stream from the provider)
 
@@ -24,7 +25,7 @@ const R_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const R_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 // Tokens are signed with a secret derived from the password and the API key: changing either logs everyone out.
 const SECRET = crypto.createHash("sha256").update(`26awake-agent|${PASSWORD}|${KEY}`).digest();
-const TOKEN_DAYS = 30, MAX_FAILS = 10;
+const TOKEN_DAYS = 30, MAX_FAILS = 3; // 3 wrong passwords lock that connection out for an hour
 
 function send(res, status, body) {
   res.statusCode = status;
@@ -66,7 +67,7 @@ function samePassword(given) {
 }
 
 module.exports = async (req, res) => {
-  if (!PASSWORD || !KEY) return send(res, 200, { configured: false });
+  if (!PASSWORD) return send(res, 200, { configured: false });
   try {
     const b = req.method === "POST" ? await body(req) : {};
 
@@ -86,7 +87,7 @@ module.exports = async (req, res) => {
 
     if (req.method === "GET") {
       const [rules] = await redis(["GET", "agent:rules"]);
-      return send(res, 200, { configured: true, rules: rules || "", model: MODEL, saved: !!(R_URL && R_TOKEN) });
+      return send(res, 200, { configured: true, rules: rules || "", server: !!KEY, model: KEY ? MODEL : null, saved: !!(R_URL && R_TOKEN) });
     }
 
     if (b.action === "rules") {
@@ -97,6 +98,7 @@ module.exports = async (req, res) => {
     }
 
     if (b.action === "chat") {
+      if (!KEY) return send(res, 400, { error: "No online model is set up; use Ollama on this computer." });
       const messages = (Array.isArray(b.messages) ? b.messages : [])
         .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
         .slice(-40);
