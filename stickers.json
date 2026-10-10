@@ -1,0 +1,67 @@
+{
+  "stickers": [
+    {
+      "slot": "sidebar",
+      "src": "gifs/sick-girl.gif",
+      "alt": "Anime girl with a fever pack and face mask, crying",
+      "captions": [
+        "Me after one flea bite 😭",
+        "Fever + swollen lymph nodes? See a doctor!"
+      ]
+    },
+    {
+      "slot": "latest",
+      "src": "gifs/bocchi.gif",
+      "alt": "Bocchi crying",
+      "captions": [
+        "Me refreshing the news again…",
+        "Only trust verified sources, ok?"
+      ]
+    },
+    {
+      "slot": "map",
+      "src": "gifs/rainbow.gif",
+      "alt": "Anime girl throwing up a rainbow by a tree",
+      "captions": [
+        "Me after reading tabloid sources 🌈",
+        "Unverified headlines hit different"
+      ]
+    },
+    {
+      "slot": "footer",
+      "src": "gifs/begone-sickness.gif",
+      "alt": "Megumin casting a spell: Begone sickness",
+      "captions": [
+        "Plague is treatable with antibiotics if caught early!",
+        "EXPLOSION! …of antibiotics 💊"
+      ]
+    },
+    {
+      "slot": "trust",
+      "src": "gifs/god-bless.gif",
+      "alt": "Nagisa from Clannad shrugging: God bless this",
+      "captions": [
+        "When 2+ trusted sources confirm it 🙏",
+        "Verified. Blessed."
+      ]
+    },
+    {
+      "slot": "official",
+      "src": "gifs/pikachu-hospital.jpg",
+      "alt": "Pikachu in a hospital bed on oxygen",
+      "captions": [
+        "Pikachu waiting for the official statement",
+        "Get well soon, Pikachu 💛"
+      ]
+    },
+    {
+      "slot": "articles",
+      "src": "gifs/they-got-me.jpg",
+      "alt": "Anime girl crying: they got me.",
+      "captions": [
+        "Me after reading every single article",
+        "The headlines got me."
+      ]
+    }
+  ]
+}

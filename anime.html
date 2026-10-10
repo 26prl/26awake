@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>anime · 26awake</title>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <a class="scatter" href="./">go back</a>
+  <main class="anime">
+    <h1 data-avoid>anime</h1>
+    <div class="an-stage" data-avoid>
+      <video id="an-video" controls playsinline preload="metadata"></video>
+      <div class="an-under">
+        <p id="an-title" class="an-title"></p>
+        <button id="an-fav" class="g8-reset" type="button" hidden>☆ add to watchlist</button>
+      </div>
+      <p id="an-msg" class="small muted"></p>
+    </div>
+    <section id="an-continue" class="an-sec" data-avoid hidden><h2>continue watching</h2><ol class="an-list"></ol></section>
+    <section id="an-watchlist" class="an-sec" data-avoid hidden><h2>watchlist</h2><ol class="an-list"></ol></section>
+    <section id="an-all" class="an-sec" data-avoid><h2>all videos</h2><ol class="an-list"></ol></section>
+    <section id="an-history" class="an-sec" data-avoid hidden><h2>history</h2><ol class="an-list"></ol></section>
+    <section class="an-sec" data-avoid>
+      <p id="an-me" class="small muted"></p>
+      <div id="an-recovery" class="g8-recovery" hidden></div>
+    </section>
+  </main>
+  <script src="vendor/hls-1.5.15.min.js"></script>
+  <script src="players.js"></script>
+  <script src="anime.js"></script>
+  <script src="visits.js"></script>
+  <script src="scatter.js"></script>
+</body>
+</html>

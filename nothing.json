@@ -1,0 +1,7 @@
+{
+  "coffee": null,
+  "contacts": [
+    { "label": "telegram", "value": "@twenty6th", "url": "https://t.me/twenty6th" }
+  ],
+  "btc": { "address": "bc1qwsml3s0xlmgjzwmplxcpfuyc3neeylgqlxdxld", "qr": "btc-qr.svg" }
+}

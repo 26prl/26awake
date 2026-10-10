@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2048 · 26awake</title>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <a class="scatter" href="./">go back</a>
+  <main class="g8-page">
+    <div class="g8" data-avoid>
+      <div class="g8-head">
+        <h1>2048</h1>
+        <div class="g8-scores">
+          <div class="g8-sbox"><span>score</span><b id="g8-score">0</b></div>
+          <div class="g8-sbox"><span>best</span><b id="g8-best">0</b></div>
+        </div>
+      </div>
+      <div class="g8-board" id="g8-board" tabindex="0" aria-label="2048 board">
+        <div class="g8-grid" id="g8-grid"></div>
+        <div class="g8-overlay" id="g8-overlay" hidden>
+          <div id="g8-msg"></div>
+          <div class="g8-actions">
+            <button class="btn" id="g8-keep" type="button" hidden>Keep going</button>
+            <button class="btn" id="g8-new" type="button">New game</button>
+          </div>
+        </div>
+      </div>
+      <div class="g8-foot">
+        <span class="muted small">Arrows / WASD or swipe.</span>
+        <button class="g8-reset" id="g8-reset" type="button">Start over</button>
+      </div>
+      <section class="g8-rank" data-avoid>
+        <p id="g8-me" class="small"></p>
+        <h2>Ranking</h2>
+        <div id="g8-top"><p class="muted small">Loading…</p></div>
+        <div id="g8-recovery" class="g8-recovery" hidden></div>
+      </section>
+    </div>
+  </main>
+  <script src="players.js"></script>
+  <script src="g2048-core.js"></script>
+  <script src="games.js"></script>
+  <script src="visits.js"></script>
+  <script src="scatter.js"></script>
+</body>
+</html>

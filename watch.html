@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plague Watch · 26awake</title>
+  <meta name="description" content="Plague Watch on 26awake: live tracking of plague reports in Russia, rated by source trust.">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+</head>
+<body>
+  <div id="sync-bar" class="sync-bar" role="progressbar" aria-label="Checking for news" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="sync-fill"></div></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <header class="topbar">
+    <div class="brand"><a href="./" class="brand-home" title="26awake home"><img class="brand-logo" src="icons/logo-26awake.png" alt="26awake home" width="140" height="44"></a> <small>Plague Watch</small>
+      <nav class="site-nav" aria-label="Site"><a href="./">Home</a><a href="" aria-current="page" onclick="location.reload(); return false;">Refresh</a></nav>
+      <span class="sticker-slot slot-header" data-sticker-slot="header"></span></div>
+    <div class="topbar-actions">
+      <div id="update-status" class="update-status" aria-live="polite">
+        <span id="updated" class="muted"></span>
+        <span id="next-update" class="next"></span>
+      </div>
+      <button id="btn-new" class="btn">+ New topic</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <h2>Topics</h2>
+      <ul id="topic-list"></ul>
+      <div class="sticker-slot slot-sidebar" data-sticker-slot="sidebar"></div>
+      <button id="sticker-toggle" class="link-btn" type="button" aria-pressed="true" hidden>Hide stickers</button>
+      <details class="legend-box">
+        <summary>How sources are rated</summary>
+        <ul id="trust-legend"></ul>
+      </details>
+    </aside>
+
+    <main id="main">
+      <section id="empty" class="card hidden">
+        <h1>No topics yet</h1>
+        <p>Create a topic to start tracking it across news sites, WHO and RSS feeds.</p>
+      </section>
+
+      <section id="topic" class="hidden">
+        <div class="topic-head">
+          <div>
+            <h1 id="t-name"></h1>
+            <p id="t-desc" class="muted"></p>
+          </div>
+          <div class="topic-actions">
+            <button id="btn-refresh" class="btn">Refresh now</button>
+            <button id="btn-edit" class="btn ghost">Edit</button>
+          </div>
+        </div>
+
+        <div id="alert" class="alert hidden"></div>
+
+        <div class="stats">
+          <div class="stat"><span class="label">Last 24 h</span><span id="s-24h" class="value">–</span><span id="s-24h-sub" class="sub"></span></div>
+          <div class="stat"><span class="label">Trend (3 d vs prior 7 d)</span><span id="s-trend" class="value">–</span><span id="s-trend-sub" class="sub"></span></div>
+          <div class="stat"><span class="label">From trusted sources</span><span id="s-trusted" class="value">–</span><span id="s-trusted-sub" class="sub"></span></div>
+          <div class="stat"><span class="label">Latest official report</span><span id="s-official" class="value small">–</span><span id="s-run" class="sub"></span></div>
+        </div>
+
+        <div class="card" id="counts-card">
+          <div class="card-head">
+            <h3>Case count <span id="counts-sub" class="muted small"></span></h3>
+          </div>
+          <div id="count-tiles" class="count-tiles"></div>
+          <div class="count-details">
+            <div>
+              <h4>Where the numbers come from</h4>
+              <ul id="count-sources" class="mini-list"></ul>
+            </div>
+            <div>
+              <h4>Official position <span class="muted small">as reported by trusted and state media</span></h4>
+              <ul id="count-denials" class="mini-list"></ul>
+            </div>
+          </div>
+          <details id="count-unverified-box" class="hidden">
+            <summary>Higher figures that are <strong>not verified</strong></summary>
+            <ul id="count-unverified" class="mini-list"></ul>
+          </details>
+          <p class="muted small method">Counted automatically from headlines. A number is shown only if an official
+            health authority reported it, or at least two independent reputable outlets did; tabloids, unknown sites and
+            single reports never raise it. “Suspected” means not confirmed by a laboratory. Follow the links before relying on it.</p>
+        </div>
+
+        <div class="card" id="latest-card">
+          <div class="card-head">
+            <h3>Latest updates <span id="latest-sub" class="muted small"></span></h3>
+            <span class="sticker-slot slot-latest slot-inline" data-sticker-slot="latest"></span>
+          </div>
+          <ul id="latest" class="articles compact"></ul>
+        </div>
+
+        <div class="card hidden" id="ai-card">
+          <div class="card-head">
+            <h3>Situation brief <span class="muted small">AI analysis of the last 14 days</span></h3>
+            <button id="btn-analyze" class="btn ghost hidden">Generate brief</button>
+          </div>
+          <div id="ai-body"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>What can be trusted <span class="muted small">stories from the last 14 days, grouped by how well they are confirmed</span></h3>
+            <span class="sticker-slot slot-inline" data-sticker-slot="trust"></span>
+          </div>
+          <div id="levels" class="levels"></div>
+          <div id="stories"></div>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <div class="card-head">
+              <h3>Mentions per day <span class="muted small">by source trust</span></h3>
+              <select id="days" aria-label="Time range">
+                <option value="14">14 days</option>
+                <option value="30" selected>30 days</option>
+                <option value="90">90 days</option>
+              </select>
+            </div>
+            <div id="chart" class="chart"></div>
+            <div id="chart-legend" class="chips"></div>
+          </div>
+          <div class="card">
+            <h3>Source mix</h3>
+            <div id="mix" class="mix"></div>
+            <h3>Top sources</h3>
+            <ol id="sources" class="bars"></ol>
+            <h3>Languages</h3>
+            <div id="langs" class="chips"></div>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <div class="card-head">
+              <h3>Map <span class="muted small">regions in the news, last 30 days</span></h3>
+            </div>
+            <div id="map" class="map" role="region" aria-label="Map of regions mentioned"></div>
+            <div class="chips map-legend">
+              <span class="chip"><span class="swatch seg-official"></span>Official reports</span>
+              <span class="chip"><span class="swatch seg-reputable"></span>Trusted reports</span>
+              <span class="chip"><span class="swatch seg-unknown"></span>Unverified only</span>
+              <span class="chip"><span class="swatch ring"></span>Death reported (verified)</span>
+            </div>
+            <div class="sticker-slot slot-map" data-sticker-slot="map"></div>
+          </div>
+          <div class="card">
+            <h3>Regions <span class="muted small">last 30 days</span></h3>
+            <table class="facets"><thead><tr><th>Region</th><th>Articles</th><th>Trusted</th><th title="Verified suspected or confirmed infections">Infected</th><th>Deaths</th></tr></thead>
+              <tbody id="facets"></tbody></table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>Official updates</h3>
+            <span class="sticker-slot slot-inline" data-sticker-slot="official"></span>
+          </div>
+          <ul id="official" class="articles compact"></ul>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>All articles <span id="a-count" class="muted"></span></h3>
+            <span class="sticker-slot slot-inline" data-sticker-slot="articles"></span>
+            <div class="filters">
+              <input id="search" type="search" placeholder="Filter headlines…" aria-label="Filter headlines">
+              <select id="trust-filter" aria-label="Source trust">
+                <option value="">All sources</option>
+                <option value="trusted">Trusted only</option>
+              </select>
+              <select id="lang-filter" aria-label="Language"><option value="">All languages</option></select>
+            </div>
+          </div>
+          <ul id="articles" class="articles"></ul>
+          <button id="more" class="btn ghost wide hidden">Load more</button>
+        </div>
+
+        <details class="card">
+          <summary>Collection log</summary>
+          <table class="runs"><thead><tr><th>Time</th><th>Source</th><th>Fetched</th><th>Matched</th><th>New</th><th>Status</th></tr></thead>
+            <tbody id="runs"></tbody></table>
+        </details>
+      </section>
+
+      <footer class="site-footer">
+        <div class="sticker-slot slot-footer" data-sticker-slot="footer"></div>
+        <p class="muted small">26awake keeps watch on public news automatically. Numbers are approximate — always check the
+          linked sources and follow official health guidance.</p>
+      </footer>
+    </main>
+  </div>
+
+  <dialog id="dlg">
+    <form id="topic-form" method="dialog">
+      <h2 id="dlg-title">New topic</h2>
+      <label>Name <input name="name" required placeholder="Plague in Russia"></label>
+      <label>Description <input name="description" placeholder="What are you watching for?"></label>
+      <label>Search queries <small>one per line, as <code>lang: query</code> (en, ru, uk, de, fr, es, kk)</small>
+        <textarea name="queries" rows="4" placeholder="ru: чума Россия&#10;en: plague Russia"></textarea></label>
+      <label class="inline"><input name="who" type="checkbox"> Include WHO (Disease Outbreak News + WHO news)</label>
+      <label>RSS / Atom feeds <small>one URL per line, optional</small>
+        <textarea name="feeds" rows="2" placeholder="https://example.com/rss"></textarea></label>
+      <label>Must match <small>one group per line; each line = comma-separated alternatives, all lines must hit</small>
+        <textarea name="match" rows="3" placeholder="чум, plague&#10;росси, russia"></textarea></label>
+      <label>Exclude <small>comma-separated</small> <input name="exclude" placeholder="plague inc"></label>
+      <label>Regions <small>one per line, as <code>Name: keyword, keyword @ latitude, longitude</code> (coordinates put it on the map)</small>
+        <textarea name="facets" rows="3" placeholder="Altai Republic: алта, altai @ 51.0, 86.5&#10;Tuva: тыв, tuva @ 51.72, 94.45"></textarea></label>
+      <label>Check every (minutes) <input name="interval_minutes" type="number" min="5" value="30"></label>
+      <label class="inline"><input name="enabled" type="checkbox" checked> Enabled</label>
+      <p id="form-error" class="error"></p>
+      <div class="dlg-actions">
+        <button type="button" id="btn-delete" class="btn danger hidden">Delete topic</button>
+        <span class="spacer"></span>
+        <button type="button" id="btn-cancel" class="btn ghost">Cancel</button>
+        <button type="submit" class="btn">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+  <script src="stickers.js"></script>
+  <script src="visits.js"></script>
+</body>
+</html>

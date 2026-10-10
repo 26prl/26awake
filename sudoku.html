@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sudoku · 26awake</title>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <a class="scatter" href="./">go back</a>
+  <main class="g8-page">
+    <div class="sd" data-avoid>
+      <div class="g8-head">
+        <h1>Sudoku</h1>
+        <div class="g8-scores">
+          <div class="g8-sbox"><span>time</span><b id="sd-time">0.0 s</b></div>
+        </div>
+      </div>
+      <div class="ms-diff" role="group" aria-label="Difficulty">
+        <button type="button" data-diff="easy">easy</button><button type="button" data-diff="medium">medium</button><button type="button" data-diff="hard">hard</button>
+      </div>
+      <div class="sd-board">
+        <div id="sd-grid" class="sd-grid" aria-label="Sudoku grid"></div>
+        <div id="sd-cover" class="sd-cover"><p id="sd-cover-text">sudoku</p><button id="sd-go" class="btn" type="button">Start</button></div>
+      </div>
+      <div class="sd-pad">
+        <button type="button" data-d="1">1</button><button type="button" data-d="2">2</button><button type="button" data-d="3">3</button>
+        <button type="button" data-d="4">4</button><button type="button" data-d="5">5</button><button type="button" data-d="6">6</button>
+        <button type="button" data-d="7">7</button><button type="button" data-d="8">8</button><button type="button" data-d="9">9</button>
+        <button type="button" id="sd-notes" class="tool" aria-pressed="false">✎ notes</button>
+        <button type="button" id="sd-erase" class="tool">erase</button>
+      </div>
+      <p id="sd-result" class="ms-result"></p>
+      <div class="g8-foot">
+        <span class="muted small">Tap a cell, then a number. Keys: 1–9, arrows, Backspace, N for notes.</span>
+        <button class="g8-reset" id="sd-new" type="button">New puzzle</button>
+      </div>
+      <section class="g8-rank">
+        <p id="sd-me" class="small"></p>
+        <h2 id="sd-rank-title">Ranking</h2>
+        <div id="sd-top"><p class="muted small">Loading…</p></div>
+        <div id="sd-recovery" class="g8-recovery" hidden></div>
+      </section>
+    </div>
+  </main>
+  <script src="players.js"></script>
+  <script src="sudoku-core.js"></script>
+  <script src="sudoku.js"></script>
+  <script src="visits.js"></script>
+  <script src="scatter.js"></script>
+</body>
+</html>
