@@ -1,6 +1,7 @@
 "use strict";
 // Glitch effects for the home page and the games: scanlines, RGB-split bursts on the logo, titles and links,
-// scrambled letters, inverted "screen tear" strips and, on the home page, a whole-screen jolt now and then.
+// scrambled letters, squares and rectangles popping out in clusters, inverted "screen tear" strips and, on the
+// home page, a whole-screen jolt now and then.
 // Links glitch while hovered, and a link on the home page glitches hard before it opens.
 // Everything sits on top with pointer-events: none, so it never gets in the way of playing.
 // With "reduce motion" switched on in the system settings only the scanlines stay.
@@ -87,6 +88,54 @@
     }
   }
 
+  // ---- blocks: squares and rectangles that pop out in clusters, like corrupted pixels ----
+  // In the games they stay off the board and the ranking ([data-avoid]), so they never hide anything.
+  const STYLES = [
+    (c) => ({ background: c }),
+    (c) => ({ background: `repeating-linear-gradient(0deg, ${c} 0 2px, transparent 2px 4px)` }),
+    (c) => ({ background: `repeating-linear-gradient(90deg, ${c} 0 3px, ${pick(COLORS)} 3px 6px)` }),
+    (c) => ({ background: `repeating-conic-gradient(${c} 0 25%, ${pick(COLORS)} 0 50%) 0 0 / ${pick([4, 6, 8])}px ${pick([4, 6, 8])}px` }),
+    (c) => ({ outline: `2px solid ${c}`, outlineOffset: "-2px" }),
+    () => ({ backdropFilter: `invert(1) hue-rotate(${Math.round(rnd(0, 360))}deg)`, webkitBackdropFilter: "invert(1)" }),
+    () => ({ background: "#111" }),
+  ];
+  const avoid = () => (home ? [] : [...document.querySelectorAll("[data-avoid]")].map((e) => e.getBoundingClientRect()));
+  const overlaps = (x, y, w, h, rs) => rs.some((r) => x < r.right + 6 && x + w > r.left - 6 && y < r.bottom + 6 && y + h > r.top - 6);
+
+  function blocks(n = 1, big = false) {
+    const W = innerWidth, H = innerHeight, rs = avoid();
+    for (let k = 0; k < n; k++) {
+      // a cluster: one spot, a few pieces stacked in rows next to it
+      let cx = 0, cy = 0, ok = false;
+      for (let t = 0; t < 30 && !ok; t++) {
+        cx = rnd(0, W - 40); cy = rnd(0, H - 30);
+        ok = !overlaps(cx, cy, 120, 80, rs);
+      }
+      if (!ok) continue;
+      const pieces = Math.ceil(rnd(1, big ? 9 : 6));
+      const life = rnd(90, big ? 500 : 350);
+      for (let i = 0; i < pieces; i++) {
+        const w = Math.round(pick([rnd(4, 14), rnd(14, 60), rnd(40, big ? 260 : 140)]));
+        const h = Math.round(pick([w, rnd(3, 10), rnd(8, big ? 90 : 40)])); // squares, thin bars, rectangles
+        const x = cx + rnd(-30, 90), y = cy + rnd(-20, 60);
+        if (overlaps(x, y, w, h, rs)) continue;
+        const d = document.createElement("div");
+        d.className = "gl-block" + (Math.random() < 0.5 ? " gl-flick" : "");
+        Object.assign(d.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` }, pick(STYLES)(pick(COLORS)));
+        if (Math.random() < 0.3) d.style.mixBlendMode = pick(["difference", "multiply", "exclusion"]);
+        document.body.append(d);
+        // some jump sideways once before vanishing
+        if (home && Math.random() < 0.4) setTimeout(() => { d.style.translate = `${rnd(-60, 60)}px ${rnd(-6, 6)}px`; }, life / 2);
+        setTimeout(() => d.remove(), life * rnd(0.6, 1.2));
+      }
+    }
+  }
+
+  (function popLoop() {
+    if (!document.hidden) blocks(home ? Math.ceil(rnd(0, 3)) : 1);
+    setTimeout(popLoop, home ? rnd(350, 1500) : rnd(2500, 7000));
+  })();
+
   function jolt(ms = 140) {
     document.documentElement.classList.add("gl-jolt");
     setTimeout(() => document.documentElement.classList.remove("gl-jolt"), ms);
@@ -99,6 +148,7 @@
         if (Math.random() < 0.7) glitchLogo();
         for (const t of texts) if (Math.random() < 0.35) glitchText(t);
         if (Math.random() < 0.6) tear(Math.ceil(rnd(0, 4)));
+        if (Math.random() < 0.5) blocks(Math.ceil(rnd(1, 4)), Math.random() < 0.3);
         if (Math.random() < 0.15) jolt();
       } else {
         for (const t of texts) if (Math.random() < 0.5) glitchText(t);
@@ -115,7 +165,7 @@
       a.addEventListener("click", (e) => {
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
         e.preventDefault();
-        glitchText(a, 400); glitchLogo(400, true); tear(6, true); jolt(300);
+        glitchText(a, 400); glitchLogo(400, true); tear(6, true); blocks(6, true); jolt(300);
         setTimeout(() => { location.href = a.href; }, 320);
       });
     }

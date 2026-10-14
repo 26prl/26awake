@@ -162,5 +162,8 @@ a { color: inherit; }
 .logo.gl-split { filter: drop-shadow(-4px 0 #ff00aa) drop-shadow(4px 0 #00ffd5); }
 .gl-tear { position: fixed; left: -40px; right: -40px; z-index: 60; pointer-events: none;
   backdrop-filter: invert(1); -webkit-backdrop-filter: invert(1); }
+.gl-block { position: fixed; z-index: 55; pointer-events: none; }
+.gl-flick { animation: gl-flick .12s steps(1) infinite; }
+@keyframes gl-flick { 50% { opacity: 0; } }
 .gl-jolt body { translate: 6px -3px; filter: hue-rotate(160deg) saturate(3) contrast(1.4); }
 @media (prefers-reduced-motion: reduce) { .gl-txt::before, .gl-txt::after { display: none; } }
