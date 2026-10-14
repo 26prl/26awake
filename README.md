@@ -132,9 +132,10 @@ browser's user agent / client hints, iPads posing as Macs (Mac + touchscreen), a
 (Linux + touchscreen only). Windows and Chromebook touchscreen laptops are let in. A computer that opens
 `/mobile.html` is sent home. It's a check in the browser, so a determined person can get around it.
 
-**Fake ad** (`static/fake-ad.gif`, top of the game pages): a 728×90 parody banner — a visitor counter rolls to
-1.000.000, WINNER!!, then "CONGRATULATIONS!!! you are our 1.000.000th player" with a button the cursor clicks.
-It looks clickable (pointer, presses in) but goes nowhere.
+**Banner slot** (top of the game pages, `static/banners.js`): one of the parody ads in `static/banners/`
+(animated WebP, 728×90) picked at random when the browser session starts; it stays the same while browsing and
+changes after a browser restart (never the same one twice in a row). Clickable-looking, goes nowhere. To add one,
+put the file in `static/banners/` and add its name to the list in `banners.js`.
 
 **Glitch effects** (`static/glitch.js`, on the home page and the games): faint scanlines, random bursts where the
 logo, links and titles split into colours, slice and scramble their letters, "screen tear" strips that invert what's
