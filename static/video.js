@@ -1,7 +1,7 @@
 "use strict";
 // The music videos on the home page.
-//  * The box (#mv-box, under the logo) plays the clips listed in videos.json one after another, in a new random
-//    order on every visit, and starts over when it reaches the end. Muted at first (browsers only autoplay without
+//  * The box (#mv-box, under the logo) plays the clips listed in videos.json one after another, in the order they're
+//    listed (always starting from #1), and starts over from #1 after the last one. Muted at first (browsers only autoplay without
 //    sound); "sound on" turns the sound on (and it stays on for the next clips), "next" skips. Full screen is
 //    switched off. Between clips the page glitches hard (the "mv-switch" event, glitch.js).
 //  * A second, silent copy fills the whole screen behind a clip mask, so it's invisible except through "holes":
@@ -35,7 +35,6 @@
     }
     return c;
   };
-  const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
   let clips = [], at = 0, wantSound = false, player = null, ghost = null, ghostWrap = null, ghostFrame = null, fails = 0;
   const holes = new Set();
@@ -75,7 +74,6 @@
 
   function go(i) { // switch both players to clip i, with a glitch
     at = (i + clips.length) % clips.length;
-    if (at === 0 && clips.length > 2) { const last = clips[clips.length - 1]; shuffle(clips); if (clips[0] === last) clips.push(clips.shift()); }
     dispatchEvent(new Event("mv-switch"));
     wantSound = !player.isMuted(); // also catches YouTube's own speaker button
     btn.textContent = wantSound ? "sound off" : "sound on";
@@ -137,7 +135,7 @@
   skip.onclick = () => { if (player && player.loadVideoById) go(at + 1); };
 
   fetch("videos.json", { cache: "no-cache" }).then((r) => r.json()).then((d) => {
-    clips = shuffle((d.videos || []).map(clipOf).filter(Boolean));
+    clips = (d.videos || []).map(clipOf).filter(Boolean);
     if (clips.length) start(); else box.hidden = true;
   }).catch(() => { box.hidden = true; });
 })();
