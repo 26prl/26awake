@@ -126,14 +126,9 @@ to show it as suspected). Remove the entry to go back to the computed figure.
 scattered at random spots in clashing colours (`static/scatter.js`). The game pages have a "go back" link fixed in
 the top-left corner. Everything is styled by `static/site.css` (white, system font).
 
-**Moving to a new domain** (`static/migrate.js`, first script on every page): players, best scores, unfinished
-games and settings live in each browser's storage for one domain, so the old domain must not redirect on the server.
-`NEW_HOST` in `migrate.js` is **26awake.net** (twenty6.net and www.26awake.net forward to it). Keep the old domain
-attached to the Vercel project as a normal domain; before forwarding, the old site checks the new one is up (loads
-the logo from it) and otherwise lets the visitor stay;
-visitors to the old one are sent to the same page on the new one with their saved data carried along after `#`
-(never sent to a server), and the new domain saves it (never overwriting what's already there; best score keeps the
-higher).
+**Domain**: the site lives on **26awake.net**. twenty6.net, www.twenty6.net and www.26awake.net redirect there on
+the server (`deploy/vercel.json`, permanent, same path). Players, rankings and nicknames are on the server, so they
+carry over; a browser's saved player doesn't, so returning players use their recovery code on the new domain.
 
 **Computers only** (`static/pc-only.js`, first thing in every page's `<head>`): phones and tablets are sent to
 `/mobile.html` ("computers only." — come back on a PC or laptop), before the page is drawn. Detected from the

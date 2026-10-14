@@ -21,6 +21,39 @@
   ],
   "redirects": [
     {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "twenty6.net"
+        }
+      ],
+      "destination": "https://26awake.net/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.twenty6.net"
+        }
+      ],
+      "destination": "https://26awake.net/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.26awake.net"
+        }
+      ],
+      "destination": "https://26awake.net/:path*",
+      "permanent": true
+    },
+    {
       "source": "/watch.html",
       "destination": "/",
       "permanent": false
