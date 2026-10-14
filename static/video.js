@@ -1,8 +1,8 @@
 "use strict";
 // The music videos on the home page.
-//  * The box (#mv-box, under the logo) plays the clips listed in videos.json one after another, in the order they're
-//    listed (always starting from #1), and starts over from #1 after the last one. Muted at first (browsers only autoplay without
-//    sound); "sound on" turns the sound on (and it stays on for the next clips), "next" skips. Full screen is
+//  * The box (#mv-box, under the logo) plays the clips listed in videos.json one after another, each one once per
+//    round, in a new random order every visit and every round (never the same clip twice in a row). Muted at first
+//    (browsers only autoplay without sound); "sound on" turns the sound on (and it stays on for the next clips), "next" skips. Full screen is
 //    switched off. Between clips the page glitches hard (the "mv-switch" event, glitch.js).
 //  * A second, silent copy fills the whole screen behind a clip mask, so it's invisible except through "holes":
 //    glitch.js calls videoWindow(x, y, w, h, ms) and for that moment a rectangle of the page shows the video.
@@ -36,6 +36,7 @@
     return c;
   };
 
+  const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   let clips = [], at = 0, wantSound = false, player = null, ghost = null, ghostWrap = null, ghostFrame = null, fails = 0;
   const holes = new Set();
 
@@ -74,6 +75,11 @@
 
   function go(i) { // switch both players to clip i, with a glitch
     at = (i + clips.length) % clips.length;
+    if (i >= clips.length && clips.length > 1) {        // a round is over: shuffle again, not starting with the last one
+      const last = clips[clips.length - 1];
+      do shuffle(clips); while (clips[0] === last);
+      at = 0;
+    }
     dispatchEvent(new Event("mv-switch"));
     wantSound = !player.isMuted(); // also catches YouTube's own speaker button
     btn.textContent = wantSound ? "sound off" : "sound on";
@@ -135,7 +141,7 @@
   skip.onclick = () => { if (player && player.loadVideoById) go(at + 1); };
 
   fetch("videos.json", { cache: "no-cache" }).then((r) => r.json()).then((d) => {
-    clips = (d.videos || []).map(clipOf).filter(Boolean);
+    clips = shuffle((d.videos || []).map(clipOf).filter(Boolean));
     if (clips.length) start(); else box.hidden = true;
   }).catch(() => { box.hidden = true; });
 })();

@@ -151,7 +151,7 @@ hard before it opens. The games get rarer, quieter bursts that never cover the b
 motion" on in the system settings only the scanlines stay.
 
 **Music videos** (`static/video.js`, home page): a box under the logo plays the YouTube clips listed in
-`static/videos.json` one after another, in the listed order (from #1, back to #1 after the last) (muted until
+`static/videos.json` one after another, each once per round, in a new random order every visit and every round (muted until
 "sound on", "next" skips, no full screen: the frames are built without `allowfullscreen`). Switching clips makes the
 page glitch hard. A second, silent copy covers the whole screen behind a clip mask and only shows through some of
 the glitch rectangles, kept on the same clip and moment as the box. Clips that can't be played are skipped.
