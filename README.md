@@ -126,6 +126,11 @@ to show it as suspected). Remove the entry to go back to the computed figure.
 scattered at random spots in clashing colours (`static/scatter.js`). The game pages have a "go back" link fixed in
 the top-left corner. Everything is styled by `static/site.css` (white, system font).
 
+**Lost recovery codes** (`/admin.html`, not linked anywhere): the server keeps only a hash of each player's key, so
+a code can't be looked up — but the owner can issue a new one. Set `ADMIN_KEY` (12+ characters, your own secret) in
+Vercel → Settings → Environment Variables and redeploy; then open `/admin.html`, enter it and the player's nickname or
+number. The player keeps their number, nickname and rankings; the old code stops working.
+
 **Domain**: the site lives on **26awake.net**. twenty6.net, www.twenty6.net and www.26awake.net redirect there on
 the server (`deploy/vercel.json`, permanent, same path). Players, rankings and nicknames are on the server, so they
 carry over; a browser's saved player doesn't, so returning players use their recovery code on the new domain.

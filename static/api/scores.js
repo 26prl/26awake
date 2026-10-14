@@ -8,6 +8,7 @@
 //
 //   GET  /api/scores?id=N                         top 20 + player N's rank and stats
 //   POST /api/scores {action:"register"}          → {id, key}
+//   POST /api/scores {action:"reissue", admin, player}  → {id, name, code}   (owner only, see below)
 //   POST /api/scores {action:"whoami", id, key}   → player's standing (403 if the key is wrong)
 //   POST /api/scores {action:"name", id, key, name} → set the player's nickname (once, final, unique)
 //   POST /api/scores {action:"start", id, key}    → {game, seed}
@@ -139,6 +140,23 @@ module.exports = async (req, res) => {
       const [id] = await redis(["INCR", "players"]);
       await redis(["HSET", `p:${id}`, "key", sha(key), "joined", new Date().toISOString(), "games", "0", "points", "0", "tile", "0"]);
       return send(res, 200, { id, key });
+    }
+
+    // Owner only: a new recovery code for a player who lost theirs (same number, nickname and rankings; the old
+    // code stops working). Needs ADMIN_KEY, set only in Vercel's environment variables. Used by admin.html.
+    if (b.action === "reissue") {
+      const admin = process.env.ADMIN_KEY || "";
+      const given = String(b.admin || "");
+      const ok = admin.length >= 12 && given.length === admin.length
+        && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(admin));
+      if (!ok) { await new Promise((r) => setTimeout(r, 1500)); return send(res, 403, { error: admin ? "wrong admin key" : "ADMIN_KEY is not set up" }); }
+      let pid = toInt(b.player);
+      if (!pid) { const [found] = await redis(["HGET", "names", String(b.player || "").trim().toLowerCase()]); pid = toInt(found); }
+      const [exists, name] = pid > 0 ? await redis(["HGET", `p:${pid}`, "key"], ["HGET", `p:${pid}`, "name"]) : [null, null];
+      if (!exists) return send(res, 404, { error: "no such player" });
+      const key = crypto.randomBytes(16).toString("hex");
+      await redis(["HSET", `p:${pid}`, "key", sha(key)]);
+      return send(res, 200, { id: pid, name, code: `26awake-${pid}-${key}` });
     }
 
     const id = toInt(b.id);
