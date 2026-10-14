@@ -17,13 +17,20 @@
   </script>
 </head>
 <body class="home">
-  <img class="logo" src="icons/logo-26awake.png" alt="26awake" width="459" height="144" data-avoid>
+  <div class="home-center">
+    <img class="logo" src="icons/logo-26awake.png" alt="26awake" width="459" height="144" data-avoid>
+    <div class="mv" id="mv-box" data-avoid>
+      <div id="mv-player"></div>
+      <button class="mv-sound" id="mv-sound" type="button" hidden>sound on</button>
+    </div>
+  </div>
   <a class="scatter" href="2048.html">2048</a>
   <a class="scatter" href="minesweeper.html">minesweeper</a>
   <a class="scatter" href="sudoku.html">sudoku</a>
   <p id="visits" class="visits" data-avoid hidden></p>
   <script src="visits.js"></script>
   <script src="scatter.js"></script>
+  <script src="video.js"></script>
   <script src="glitch.js"></script>
 </body>
 </html>

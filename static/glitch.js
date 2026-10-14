@@ -119,6 +119,8 @@
         const h = Math.round(pick([w, rnd(3, 10), rnd(8, big ? 90 : 40)])); // squares, thin bars, rectangles
         const x = cx + rnd(-30, 90), y = cy + rnd(-20, 60);
         if (overlaps(x, y, w, h, rs)) continue;
+        // on the home page some pieces are holes that show the music video instead (video.js)
+        if (window.videoWindow && w >= 20 && h >= 14 && Math.random() < 0.4) { window.videoWindow(x, y, w, h, life * rnd(0.8, 1.6)); continue; }
         const d = document.createElement("div");
         d.className = "gl-block" + (Math.random() < 0.5 ? " gl-flick" : "");
         Object.assign(d.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` }, pick(STYLES)(pick(COLORS)));
@@ -133,6 +135,11 @@
 
   (function popLoop() {
     if (!document.hidden) blocks(home ? Math.ceil(rnd(0, 3)) : 1);
+    // now and then a bigger window into the video, on its own
+    if (!document.hidden && window.videoWindow && Math.random() < 0.3) {
+      const w = rnd(90, Math.min(340, innerWidth * 0.6)), h = rnd(40, w * 0.6);
+      window.videoWindow(rnd(0, innerWidth - w), rnd(0, innerHeight - h), w, h, rnd(250, 900));
+    }
     setTimeout(popLoop, home ? rnd(350, 1500) : rnd(2500, 7000));
   })();
 

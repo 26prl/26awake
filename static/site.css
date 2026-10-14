@@ -10,6 +10,17 @@ a { color: inherit; }
 .back { position: fixed; top: 12px; left: 16px; z-index: 30; padding: 2px 6px; background: #fff; color: #111; text-decoration: underline; white-space: nowrap; }
 .home { position: relative; min-height: 100vh; overflow: hidden; }
 .home .logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(460px, 80vw); height: auto; }
+/* logo with the music video under it, together in the middle */
+.home-center { position: absolute; inset: 0 0 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; pointer-events: none; }
+.home-center > * { pointer-events: auto; }
+.home-center .logo { position: static; transform: none; width: min(460px, 80vw, 90vh); }
+.mv { width: min(380px, 84vw, calc((72vh - 96px) * 16 / 9)); } /* logo + video + button fit short screens too */
+.mv iframe, #mv-player { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border: 0; background: #000; }
+.mv-sound { display: block; margin: 6px auto 0; padding: 0; border: 0; background: none; font: inherit; font-size: .85rem; color: #111; text-decoration: underline; cursor: pointer; }
+.mv-sound[hidden] { display: block; visibility: hidden; } /* keeps its space until the player is ready */
+/* the silent full-screen copy, seen only through glitch holes (video.js) */
+.mv-ghost { position: fixed; inset: 0; z-index: 45; overflow: hidden; pointer-events: none; }
+.mv-ghost iframe { position: absolute; border: 0; pointer-events: none; }
 .btn { padding: 8px 18px; border: 1px solid #111; background: #fff; color: #111; font: inherit; cursor: pointer; }
 .btn:hover { background: #111; color: #fff; }
 
