@@ -33,7 +33,9 @@ a { color: inherit; }
 .empty { padding: 32px 16px; text-align: center; color: #777; border: 1px dashed #ccc; }
 
 /* ---- game: 2048 ---- */
-.g8-page { min-height: 100vh; display: grid; place-items: center; padding: 56px 16px 72px; }
+.g8-page { min-height: 100vh; display: grid; place-items: center; align-content: start; gap: 28px; padding: 56px 16px 72px; }
+/* the fake "1.000.000th player" ad at the top of the game pages */
+.fake-ad { display: block; width: min(728px, 100%); height: auto; image-rendering: auto; }
 .g8 { width: min(440px, 100%); }
 .g8-head { display: flex; justify-content: space-between; align-items: end; margin-bottom: 14px; }
 .g8-head h1 { margin: 0; font-size: 3rem; line-height: 1; letter-spacing: -.03em; }
