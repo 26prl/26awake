@@ -12,6 +12,7 @@
 </head>
 <body class="home lost">
   <canvas class="lost-static" id="lost-static" aria-hidden="true"></canvas>
+  <div class="lost-crt" aria-hidden="true"></div>
   <div class="home-center lost-center">
     <!-- the hand-drawn 404 (icons/404.png); if it can't load, the typed 404 shows instead -->
     <img class="logo lost-art" src="/icons/404.png" alt="404" data-avoid
@@ -24,17 +25,36 @@
   <a class="scatter" href="/minesweeper.html">minesweeper</a>
   <a class="scatter" href="/sudoku.html">sudoku</a>
   <script>
-    // TV static behind everything: a tiny noise canvas, stretched over the page, redrawn ~12 times a second
+    // Old-TV static behind everything: fine colour-speckled grain (a third of the screen's resolution, stretched),
+    // a brighter tracking band rolling down, scanlines and a vignette (CSS), and a short burst of heavier snow
+    // every few seconds. Redrawn ~15 times a second; a single still frame with "reduce motion".
     (() => {
       const c = document.getElementById("lost-static"), x = c.getContext("2d");
-      c.width = 160; c.height = 90;
-      const img = x.createImageData(160, 90);
-      const draw = () => {
-        for (let i = 0; i < img.data.length; i += 4) { const v = Math.random() * 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
-        x.putImageData(img, 0, 0);
+      let img, px, w, h, band = 0, burst = 0;
+      const size = () => {
+        w = c.width = Math.ceil(innerWidth / 3); h = c.height = Math.ceil(innerHeight / 3);
+        img = x.createImageData(w, h); px = new Uint32Array(img.data.buffer);
       };
-      draw();
-      if (!matchMedia("(prefers-reduced-motion: reduce)").matches) setInterval(() => { if (!document.hidden) draw(); }, 80);
+      const draw = () => {
+        const bandH = h * .12, heavy = burst > 0;
+        for (let y = 0; y < h; y++) {
+          const inBand = Math.abs(y - band) < bandH;
+          const lift = inBand ? 70 * (1 - Math.abs(y - band) / bandH) : 0;   // the band is brighter
+          const shift = inBand ? (Math.random() * 6 | 0) : 0;               // and torn sideways a little
+          for (let i = 0; i < w; i++) {
+            const g = Math.random() * (heavy ? 255 : 200) + 40 + lift;
+            const k = Math.random() < .06 ? 60 : 0;                         // a few coloured speckles
+            const r = Math.min(255, g + (Math.random() < .5 ? k : 0)), b = Math.min(255, g + (Math.random() < .5 ? k : 0));
+            px[y * w + ((i + shift) % w)] = (255 << 24) | (b << 16) | (Math.min(255, g) << 8) | r;
+          }
+        }
+        x.putImageData(img, 0, 0);
+        band = (band + h / 70) % (h + bandH * 2);
+        c.classList.toggle("burst", heavy);
+        if (burst > 0) burst--; else if (Math.random() < .008) burst = 3 + (Math.random() * 4 | 0);
+      };
+      size(); draw(); addEventListener("resize", () => { size(); draw(); });
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches) setInterval(() => { if (!document.hidden) draw(); }, 66);
     })();
   </script>
   <script src="/visits.js"></script>
