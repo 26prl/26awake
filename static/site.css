@@ -191,17 +191,12 @@ a { color: inherit; }
 .nope-box p { margin: 0; color: #555; max-width: 30ch; }
 .nope-url { margin-top: 8px !important; font-size: 1.4rem; font-weight: 700; color: #111 !important; background: #b6ff00; padding: 2px 10px; }
 
-/* ---- mini music-video player on the game pages (music.js) ---- */
-.mini-mv { position: fixed; right: 16px; bottom: 16px; z-index: 66; width: 356px; background: #111; color: #fff;
-  box-shadow: 4px 4px 0 #ff00aa, -4px -4px 0 #00ffd5; }
+/* ---- mini music-video player on the game pages (music.js), same look as the home page box ---- */
+.mini-mv { position: fixed; right: 16px; bottom: 16px; z-index: 66; width: 356px; background: #fff; padding-bottom: 4px; }
 .mini-mv[hidden] { display: none; }
 .mini-mv-video iframe { display: block; width: 356px; height: 200px; border: 0; background: #000; }
-.mini-mv-bar { display: flex; align-items: center; gap: 12px; padding: 5px 8px; font-size: .78rem; }
-.mini-mv-now { flex: 1; color: #b6ff00; font-variant-numeric: tabular-nums; }
-.mini-mv-bar button { padding: 0; border: 0; background: none; color: #fff; font: inherit; text-decoration: underline; cursor: pointer; }
-.mini-mv-bar button[data-a="close"] { text-decoration: none; font-size: 1.1rem; line-height: 1; }
-.mini-mv-pill { position: fixed; right: 16px; bottom: 16px; z-index: 66; padding: 6px 12px; border: 0; background: #111; color: #b6ff00;
-  font: inherit; font-size: .85rem; cursor: pointer; box-shadow: 3px 3px 0 #ff00aa; }
+.mini-mv-pill { position: fixed; right: 16px; bottom: 16px; z-index: 66; padding: 0; border: 0; background: none; color: #111;
+  font: inherit; font-size: .85rem; text-decoration: underline; cursor: pointer; }
 .mini-mv-pill[hidden] { display: none; }
 .mini-mv.docked:not([hidden]), .mini-mv-pill.docked:not([hidden]) { position: static; margin: 0 auto 48px; }
 .mini-mv-pill.docked:not([hidden]) { display: block; }

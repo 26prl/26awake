@@ -155,7 +155,7 @@ motion" on in the system settings only the scanlines stay.
 random order (reshuffled every round, never the same clip twice in a row). Home: a box under the logo, plus a silent
 full-screen copy that shows through some of the glitch rectangles; switching clips glitches the page. Game pages: a
 mini player in the bottom-right corner (moves to the bottom of the page when it would cover a wide board), × closes
-it and "♪ music" opens it again. Which clip, how far in and whether the sound is on are remembered (3 hours), so the
+it and "music" opens it again. Same look as the home page box. Which clip, how far in and whether the sound is on are remembered (3 hours), so the
 music carries on between pages; sound that was on comes back with the first click or key press on a new page
 (browsers don't allow it sooner). Muted until "sound on"; no full screen (frames are built without
 `allowfullscreen`). `videos.json`: `{"videos": ["https://youtu.be/…", {"id": "…", "start": 30, "end": 75}]}`

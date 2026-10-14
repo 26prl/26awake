@@ -2,8 +2,8 @@
 // The mini music-video player on the game pages: a small player in the bottom-right corner playing the same clips
 // as the home page box, carrying on where the music was (mvqueue.js). Muted until "sound on"; once the sound is on
 // it stays on across clips and pages (it comes back with the first click or key press on a new page, because
-// browsers don't allow sound before that). "next" skips, × closes it (and it stays closed until "♪ music" opens it
-// again). No full screen. Kept at YouTube's minimum player size (200 px high). On screens where the corner would
+// browsers don't allow sound before that). "next" skips, "close" closes it (and it stays closed until "music" opens
+// it again). Looks like the box on the home page. No full screen. Kept at YouTube's minimum player size (200 px high). On screens where the corner would
 // cover the game board, it sits at the bottom of the page instead.
 
 (() => {
@@ -17,17 +17,13 @@
   const box = document.createElement("div");
   box.className = "mini-mv"; box.setAttribute("data-avoid", "");
   box.innerHTML = `<div class="mini-mv-video"><div id="mini-mv-player"></div></div>
-    <div class="mini-mv-bar"><span class="mini-mv-now"></span><button type="button" data-a="sound">sound on</button>
-    <button type="button" data-a="next">next</button><button type="button" data-a="close" aria-label="close">×</button></div>`;
-  const pill = Object.assign(document.createElement("button"), { type: "button", className: "mini-mv-pill", textContent: "♪ music" });
+    <div class="mv-ctl"><button class="mv-sound" type="button" data-a="sound">sound on</button>
+    <button class="mv-sound" type="button" data-a="next">next</button><button class="mv-sound" type="button" data-a="close">close</button></div>`;
+  const pill = Object.assign(document.createElement("button"), { type: "button", className: "mini-mv-pill", textContent: "music" });
   const $ = (a) => box.querySelector(`[data-a="${a}"]`);
-  const now = box.querySelector(".mini-mv-now");
 
   let player = null, wantSound = false, fails = 0, started = false;
-  const label = () => {
-    $("sound").textContent = wantSound ? "sound off" : "sound on";
-    now.textContent = `♪ ${Q.at + 1} / ${Q.clips.length}`;
-  };
+  const label = () => { $("sound").textContent = wantSound ? "sound off" : "sound on"; };
   const save = () => { if (player && player.getCurrentTime) Q.save(player.getCurrentTime()); };
 
   function frame(clip) {
