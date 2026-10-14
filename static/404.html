@@ -13,10 +13,10 @@
 <body class="home lost">
   <canvas class="lost-static" id="lost-static" aria-hidden="true"></canvas>
   <div class="home-center lost-center">
-    <!-- your text picture goes here: save it as static/icons/404.png (transparent PNG works best).
-         Until that file exists this slot stays empty. -->
-    <img class="logo lost-art" src="/icons/404.png" alt="" data-avoid onerror="this.remove()">
-    <h1 class="lost-num" data-avoid>404</h1>
+    <!-- the hand-drawn 404 (icons/404.png); if it can't load, the typed 404 shows instead -->
+    <img class="logo lost-art" src="/icons/404.png" alt="404" data-avoid
+      onerror="this.remove(); setTimeout(() => { document.querySelector('.lost-num').hidden = false; })">
+    <h1 class="lost-num" data-avoid hidden>404</h1>
     <p class="lost-sub" data-avoid>this page doesn't exist. maybe it never did.</p>
   </div>
   <a class="scatter" href="/">go home</a>

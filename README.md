@@ -126,9 +126,9 @@ to show it as suspected). Remove the entry to go back to the computed figure.
 scattered at random spots in clashing colours (`static/scatter.js`). The game pages have a "go back" link fixed in
 the top-left corner. Everything is styled by `static/site.css` (white, system font).
 
-**404 page** (`static/404.html`, served by Vercel for any address that doesn't exist): a giant glitching 404 over
-moving TV static, with the scattered home-page links. To add a picture above it, save it as `static/icons/404.png`
-(transparent PNG works best); until then that slot stays empty.
+**404 page** (`static/404.html`, served by Vercel for any address that doesn't exist): the hand-drawn 404
+(`static/icons/404.png`) glitching over moving TV static, with the scattered home-page links. If the picture can't
+load, a typed 404 shows instead.
 
 **Lost recovery codes** (`/admin.html`, not linked anywhere): the server keeps only a hash of each player's key, so
 a code can't be looked up — but the owner can issue a new one. Set `ADMIN_KEY` (12+ characters, your own secret) in
