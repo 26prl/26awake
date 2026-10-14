@@ -134,6 +134,7 @@ browser's user agent / client hints, iPads posing as Macs (Mac + touchscreen), a
 
 **Fake ad** (`static/fake-ad.gif`, top of the game pages): a 728×90 parody banner — a visitor counter rolls to
 1.000.000, WINNER!!, then "CONGRATULATIONS!!! you are our 1.000.000th player" with a button the cursor clicks.
+Clicking it goes nowhere: the page glitches and a fake old-Windows message pops up (`static/ads.js`).
 
 **Glitch effects** (`static/glitch.js`, on the home page and the games): faint scanlines, random bursts where the
 logo, links and titles split into colours, slice and scramble their letters, "screen tear" strips that invert what's
