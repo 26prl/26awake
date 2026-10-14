@@ -2,8 +2,8 @@
 // The music videos on the home page.
 //  * The box (#mv-box, under the logo) plays the clips listed in videos.json one after another, in a new random
 //    order on every visit, and starts over when it reaches the end. Muted at first (browsers only autoplay without
-//    sound); "sound on" turns the sound on, "next" skips. Full screen is switched off. Between clips the page
-//    glitches hard (the "mv-switch" event, glitch.js).
+//    sound); "sound on" turns the sound on (and it stays on for the next clips), "next" skips. Full screen is
+//    switched off. Between clips the page glitches hard (the "mv-switch" event, glitch.js).
 //  * A second, silent copy fills the whole screen behind a clip mask, so it's invisible except through "holes":
 //    glitch.js calls videoWindow(x, y, w, h, ms) and for that moment a rectangle of the page shows the video.
 //    The copy plays the same clip and is kept on the same moment as the box.
@@ -37,7 +37,7 @@
   };
   const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
-  let clips = [], at = 0, player = null, ghost = null, ghostWrap = null, ghostFrame = null, fails = 0;
+  let clips = [], at = 0, wantSound = false, player = null, ghost = null, ghostWrap = null, ghostFrame = null, fails = 0;
   const holes = new Set();
 
   // ---- the full-screen copy, seen only through holes ----
@@ -77,7 +77,10 @@
     at = (i + clips.length) % clips.length;
     if (at === 0 && clips.length > 2) { const last = clips[clips.length - 1]; shuffle(clips); if (clips[0] === last) clips.push(clips.shift()); }
     dispatchEvent(new Event("mv-switch"));
+    wantSound = !player.isMuted(); // also catches YouTube's own speaker button
+    btn.textContent = wantSound ? "sound off" : "sound on";
     player.loadVideoById(clips[at]);
+    wantSound ? player.unMute() : player.mute(); // the sound stays as it was set
     if (ghost && ghost.loadVideoById) { ghost.loadVideoById(clips[at]); ghost.mute(); }
   }
 
@@ -107,7 +110,7 @@
         events: {
           onReady: (e) => { e.target.mute(); e.target.playVideo(); btn.hidden = false; skip.hidden = clips.length < 2; },
           onStateChange: (e) => {
-            if (e.data === PLAYING) fails = 0;
+            if (e.data === PLAYING) { fails = 0; if (wantSound && player.isMuted()) player.unMute(); }
             if (e.data === ENDED) clips.length > 1 ? go(at + 1) : go(0);
             sync();
           },
@@ -127,8 +130,9 @@
 
   btn.onclick = () => {
     if (!player || !player.isMuted) return;
-    if (player.isMuted()) { player.unMute(); player.playVideo(); btn.textContent = "sound off"; }
-    else { player.mute(); btn.textContent = "sound on"; }
+    wantSound = player.isMuted();
+    if (wantSound) { player.unMute(); player.playVideo(); } else player.mute();
+    btn.textContent = wantSound ? "sound off" : "sound on";
   };
   skip.onclick = () => { if (player && player.loadVideoById) go(at + 1); };
 
