@@ -14,9 +14,6 @@
 const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const LOG_MAX = 100000;
-// +1 visit; the first time, start from the page views already logged (log:visits)
-const COUNT = "if redis.call('EXISTS', KEYS[1]) == 0 then redis.call('SET', KEYS[1], redis.call('LLEN', KEYS[2])) end "
-  + "return redis.call('INCR', KEYS[1])";
 
 const header = (req, name) => {
   const v = req.headers[name];
@@ -64,9 +61,11 @@ module.exports = async (req, res) => {
         city: clip(header(req, "x-vercel-ip-city"), 64), ua: clip(req.headers["user-agent"], 300),
         lang: clip(String(req.headers["accept-language"] || "").split(",")[0], 16),
       };
-      const [total] = await redis(
-        ["EVAL", COUNT, "2", "visits:all", "log:visits"],
+      let [total, logged] = await redis(
+        ["INCR", "visits:all"], ["LLEN", "log:visits"],
         ["LPUSH", "log:visits", JSON.stringify(entry)], ["LTRIM", "log:visits", "0", String(LOG_MAX - 1)]);
+      // the counter was just made: start it from the page views already logged
+      if (total === 1 && logged > 0) [total] = await redis(["INCRBY", "visits:all", String(logged)]);
       return send(res, 200, { configured: true, total });
     }
     const [total, logged] = await redis(["GET", "visits:all"], ["LLEN", "log:visits"]);

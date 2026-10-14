@@ -15,8 +15,11 @@
   } catch { /* private mode: count without remembering */ }
   if (!id) id = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
+  const json = (r) => ((r.headers.get("content-type") || "").includes("json") ? r.json() : null);
   fetch("api/visits", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ v: id, p: location.pathname, r: document.referrer }), cache: "no-store" })
-    .then((r) => ((r.headers.get("content-type") || "").includes("json") ? r.json() : null))
+    .then(json)
+    // if recording the visit failed, still show the count
+    .then((d) => (d && d.total != null ? d : fetch("api/visits", { cache: "no-store" }).then(json)))
     .then((d) => {
       const box = document.getElementById("visits");
       if (!box || !d || !d.configured) return;
