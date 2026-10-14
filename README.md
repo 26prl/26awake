@@ -1,6 +1,7 @@
 # 26awake
 
-A personal site for fun — games, art, music — with one serious side project: **Plague Watch**, a live news tracker.
+A personal site for fun: 2048, minesweeper and sudoku with rankings, on a glitchy white home page. The repo also
+holds **Plague Watch**, a news tracker that keeps collecting in the background (its page was taken off the site).
 Most of this README is about the tracker.
 
 A small self-hosted website that keeps watching the internet for the topics you define
@@ -119,10 +120,20 @@ Counts are recomputed from every stored article on each check, so a later, bette
 `exclude_*` throws articles out of the counts; `pin` overrides a figure (optional `until` date, `"confirmed": false`
 to show it as suspected). Remove the entry to go back to the computed figure.
 
-## Home page, game and music
+## Home page and games
 
-`/` is the home page (`static/index.html`): a white page with the logo in the middle and links (music, game, plague) scattered at random spots in random colours (`static/scatter.js`). The other pages have a randomly placed "go back" link the same way.
-Each thing has its own page, all styled by `static/site.css` (white, system font):
+`/` is the home page (`static/index.html`): a white page with the logo in the middle and links to the three games
+scattered at random spots in clashing colours (`static/scatter.js`). The game pages have a "go back" link fixed in
+the top-left corner. Everything is styled by `static/site.css` (white, system font).
+
+**Glitch effects** (`static/glitch.js`, on the home page and the games): faint scanlines, random bursts where the
+logo, links and titles split into colours, slice and scramble their letters, "screen tear" strips that invert what's
+under them and, on the home page, a whole-screen jolt now and then. Links glitch on hover; a home page link glitches
+hard before it opens. The games get rarer, quieter bursts that never cover the board or block input. With "reduce
+motion" on in the system settings only the scanlines stay.
+
+The tracker's page and the music, GIF, anime and "nothing" pages were removed; their old addresses redirect to the
+home page (`deploy/vercel.json`). The tracker itself still collects news on schedule (below); only its page is gone.
 
 * `/2048.html` — **2048** (`static/games.js`, rules in `static/g2048-core.js`) with a ranking (`static/api/scores.js`).
   (`/game.html` and `/game1.html` forward here.)
@@ -133,7 +144,6 @@ Each thing has its own page, all styled by `static/site.css` (white, system font
   2–20 letters/numbers/spaces/_ . -); it stays with the player number. **To switch it on:** Vercel → your project → **Storage** → **Create** → **Upstash for Redis** (free) →
   connect it to the project (it adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`) → redeploy. Without it the game
   works and the best score stays on the device.
-* `/gifs.html` — a wall of GIFs listed in `static/gifs.json` (`{"gifs": ["https://…gif", …]}`, shown in a new random order on every visit; .gif/.webp/.mp4 links, giphy.com links, or tenor.com page links — the "Resolve GIF links" workflow turns Tenor pages into direct links (`tools/resolve_gifs.py`) and republishes).
 * `/minesweeper.html` — **minesweeper** (`/game2.html` forwards here) (`static/mines.js`, rules in `static/mines-core.js`): easy 9×9/10, medium 16×16/40,
   hard 30×16/99 (turned upright on phones). The first click is always safe; leaving the page pauses the game
   (board covered, clocks stopped) until Continue, also after a reload; mines come from a server seed and the
@@ -144,50 +154,8 @@ Each thing has its own page, all styled by `static/site.css` (white, system font
   the page pauses the game (board covered, clocks stopped) until Continue, also after a reload. Puzzles come
   from a server seed; the server rebuilds the puzzle, checks the finished grid and times the solve.
 * **Visitor count** — the home page shows "N people here today · M all time" (`static/api/visits.js`, same
-  Redis). Each browser gets a random anonymous id (no IPs or names stored) and counts once per UTC day; visits to
-  every page except the tracker count. Each id is stored once (Redis sets), so the counts are exact.
-* `/anime.html` — video player for direct links listed in `static/anime.json`
-  (`{"videos": [{"title": "…", "src": "https://…/video.mp4 or …/master.m3u8", "poster": "optional"}]}`).
-  `.mp4`/`.webm` play natively, `.m3u8` streams through hls.js (bundled in `static/vendor/`, MIT licence). The
-  source must allow playback from other sites (CORS). Only for videos you have the right to show.
-* `/nothing.html` — coffee link, contacts and a BTC address with its QR code, from `static/nothing.json`. The QR is
-  a static SVG (`static/btc-qr.svg`) made once from the address with the Python `qrcode` package.
-* `/music.html` — what I'm listening to on Spotify plus the players/tracks in `music.json` (`static/music.js`).
-* `/watch.html` — the plague tracker (`/watch.html#2` opens topic 2). It has its own `style.css` and is not
-  touched by home page changes.
-
-* **Spotify players** — add share links (track, album, playlist, artist or podcast) to `static/music.json`:
-  `{"spotify": ["https://open.spotify.com/playlist/…"]}`. They show as Spotify's player; visitors logged in to
-  Spotify hear full songs, others 30-second previews.
-* **Music files** — put MP3/OGG files in `static/music/` and list them in `static/music.json`:
-  `{"tracks": [{"src": "music/track.mp3", "title": "Song", "artist": "Artist"}]}`. Keep files reasonably small
-  (Vercel's free plan serves them fine, but each visitor downloads what they play).
-
-### Your Spotify on the page (now playing, recently played, top artists and tracks)
-
-`static/api/spotify.js` becomes a Vercel serverless function at `/api/spotify`. It reads your listening data with
-your own Spotify login, so the secrets live only in Vercel, never in this repo:
-
-1. Go to <https://developer.spotify.com/dashboard>, log in, **Create app**. Any name/description; Redirect URI:
-   `https://YOUR-SITE/api/spotify` (for example `https://twenty6.net/api/spotify`); API: **Web API**. Save.
-2. In the app's **Settings** copy the **Client ID** and **Client secret**.
-3. In Vercel → the project → **Settings → Environment Variables**, add `SPOTIFY_CLIENT_ID` and
-   `SPOTIFY_CLIENT_SECRET` (Production), then redeploy (Deployments → ⋯ → Redeploy).
-4. Open `https://YOUR-SITE/api/spotify?setup`, log in to Spotify and agree. The page shows a refresh token.
-5. Add it in Vercel as `SPOTIFY_REFRESH_TOKEN` and redeploy once more. Setup switches itself off; the music
-   page now shows what you're playing (refreshed every minute) and your month's favourites.
-
-If the site uses a different domain than the one Spotify redirects to, set `SPOTIFY_REDIRECT_URI` to the exact URI
-you registered. The local Python server doesn't run this function, so the card only appears on Vercel.
-
-## GIF stickers
-
-The page has eight spots for GIFs: `header`, `sidebar`, `latest` (next to Latest updates), `trust` (next to
-What can be trusted), `map` (under the map), `official` (next to Official updates), `articles` (next to All
-articles) and `footer`. The case-count panel deliberately has none. They stay empty until GIFs are listed in `static/stickers.json`. Put the files in `static/gifs/`
-and copy `stickers.example.json` to `static/stickers.json`: each entry has a `slot`, a `src` (file path or URL),
-an `alt` description, optional `captions` (clicking cycles through them) and `size` (`xs`, `sm`, `md`).
-Visitors can hide them with **Hide stickers** in the sidebar. Only use GIFs you have the right to publish.
+  Redis). Each browser gets a random anonymous id and counts once per UTC day; each id is stored once (Redis
+  sets), so the counts are exact. Every page view is also logged with its IP (the latest 100,000 are kept).
 
 ## Defining a topic
 

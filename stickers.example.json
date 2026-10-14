@@ -1,9 +1,0 @@
-{
-  "stickers": [
-    { "slot": "header",  "src": "gifs/header.gif",  "alt": "Describe the GIF", "size": "xs" },
-    { "slot": "sidebar", "src": "gifs/sidebar.gif", "alt": "Describe the GIF", "captions": ["First caption", "Click for the next one"] },
-    { "slot": "latest",  "src": "gifs/latest.gif",  "alt": "Describe the GIF", "size": "sm", "captions": ["Caption"] },
-    { "slot": "map",     "src": "gifs/map.gif",     "alt": "Describe the GIF", "captions": ["Caption"] },
-    { "slot": "footer",  "src": "gifs/footer.gif",  "alt": "Describe the GIF" }
-  ]
-}

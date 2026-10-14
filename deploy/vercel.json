@@ -18,5 +18,32 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/watch.html",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/music.html",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/gifs.html",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/anime.html",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/nothing.html",
+      "destination": "/",
+      "permanent": false
+    }
   ]
 }
