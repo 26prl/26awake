@@ -154,7 +154,7 @@ home page (`deploy/vercel.json`). The tracker itself still collects news on sche
   the page pauses the game (board covered, clocks stopped) until Continue, also after a reload. Puzzles come
   from a server seed; the server rebuilds the puzzle, checks the finished grid and times the solve.
 * **Visit count** — the home page shows "N visits": every page view of the site, all time (`static/api/visits.js`,
-  same Redis, counter `visits:all`; it started from the views already in the visit log). Every page view is also
+  same Redis, counter `pageviews:all`; it started from the views already in the visit log). Every page view is also
   logged with its IP (the latest 100,000 are kept).
 
 ## Defining a topic

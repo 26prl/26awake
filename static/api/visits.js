@@ -1,6 +1,7 @@
 "use strict";
 // Vercel serverless function: the visit count at /api/visits, in the same Upstash Redis as the rankings.
-// total = all visits ever (every page view), a counter (visits:all). When the counter is first made it starts
+// total = all visits ever (every page view), a counter (pageviews:all — not "visits:all", which is an old
+// HyperLogLog from an earlier counter and can't be added to). When the counter is first made it starts
 // from the number of page views already in the visit log, so earlier visits aren't lost.
 //
 //   POST /api/visits {v: "<anonymous browser id>", p: "/page", r: "<referrer>"}  → records the visit, returns {total}
@@ -63,13 +64,13 @@ module.exports = async (req, res) => {
         lang: clip(String(req.headers["accept-language"] || "").split(",")[0], 16),
       };
       let [total, logged] = await redis(
-        ["INCR", "visits:all"], ["LLEN", "log:visits"],
+        ["INCR", "pageviews:all"], ["LLEN", "log:visits"],
         ["LPUSH", "log:visits", JSON.stringify(entry)], ["LTRIM", "log:visits", "0", String(LOG_MAX - 1)]);
       // the counter was just made: start it from the page views already logged
-      if (total === 1 && logged > 0) [total] = await redis(["INCRBY", "visits:all", String(logged)]);
+      if (total === 1 && logged > 0) [total] = await redis(["INCRBY", "pageviews:all", String(logged)]);
       return send(res, 200, { configured: true, total: Number(total) + EXTRA });
     }
-    const [total, logged] = await redis(["GET", "visits:all"], ["LLEN", "log:visits"]);
+    const [total, logged] = await redis(["GET", "pageviews:all"], ["LLEN", "log:visits"]);
     return send(res, 200, { configured: true, total: (total === null ? logged : Number(total)) + EXTRA });
   } catch (e) {
     return send(res, 500, { error: String(e.message || e) });
