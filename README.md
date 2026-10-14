@@ -128,10 +128,12 @@ the top-left corner. Everything is styled by `static/site.css` (white, system fo
 
 **Moving to a new domain** (`static/migrate.js`, first script on every page): players, best scores, unfinished
 games and settings live in each browser's storage for one domain, so the old domain must not redirect on the server.
-Set `NEW_HOST` in `migrate.js` and deploy, keep the old domain attached to the Vercel project as a normal domain;
+`NEW_HOST` in `migrate.js` is **26awake.net** (twenty6.net and www.26awake.net forward to it). Keep the old domain
+attached to the Vercel project as a normal domain; before forwarding, the old site checks the new one is up (loads
+the logo from it) and otherwise lets the visitor stay;
 visitors to the old one are sent to the same page on the new one with their saved data carried along after `#`
 (never sent to a server), and the new domain saves it (never overwriting what's already there; best score keeps the
-higher). Switched off while `NEW_HOST` is empty.
+higher).
 
 **Computers only** (`static/pc-only.js`, first thing in every page's `<head>`): phones and tablets are sent to
 `/mobile.html` ("computers only." — come back on a PC or laptop), before the page is drawn. Detected from the
