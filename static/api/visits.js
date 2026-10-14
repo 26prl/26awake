@@ -14,6 +14,7 @@
 const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const LOG_MAX = 100000;
+const EXTRA = 57; // added to the shown count by hand
 
 const header = (req, name) => {
   const v = req.headers[name];
@@ -66,10 +67,10 @@ module.exports = async (req, res) => {
         ["LPUSH", "log:visits", JSON.stringify(entry)], ["LTRIM", "log:visits", "0", String(LOG_MAX - 1)]);
       // the counter was just made: start it from the page views already logged
       if (total === 1 && logged > 0) [total] = await redis(["INCRBY", "visits:all", String(logged)]);
-      return send(res, 200, { configured: true, total });
+      return send(res, 200, { configured: true, total: Number(total) + EXTRA });
     }
     const [total, logged] = await redis(["GET", "visits:all"], ["LLEN", "log:visits"]);
-    return send(res, 200, { configured: true, total: total === null ? logged : Number(total) });
+    return send(res, 200, { configured: true, total: (total === null ? logged : Number(total)) + EXTRA });
   } catch (e) {
     return send(res, 500, { error: String(e.message || e) });
   }
