@@ -68,7 +68,7 @@
 
   function start() {
     const first = Q.first();
-    const mainFrame = frame(document.getElementById("mv-player"), first, { controls: 1 });
+    const mainFrame = frame(document.getElementById("mv-player"), first, { controls: 0 });
     if (!calm) {
       ghostWrap = document.createElement("div");
       ghostWrap.className = "mv-ghost";

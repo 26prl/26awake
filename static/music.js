@@ -9,7 +9,7 @@
 (() => {
   const Q = window.MV;
   if (!Q) return;
-  const vars = { autoplay: 1, mute: 1, playsinline: 1, fs: 0, rel: 0, modestbranding: 1, iv_load_policy: 3, controls: 1 };
+  const vars = { autoplay: 1, mute: 1, playsinline: 1, fs: 0, rel: 0, modestbranding: 1, iv_load_policy: 3, controls: 0 };
   const PLAYING = 1, ENDED = 0;
   const get = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
   const set = (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } };
