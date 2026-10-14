@@ -166,6 +166,9 @@
   }
   setTimeout(burst, home ? 600 : 2500);
 
+  // the music video box switching to the next clip (video.js): a big glitch
+  addEventListener("mv-switch", () => { glitchLogo(450, true); tear(5, true); blocks(5, true); jolt(250); });
+
   // clicking a link on the home page: one big glitch, then go
   if (home) {
     for (const a of document.querySelectorAll(".scatter")) {

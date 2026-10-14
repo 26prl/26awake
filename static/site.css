@@ -16,7 +16,8 @@ a { color: inherit; }
 .home-center .logo { position: static; transform: none; width: min(460px, 80vw, 90vh); }
 .mv { width: min(380px, 84vw, calc((72vh - 96px) * 16 / 9)); } /* logo + video + button fit short screens too */
 .mv iframe, #mv-player { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border: 0; background: #000; }
-.mv-sound { display: block; margin: 6px auto 0; padding: 0; border: 0; background: none; font: inherit; font-size: .85rem; color: #111; text-decoration: underline; cursor: pointer; }
+.mv-ctl { display: flex; justify-content: center; gap: 16px; margin-top: 6px; }
+.mv-sound { display: block; margin: 0; padding: 0; border: 0; background: none; font: inherit; font-size: .85rem; color: #111; text-decoration: underline; cursor: pointer; }
 .mv-sound[hidden] { display: block; visibility: hidden; } /* keeps its space until the player is ready */
 /* the silent full-screen copy, seen only through glitch holes (video.js) */
 .mv-ghost { position: fixed; inset: 0; z-index: 45; overflow: hidden; pointer-events: none; }

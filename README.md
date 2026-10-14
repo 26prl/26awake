@@ -132,10 +132,13 @@ under them and, on the home page, a whole-screen jolt now and then. Links glitch
 hard before it opens. The games get rarer, quieter bursts that never cover the board or block input. With "reduce
 motion" on in the system settings only the scanlines stay.
 
-**Music video** (`static/video.js`, home page): a box under the logo plays a YouTube video all the time (muted
-until "sound on", looping, no full screen: the frames are built without `allowfullscreen`). A second, silent copy
-covers the whole screen behind a clip mask and only shows through some of the glitch rectangles, kept in step with
-the box. To change the video, change `ID` at the top of `static/video.js`.
+**Music videos** (`static/video.js`, home page): a box under the logo plays the YouTube clips listed in
+`static/videos.json` one after another, in a new random order on every visit, looping the list (muted until
+"sound on", "next" skips, no full screen: the frames are built without `allowfullscreen`). Switching clips makes the
+page glitch hard. A second, silent copy covers the whole screen behind a clip mask and only shows through some of
+the glitch rectangles, kept on the same clip and moment as the box. Clips that can't be played are skipped.
+`videos.json`: `{"videos": ["https://youtu.be/…", "https://www.youtube.com/watch?v=…", {"id": "…", "start": 30, "end": 75}]}`
+(links or bare video ids; `start`/`end` in seconds play just that part).
 
 The tracker's page and the music, GIF, anime and "nothing" pages were removed; their old addresses redirect to the
 home page (`deploy/vercel.json`). The tracker itself still collects news on schedule (below); only its page is gone.
