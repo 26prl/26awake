@@ -153,9 +153,9 @@ home page (`deploy/vercel.json`). The tracker itself still collects news on sche
   (38/30/~24 givens, always exactly one solution), pencil notes, keyboard. Nothing is timed until Start; leaving
   the page pauses the game (board covered, clocks stopped) until Continue, also after a reload. Puzzles come
   from a server seed; the server rebuilds the puzzle, checks the finished grid and times the solve.
-* **Visitor count** — the home page shows "N people here today · M all time" (`static/api/visits.js`, same
-  Redis). Each browser gets a random anonymous id and counts once per UTC day; each id is stored once (Redis
-  sets), so the counts are exact. Every page view is also logged with its IP (the latest 100,000 are kept).
+* **Visit count** — the home page shows "N visits": every page view of the site, all time (`static/api/visits.js`,
+  same Redis, counter `visits:all`; it started from the views already in the visit log). Every page view is also
+  logged with its IP (the latest 100,000 are kept).
 
 ## Defining a topic
 

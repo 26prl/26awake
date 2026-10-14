@@ -1,19 +1,22 @@
 "use strict";
-// Vercel serverless function: unique visitor counts at /api/visits, in the same Upstash Redis as the rankings.
-// Each browser keeps a random anonymous id (no names, no IP addresses are stored). The ids are kept in Redis
-// sets — one for all time, one per day (UTC) — so each id counts exactly once and the counts are exact.
+// Vercel serverless function: the visit count at /api/visits, in the same Upstash Redis as the rankings.
+// total = all visits ever (every page view), a counter (visits:all). When the counter is first made it starts
+// from the number of page views already in the visit log, so earlier visits aren't lost.
 //
-//   POST /api/visits {v: "<anonymous id>", p: "/page", r: "<referrer>"}  → records the visit, returns {today, total}
+//   POST /api/visits {v: "<anonymous browser id>", p: "/page", r: "<referrer>"}  → records the visit, returns {total}
 //
 // Every page view is also written to a visit log (Redis list log:visits), readable only with the database keys:
 // time, page, where the visitor came from, country/region/city (from Vercel's own headers), IP address,
 // browser (user agent) and language, with the full IP address. The newest LOG_MAX entries are kept (100,000 page
 // views, about 40 MB, well inside Upstash's free 256 MB).
-//   GET  /api/visits                        → {today, total}
+//   GET  /api/visits                        → {total}
 
 const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const LOG_MAX = 100000;
+// +1 visit; the first time, start from the page views already logged (log:visits)
+const COUNT = "if redis.call('EXISTS', KEYS[1]) == 0 then redis.call('SET', KEYS[1], redis.call('LLEN', KEYS[2])) end "
+  + "return redis.call('INCR', KEYS[1])";
 
 const header = (req, name) => {
   const v = req.headers[name];
@@ -50,7 +53,6 @@ async function body(req) {
 
 module.exports = async (req, res) => {
   if (!URL_ || !TOKEN) return send(res, 200, { configured: false });
-  const day = `visitors:${new Date().toISOString().slice(0, 10)}`;
   try {
     if (req.method === "POST") {
       const { v, p, r } = await body(req);
@@ -62,14 +64,13 @@ module.exports = async (req, res) => {
         city: clip(header(req, "x-vercel-ip-city"), 64), ua: clip(req.headers["user-agent"], 300),
         lang: clip(String(req.headers["accept-language"] || "").split(",")[0], 16),
       };
-      const [, , , today, total] = await redis(
-        ["SADD", day, v], ["SADD", "visitors:all", v], ["EXPIRE", day, String(60 * 60 * 24 * 400)],
-        ["SCARD", day], ["SCARD", "visitors:all"],
+      const [total] = await redis(
+        ["EVAL", COUNT, "2", "visits:all", "log:visits"],
         ["LPUSH", "log:visits", JSON.stringify(entry)], ["LTRIM", "log:visits", "0", String(LOG_MAX - 1)]);
-      return send(res, 200, { configured: true, today, total });
+      return send(res, 200, { configured: true, total });
     }
-    const [today, total] = await redis(["SCARD", day], ["SCARD", "visitors:all"]);
-    return send(res, 200, { configured: true, today, total });
+    const [total, logged] = await redis(["GET", "visits:all"], ["LLEN", "log:visits"]);
+    return send(res, 200, { configured: true, total: total === null ? logged : Number(total) });
   } catch (e) {
     return send(res, 500, { error: String(e.message || e) });
   }

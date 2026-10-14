@@ -1,7 +1,7 @@
 "use strict";
-// Counts this browser once a day for the "people here today" line on the home page (api/visits.js), and logs the
-// page view (page + where the visitor came from) for the owner's traffic page.
-// The id is random and anonymous; it isn't linked to the game player number.
+// Counts every page view for the "N visits" line on the home page (api/visits.js), which also logs the view
+// (page + where the visitor came from). The browser id sent along is random and anonymous; it isn't linked to
+// the game player number.
 // A page with an element #visits shows the counts there.
 
 (() => {
@@ -21,7 +21,7 @@
       const box = document.getElementById("visits");
       if (!box || !d || !d.configured) return;
       const n = (x) => Number(x || 0).toLocaleString();
-      box.textContent = `${n(d.today)} ${d.today === 1 ? "person" : "people"} here today · ${n(d.total)} all time`;
+      box.textContent = `${n(d.total)} ${d.total === 1 ? "visit" : "visits"}`;
       box.hidden = false;
       dispatchEvent(new Event("relayout"));
     })
