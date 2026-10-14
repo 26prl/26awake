@@ -200,3 +200,12 @@ a { color: inherit; }
 .mini-mv-pill[hidden] { display: none; }
 .mini-mv.docked:not([hidden]), .mini-mv-pill.docked:not([hidden]) { position: static; margin: 0 auto 48px; }
 .mini-mv-pill.docked:not([hidden]) { display: block; }
+
+/* ---- 404 page ---- */
+.lost-static { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; opacity: .07; pointer-events: none; image-rendering: pixelated; }
+.lost-center { gap: 6px; z-index: 1; }
+.lost-center .lost-art { position: static; transform: none; width: auto; max-width: min(460px, 80vw); max-height: 40vh; height: auto; }
+.lost-num { margin: 0; font-size: clamp(120px, 26vw, 260px); line-height: .9; font-weight: 900; letter-spacing: -.06em; color: #111;
+  text-shadow: 6px 0 #ff00aa, -6px 0 #00ffd5; }
+.lost-sub { margin: 10px 0 0; color: #777; font-size: .95rem; }
+.lost .scatter { z-index: 2; }

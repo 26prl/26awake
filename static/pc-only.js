@@ -19,4 +19,4 @@ window.isPhone = () => {
   return false;
 };
 
-if (!/\/mobile(\.html)?$/.test(location.pathname) && window.isPhone()) location.replace("mobile.html");
+if (!/\/mobile(\.html)?$/.test(location.pathname) && window.isPhone()) location.replace("/mobile.html");
