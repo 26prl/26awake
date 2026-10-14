@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>computers only · 26awake</title>
+  <script src="pc-only.js"></script>
+  <script>if (!window.isPhone()) location.replace("./");</script>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body class="home nope">
+  <main class="nope-box">
+    <img class="logo" src="icons/logo-26awake.png" alt="26awake" width="459" height="144">
+    <h1>computers only.</h1>
+    <p>26awake doesn't open on phones or tablets.<br>Come back on a PC or a laptop:</p>
+    <p class="nope-url" id="nope-url">twenty6.net</p>
+  </main>
+  <script>document.getElementById("nope-url").textContent = location.host || "twenty6.net";</script>
+  <script src="visits.js"></script>
+  <script src="glitch.js"></script>
+</body>
+</html>

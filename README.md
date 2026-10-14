@@ -126,6 +126,12 @@ to show it as suspected). Remove the entry to go back to the computed figure.
 scattered at random spots in clashing colours (`static/scatter.js`). The game pages have a "go back" link fixed in
 the top-left corner. Everything is styled by `static/site.css` (white, system font).
 
+**Computers only** (`static/pc-only.js`, first thing in every page's `<head>`): phones and tablets are sent to
+`/mobile.html` ("computers only." — come back on a PC or laptop), before the page is drawn. Detected from the
+browser's user agent / client hints, iPads posing as Macs (Mac + touchscreen), and Android "desktop site" mode
+(Linux + touchscreen only). Windows and Chromebook touchscreen laptops are let in. A computer that opens
+`/mobile.html` is sent home. It's a check in the browser, so a determined person can get around it.
+
 **Glitch effects** (`static/glitch.js`, on the home page and the games): faint scanlines, random bursts where the
 logo, links and titles split into colours, slice and scramble their letters, "screen tear" strips that invert what's
 under them and, on the home page, a whole-screen jolt now and then. Links glitch on hover; a home page link glitches

@@ -179,3 +179,11 @@ a { color: inherit; }
 @keyframes gl-flick { 50% { opacity: 0; } }
 .gl-jolt body { translate: 6px -3px; filter: hue-rotate(160deg) saturate(3) contrast(1.4); }
 @media (prefers-reduced-motion: reduce) { .gl-txt::before, .gl-txt::after { display: none; } }
+
+/* ---- phones and tablets: computers only (mobile.html) ---- */
+.nope-box { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 24px 16px; text-align: center; }
+.nope-box .logo { position: static; transform: none; width: min(320px, 76vw); margin-bottom: 18px; }
+.nope-box h1 { margin: 0; font-size: clamp(2rem, 11vw, 3.4rem); line-height: 1.05; letter-spacing: -.03em; }
+.nope-box p { margin: 0; color: #555; max-width: 30ch; }
+.nope-url { margin-top: 8px !important; font-size: 1.4rem; font-weight: 700; color: #111 !important; background: #b6ff00; padding: 2px 10px; }
