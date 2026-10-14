@@ -150,6 +150,28 @@ under them and, on the home page, a whole-screen jolt now and then. Links glitch
 hard before it opens. The games get rarer, quieter bursts that never cover the board or block input. With "reduce
 motion" on in the system settings only the scanlines stay.
 
+**Music videos** (`static/video.js` on the home page, `static/music.js` on the game pages, queue in
+`static/mvqueue.js`): the YouTube clips in `static/videos.json` play one after another, each once per round, in a
+random order (reshuffled every round, never the same clip twice in a row). Home: a box under the logo, plus a silent
+full-screen copy that shows through some of the glitch rectangles; switching clips glitches the page. Game pages: a
+mini player in the bottom-right corner (moves to the bottom of the page when it would cover a wide board), × closes
+it and "♪ music" opens it again. Which clip, how far in and whether the sound is on are remembered (3 hours), so the
+music carries on between pages; sound that was on comes back with the first click or key press on a new page
+(browsers don't allow it sooner). Muted until "sound on"; no full screen (frames are built without
+`allowfullscreen`). `videos.json`: `{"videos": ["https://youtu.be/…", {"id": "…", "start": 30, "end": 75}]}`
+(links or bare ids; `start`/`end` in seconds play just that part).
+
+**Banner slot** (top of the game pages, `static/banners.js`): the parody ads in `static/banners/` (animated WebP,
+728×90) play one after another, each 3 times in a row, looping; each new page picks up with the next one.
+Clickable-looking, goes nowhere. To add one, put the file in `static/banners/` and add its name and the length of one
+play to the list in `banners.js`.
+
+**Glitch effects** (`static/glitch.js`, on the home page and the games): faint scanlines, random bursts where the
+logo, links and titles split into colours, slice and scramble their letters, "screen tear" strips that invert what's
+under them and, on the home page, a whole-screen jolt now and then. Links glitch on hover; a home page link glitches
+hard before it opens. The games get rarer, quieter bursts that never cover the board or block input. With "reduce
+motion" on in the system settings only the scanlines stay.
+
 **Music videos** (`static/video.js`, home page): a box under the logo plays the YouTube clips listed in
 `static/videos.json` one after another, each once per round, in a new random order every visit and every round (muted until
 "sound on", "next" skips, no full screen: the frames are built without `allowfullscreen`). Switching clips makes the
