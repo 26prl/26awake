@@ -11,7 +11,7 @@
 (() => {
   const BANNERS = [
     ["course.webp", 11190], ["bank.webp", 9190], ["ex.webp", 10740], ["pyramid.webp", 8430], ["giveaway.webp", 8310],
-    ["doctors.webp", 8580], ["scratch.webp", 8530], ["signals.webp", 8810], ["calc.webp", 8340],
+    ["doctors.webp", 8580], ["signals.webp", 8810],
     ["terminal.webp", 8010], ["bios.webp", 8900], ["captcha.webp", 10000],
   ];
   const PLAYS = 3, KEY = "banner-queue";
