@@ -12,7 +12,7 @@
   const BANNERS = [
     ["course.webp", 11190], ["bank.webp", 9190], ["ex.webp", 10740], ["pyramid.webp", 8430], ["giveaway.webp", 8310],
     ["doctors.webp", 8580], ["scratch.webp", 8530], ["signals.webp", 8810], ["calc.webp", 8340],
-    ["terminal.webp", 8010],
+    ["terminal.webp", 8010], ["bios.webp", 8900],
   ];
   const PLAYS = 3, KEY = "banner-queue";
   const slot = document.getElementById("ad-slot");
