@@ -6,7 +6,7 @@
 // The server hands out each game's random seed and, when a game ends, replays its moves with the same rules
 // as the page (g2048-core.js), so a score can't be typed in: it is what the moves really scored.
 //
-//   GET  /api/scores?id=N                         top 20 + player N's rank and stats
+//   GET  /api/scores?id=N                         every player (up to 500) + player N's rank and stats
 //   POST /api/scores {action:"register"}          → {id, key}
 //   POST /api/scores {action:"reissue", admin, player}  → {id, name, code}   (owner only, see below)
 //   POST /api/scores {action:"whoami", id, key}   → player's standing (403 if the key is wrong)
@@ -15,7 +15,7 @@
 //   POST /api/scores {action:"submit", id, key, game, moves}  → {score, tile, best, rank, players, newBest}
 //
 // Minesweeper and sudoku (fastest win per difficulty; the server times each game itself):
-//   GET  /api/scores?game=mines&diff=easy&id=N    top 20 fastest + player N's rank and stats for that difficulty
+//   GET  /api/scores?game=mines&diff=easy&id=N    every player by fastest time (up to 500) + player N's rank and stats
 //   POST /api/scores {action:"mstart", id, key, diff}          → {game, seed}   (sent on the first click)
 //   POST /api/scores {action:"msubmit", id, key, game, opens}  → {won, time, best, rank, players, newBest, ...}
 //   GET  /api/scores?game=sudoku&diff=easy&id=N   same for sudoku
@@ -58,6 +58,7 @@ async function redis(...commands) {
   return out.map((x) => x.result);
 }
 
+const ALL = 500;   // the rankings list every player (anyone who finished a ranked game), up to this many
 const sha = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
 const toInt = (v) => (Number.isSafeInteger(Number(v)) ? Number(v) : 0);
 
@@ -84,7 +85,7 @@ async function standing(id) {
   };
 }
 
-async function top(n = 20) {
+async function top(n = ALL) {
   const flat = await redis(["ZREVRANGE", "lb", "0", String(n - 1), "WITHSCORES"]);
   const rows = [];
   for (let i = 0; i < flat[0].length; i += 2) rows.push({ rank: rows.length + 1, id: toInt(flat[0][i]), score: toInt(flat[0][i + 1]) });
@@ -105,7 +106,7 @@ async function tStanding(kind, id, diff) {
   };
 }
 
-async function tTop(kind, diff, n = 20) {
+async function tTop(kind, diff, n = ALL) {
   const { lb, field } = TIMED[kind];
   const [flat] = await redis(["ZRANGE", `${lb}:${diff}`, "0", String(n - 1), "WITHSCORES"]);
   const rows = [];
@@ -129,7 +130,7 @@ module.exports = async (req, res) => {
         const [rows, me] = await Promise.all([tTop(kind, diff), id > 0 ? tStanding(kind, id, diff) : null]);
         return send(res, 200, { configured: true, top: rows, me });
       }
-      const [rows, me] = await Promise.all([top(20), id > 0 ? standing(id) : null]);
+      const [rows, me] = await Promise.all([top(), id > 0 ? standing(id) : null]);
       return send(res, 200, { configured: true, top: rows, me });
     }
     if (req.method !== "POST") return send(res, 405, { error: "GET or POST" });

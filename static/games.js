@@ -145,11 +145,11 @@
       box.replaceChildren(el("p", { className: "muted small", textContent: "No ranked games yet — be the first." }));
       return;
     }
-    box.replaceChildren(el("table", { className: "g8-table" },
+    box.replaceChildren(el("div", { className: "g8-scroll" }, el("table", { className: "g8-table" },
       el("thead", {}, el("tr", {}, ...["#", "player", "best", "tile", "games"].map((h) => el("th", { textContent: h })))),
       el("tbody", {}, ...data.top.map((r) => el("tr", { className: p && r.id === p.id ? "me" : "" },
         el("td", { textContent: r.rank }), el("td", { textContent: who(r) }), el("td", { textContent: fmt(r.score) }),
-        el("td", { textContent: r.tile ? fmt(r.tile) : "–" }), el("td", { textContent: fmt(r.games) }))))));
+        el("td", { textContent: r.tile ? fmt(r.tile) : "–" }), el("td", { textContent: fmt(r.games) })))))));
     dispatchEvent(new Event("relayout"));
   }
 

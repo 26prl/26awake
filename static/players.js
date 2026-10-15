@@ -153,12 +153,12 @@ window.Players = (() => {
     if (!data.top.length) {
       box.replaceChildren(el("p", { className: "muted small", textContent: `No ${diff} ${finishOnly ? "puzzles completed" : "wins"} yet — be the first.` }));
     } else {
-      box.replaceChildren(el("table", { className: "g8-table" },
+      box.replaceChildren(el("div", { className: "g8-scroll" }, el("table", { className: "g8-table" },
         el("thead", {}, el("tr", {}, ...["#", "player", "fastest", ...(finishOnly ? ["completed"] : ["wins", "losses"])].map((h) => el("th", { textContent: h })))),
         el("tbody", {}, ...data.top.map((r) => el("tr", { className: p && r.id === p.id ? "me" : "" },
           el("td", { textContent: r.rank }), el("td", { textContent: who(r) }),
           el("td", { textContent: secs(r.time) }), el("td", { textContent: fmt(r.wins) }),
-          finishOnly ? null : el("td", { textContent: fmt(losses(r)) }))))));
+          finishOnly ? null : el("td", { textContent: fmt(losses(r)) })))))));
     }
     $(ids.title).textContent = `Ranking · ${diff}`;
     dispatchEvent(new Event("relayout"));

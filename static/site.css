@@ -75,6 +75,8 @@ a { color: inherit; }
 .g8-rank { margin-top: 28px; }
 .g8-rank h2 { font-size: 1rem; margin: 18px 0 8px; }
 #g8-me { margin: 0; line-height: 1.6; }
+.g8-scroll { max-height: 360px; overflow-y: auto; }
+.g8-scroll thead th { position: sticky; top: 0; background: #fff; }
 .g8-table { width: 100%; border-collapse: collapse; font-size: .9rem; font-variant-numeric: tabular-nums; }
 .g8-table th { text-align: left; font-weight: 600; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: #888;
   border-bottom: 1px solid #ddd; padding: 6px 4px; }
