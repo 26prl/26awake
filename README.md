@@ -139,8 +139,9 @@ number. The player keeps their number, nickname and rankings; the old code stops
 the server (`deploy/vercel.json`, permanent, same path). Players, rankings and nicknames are on the server, so they
 carry over; a browser's saved player doesn't, so returning players use their recovery code on the new domain.
 
-**Computers only** (`static/pc-only.js`, first thing in every page's `<head>`): phones and tablets are sent to
-`/mobile.html` ("computers only." — come back on a PC or laptop), before the page is drawn. Detected from the
+**Phone mode** (`static/pc-only.js`, first thing in every page's `<head>`): phones and tablets can play 2048 and
+sudoku; any other page sends them to `/mobile.html` (links to those two, and recommends a computer for the full
+experience), before the page is drawn. Detected from the
 browser's user agent / client hints, iPads posing as Macs (Mac + touchscreen), and Android "desktop site" mode
 (Linux + touchscreen only). Windows and Chromebook touchscreen laptops are let in. A computer that opens
 `/mobile.html` is sent home. It's a check in the browser, so a determined person can get around it.

@@ -1,6 +1,7 @@
 "use strict";
-// The site only opens on computers (PCs, laptops, including touchscreen laptops). Phones and tablets are sent to
-// mobile.html. Loaded at the top of each page's <head>, so they leave before anything is drawn.
+// The full site is for computers (PCs, laptops, including touchscreen laptops). Phones and tablets may only open
+// 2048 and sudoku (PHONE_OK); anything else sends them to mobile.html, which links to those two and recommends a
+// computer for the full experience. Loaded at the top of each page's <head>, so they leave before anything is drawn.
 // A device counts as a phone/tablet if
 //   * its browser says so (user agent / client hints), or
 //   * it's an iPad pretending to be a Mac (Safari on iPad says "Macintosh" but has a touchscreen), or
@@ -19,4 +20,6 @@ window.isPhone = () => {
   return false;
 };
 
-if (!/\/mobile(\.html)?$/.test(location.pathname) && window.isPhone()) location.replace("/mobile.html");
+// pages a phone may open: the phone page itself, 2048 and sudoku (and the old links that forward to them)
+const PHONE_OK = /\/(mobile|2048|sudoku|game|game1|game3)(\.html)?$/;
+if (!PHONE_OK.test(location.pathname) && window.isPhone()) location.replace("/mobile.html");

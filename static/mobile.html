@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>computers only · 26awake</title>
+  <title>phone mode · 26awake</title>
   <script src="pc-only.js"></script>
   <script>if (!window.isPhone()) location.replace("./");</script>
   <link rel="icon" href="favicon.ico" sizes="any">
@@ -15,11 +15,16 @@
 <body class="home nope">
   <main class="nope-box">
     <img class="logo nope-art" src="icons/go-away-damn.png" alt="go away damn" width="851" height="801">
-    <h1>computers only.</h1>
-    <p>this website doesn't open on phones or tablets.</p>
-    <p class="nope-url" id="nope-url">twenty6.net</p>
+    <h1>phone mode.</h1>
+    <p>on a phone you can play:</p>
+    <nav class="nope-games">
+      <a class="scatter-free" href="2048.html">2048</a>
+      <a class="scatter-free" href="sudoku.html">sudoku</a>
+    </nav>
+    <p class="nope-small">for the full experience — minesweeper, the music videos and everything else — open it on a computer:</p>
+    <p class="nope-url" id="nope-url">26awake.net</p>
   </main>
-  <script>document.getElementById("nope-url").textContent = location.host || "twenty6.net";</script>
+  <script>document.getElementById("nope-url").textContent = location.host || "26awake.net";</script>
   <script src="visits.js"></script>
   <script src="glitch.js"></script>
 </body>
