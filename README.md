@@ -151,9 +151,13 @@ browser's user agent / client hints, iPads posing as Macs (Mac + touchscreen), a
 (Linux + touchscreen only). Windows and Chromebook touchscreen laptops are let in. A computer that opens
 `/mobile.html` is sent home. It's a check in the browser, so a determined person can get around it.
 
-**Game pages** (`static/room.js`, look under `.room` in `static/site.css`): the rooms behind the corridor's doors —
-dark and warm, one light overhead that dips now and then, film grain, a fade in on arrival and out on "go back".
-2048 tiles light up as they grow; minesweeper and sudoku are dark boards with lit numbers. No banners any more.
+**Game pages** (`static/room.js`, look under `.room` in `static/site.css`): the rooms behind the corridor's doors.
+Clicking a door opens it and walks you through into the dark; the room is drawn the same way as the corridor (same
+walls, carpet, ceiling tiles, one buzzing light — warm for 2048, cold for minesweeper, greenish for sudoku), seen
+from the doorway, with the game hanging flat on the back wall so it stays sharp. The ranking is a sheet of paper
+pinned to the left wall when there's room beside the game (otherwise under it), the music player is a TV in the
+corner. The light dips now and then; "go back" fades out and you're back in the corridor by the same door.
+2048 tiles light up as they grow. Phones get the same dark colours without the drawn room.
 
 **Glitch effects** (`static/glitch.js`, on the 404 page): faint scanlines, random bursts where the links and the
 404 split into colours, slice and scramble their letters, and "screen tear" strips that invert what's under them.

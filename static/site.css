@@ -326,3 +326,31 @@ a { color: inherit; }
 .room .mini-mv { background: #0a0907; box-shadow: 0 0 0 1px #1d1a14; }
 .room .mini-mv .mv-sound, .room .mini-mv-pill { color: var(--dim); }
 .room .mini-mv .mv-sound:hover, .room .mini-mv-pill:hover { color: var(--ink); }
+/* walking through a door (corridor.js) and back */
+.hall-fade { position: fixed; inset: 0; z-index: 9; background: #000; opacity: 0; pointer-events: none; transition: opacity .7s ease-out; }
+.hall-fade.on { opacity: 1; transition: opacity .55s ease-in; }
+.hall-fade.now { transition: none; }
+
+/* ---- the drawn room (room.js), computers only ---- */
+html:has(body.room) { background: #0a0907; }
+.room-canvas { position: absolute; top: 0; left: 0; z-index: 0; pointer-events: none; }
+.room.drawn::before { display: none; }
+/* the ranking: a sheet of paper; pinned to the left wall when there's room beside the game */
+.room.drawn .g8-rank { --ink: #1f1b14; --dim: #6e6553; --line: #cbbfa2; --panel: #ddd2b8; position: relative; margin-top: 30px;
+  padding: 18px 20px 20px; background: #e8dfc8 linear-gradient(170deg, rgba(255, 255, 255, .25), rgba(120, 100, 60, .12)); color: var(--ink);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .55); transform: rotate(-.6deg); }
+.room.drawn .g8-rank::before { content: ""; position: absolute; top: 7px; left: 50%; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%;
+  background: #a8321f; box-shadow: 0 2px 3px rgba(0, 0, 0, .4); }
+.room.drawn .g8-rank .g8-table td { border-bottom-color: #d6ccb2; }
+.room.drawn .g8-rank .g8-table tr.me td { background: #d8cdb1; }
+.room.drawn .g8-rank .g8-input { background: #f4eedf; color: var(--ink); border-color: #b9ad90; }
+.room.drawn .g8-rank .btn { color: var(--ink); border-color: var(--dim); }
+.room.drawn .g8-rank .btn:hover { background: var(--ink); color: #e8dfc8; }
+.room.wide .g8-rank { position: fixed; z-index: 2; left: 3vw; top: 13vh; width: 270px; max-height: 72vh; overflow: auto; margin: 0;
+  transform: perspective(900px) rotateY(20deg) rotate(-.6deg); transform-origin: left center; }
+/* the music player: a TV in the corner */
+.room.drawn .mini-mv { width: 380px; padding: 12px 12px 6px; background: #121110; border-radius: 10px;
+  box-shadow: inset 0 0 0 1px #2a2722, 0 24px 50px rgba(0, 0, 0, .7), 0 0 80px rgba(255, 170, 90, .07); }
+.room.drawn { --dim: #b0a587; }
+.room.drawn .g8-page { padding-top: 120px; padding-bottom: 110px; }
+.room.drawn:not(.wide) .g8-rank { max-width: 480px; margin-left: auto; margin-right: auto; }

@@ -276,7 +276,17 @@
     opening = { k, t: performance.now() };
     ss.set("corridor-z", String(Math.max(0, DOOR0 + k * DS - 3.2)));     // come back standing by this door
     saveMusic();
-    setTimeout(() => { location.href = GAMES[k % 3][1]; }, 520);
+    // the door swings open, then you walk through it into the dark
+    const d = doorsOnScreen.find((o) => o.k === k), pts = d ? d.pts : [[vx, vy]];
+    const cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cy = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+    setTimeout(() => {
+      if (!calm) for (const el of [out, hall, screenBox]) {
+        const r = el.getBoundingClientRect();
+        Object.assign(el.style, { transformOrigin: `${cx - r.left}px ${cy - r.top}px`, transition: "transform .6s ease-in", transform: "scale(2.6)" });
+      }
+      fade.classList.add("on");
+    }, 280);
+    setTimeout(() => { location.href = GAMES[k % 3][1]; }, 880);
   }
 
   // ---- the loop ----
@@ -296,7 +306,7 @@
       walked += Math.abs(vel * dt);
     } else vel = 0;
     bob = calm ? 0 : Math.sin(camZ * 3.1) * Math.min(1, Math.abs(vel) / 2) * 2.5;
-    screenBox.style.transform = `translateY(${bob}px)`;
+    if (!opening) screenBox.style.transform = `translateY(${bob}px)`;
     drawOutside(t); drawHall(t);
     if (!opening) {
       hover = mouse.x < 0 ? -1 : inDoor(mouse.x, mouse.y);
@@ -351,8 +361,12 @@
 
   // ---- the way in ----
   const gate = document.getElementById("gate");
+  const fade = Object.assign(document.createElement("div"), { className: "hall-fade" });
+  document.body.append(fade);
   if (ss.get("corridor-in")) {
     gate.remove();
+    fade.classList.add("on", "now");                                      // back from a room: out of the dark
+    requestAnimationFrame(() => requestAnimationFrame(() => fade.classList.remove("on", "now")));
     addEventListener("pointerdown", sound, { once: true });
     addEventListener("keydown", sound, { once: true });
   } else {
