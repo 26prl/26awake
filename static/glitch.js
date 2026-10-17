@@ -119,7 +119,7 @@
         const h = Math.round(pick([w, rnd(3, 10), rnd(8, big ? 90 : 40)])); // squares, thin bars, rectangles
         const x = cx + rnd(-30, 90), y = cy + rnd(-20, 60);
         if (overlaps(x, y, w, h, rs)) continue;
-        // on the home page some pieces are holes that show the music video instead (video.js)
+        // pieces can be holes that show a music video, where a page offers window.videoWindow
         if (window.videoWindow && w >= 20 && h >= 14 && Math.random() < 0.4) { window.videoWindow(x, y, w, h, life * rnd(0.8, 1.6)); continue; }
         const d = document.createElement("div");
         d.className = "gl-block" + (Math.random() < 0.5 ? " gl-flick" : "");
@@ -166,7 +166,7 @@
   }
   setTimeout(burst, home ? 600 : 2500);
 
-  // the music video box switching to the next clip (video.js): a big glitch
+  // a music video switching to the next clip ("mv-switch"): a big glitch
   addEventListener("mv-switch", () => { glitchLogo(450, true); tear(5, true); blocks(5, true); jolt(250); });
 
   // clicking a link on the home page: one big glitch, then go

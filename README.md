@@ -122,9 +122,14 @@ to show it as suspected). Remove the entry to go back to the computed figure.
 
 ## Home page and games
 
-`/` is the home page (`static/index.html`): a white page with the logo in the middle and links to the three games
-scattered at random spots in clashing colours (`static/scatter.js`). The game pages have a "go back" link fixed in
-the top-left corner. Everything is styled by `static/site.css` (white, system font).
+`/` is the home page (`static/index.html`, `static/corridor.js`): a little first-person walk. You stand in an endless
+corridor on the 26th floor at night. Walk with W / ↑ (S / ↓ back), the mouse wheel, or by holding the mouse button.
+The right wall has doors — 2048, minesweeper, sudoku, over and over forever; click one to go in (coming back puts you
+by that door). The left wall is one long window onto the city: the music video plays on a giant screen on a far
+tower, which never gets closer, but the further you walk the louder the music gets (6% at the start, near full after
+a few hundred metres). A black "enter" screen comes first (browsers only allow sound after a click); it's skipped
+when you come back in the same session. Drawn on canvas with a small hand-made perspective projection. The game pages
+have a "go back" link fixed in the top-left corner. Everything is styled by `static/site.css`.
 
 **404 page** (`static/404.html`, served by Vercel for any address that doesn't exist): the hand-drawn 404
 (`static/icons/404.png`) glitching over moving TV static, with the scattered home-page links. If the picture can't
@@ -152,41 +157,21 @@ never the same one twice in a row; the place in the order carries on between pag
 To add one, put the file in `static/banners/` and add its name and the length of one play to the list in
 `banners.js`.
 
-**Glitch effects** (`static/glitch.js`, on the home page and the games): faint scanlines, random bursts where the
-logo, links and titles split into colours, slice and scramble their letters, "screen tear" strips that invert what's
-under them and, on the home page, a whole-screen jolt now and then. Links glitch on hover; a home page link glitches
-hard before it opens. The games get rarer, quieter bursts that never cover the board or block input. With "reduce
-motion" on in the system settings only the scanlines stay.
+**Glitch effects** (`static/glitch.js`, on the games and the 404 page): faint scanlines, random bursts where the
+links and titles split into colours, slice and scramble their letters, and "screen tear" strips that invert what's
+under them — rare and quiet, never covering the board or blocking input. With "reduce motion" on in the system
+settings only the scanlines stay.
 
-**Music videos** (`static/video.js` on the home page, `static/music.js` on the game pages, queue in
+**Music videos** (`static/corridor.js` on the home page, `static/music.js` on the game pages, queue in
 `static/mvqueue.js`): the YouTube clips in `static/videos.json` play one after another, each once per round, in a
-random order (reshuffled every round, never the same clip twice in a row). Home: a box under the logo, plus a silent
-full-screen copy that shows through some of the glitch rectangles; switching clips glitches the page. Game pages: a
-mini player in the bottom-right corner (moves to the bottom of the page when it would cover a wide board), × closes
-it and "music" opens it again. Same look as the home page box. Which clip, how far in and whether the sound is on are remembered (3 hours), so the
+random order (reshuffled every round, never the same clip twice in a row); a single clip just repeats. Home: the giant
+screen outside the corridor window, louder the further you walk. Game pages: a mini player in the bottom-right
+corner at full volume (moves to the bottom of the page when it would cover a wide board), × closes it and "music"
+opens it again. Which clip, how far in and whether the sound is on are remembered (3 hours), so the
 music carries on between pages; sound that was on comes back with the first click or key press on a new page
-(browsers don't allow it sooner). Muted until "sound on"; no full screen (frames are built without
+(browsers don't allow it sooner). No full screen (frames are built without
 `allowfullscreen`). `videos.json`: `{"videos": ["https://youtu.be/…", {"id": "…", "start": 30, "end": 75}]}`
 (links or bare ids; `start`/`end` in seconds play just that part).
-
-**Banner slot** (top of the game pages, `static/banners.js`): the parody ads in `static/banners/` (animated WebP,
-728×90) play one after another, each 3 times in a row, looping; each new page picks up with the next one.
-Clickable-looking, goes nowhere. To add one, put the file in `static/banners/` and add its name and the length of one
-play to the list in `banners.js`.
-
-**Glitch effects** (`static/glitch.js`, on the home page and the games): faint scanlines, random bursts where the
-logo, links and titles split into colours, slice and scramble their letters, "screen tear" strips that invert what's
-under them and, on the home page, a whole-screen jolt now and then. Links glitch on hover; a home page link glitches
-hard before it opens. The games get rarer, quieter bursts that never cover the board or block input. With "reduce
-motion" on in the system settings only the scanlines stay.
-
-**Music videos** (`static/video.js`, home page): a box under the logo plays the YouTube clips listed in
-`static/videos.json` one after another, each once per round, in a new random order every visit and every round (muted until
-"sound on", "next" skips, no full screen: the frames are built without `allowfullscreen`). Switching clips makes the
-page glitch hard. A second, silent copy covers the whole screen behind a clip mask and only shows through some of
-the glitch rectangles, kept on the same clip and moment as the box. Clips that can't be played are skipped.
-`videos.json`: `{"videos": ["https://youtu.be/…", "https://www.youtube.com/watch?v=…", {"id": "…", "start": 30, "end": 75}]}`
-(links or bare video ids; `start`/`end` in seconds play just that part).
 
 The tracker's page and the music, GIF, anime and "nothing" pages were removed; their old addresses redirect to the
 home page (`deploy/vercel.json`). The tracker itself still collects news on schedule (below); only its page is gone.
@@ -209,7 +194,7 @@ home page (`deploy/vercel.json`). The tracker itself still collects news on sche
   (38/30/~24 givens, always exactly one solution), pencil notes, keyboard. Nothing is timed until Start; leaving
   the page pauses the game (board covered, clocks stopped) until Continue, also after a reload. Puzzles come
   from a server seed; the server rebuilds the puzzle, checks the finished grid and times the solve.
-* **Visit count** — the home page shows "N visits": every page view of the site, all time (`static/api/visits.js`,
+* **Visit count** — the home page shows "N visits" (bottom-right corner): every page view of the site, all time (`static/api/visits.js`,
   same Redis, counter `pageviews:all`; it started from the views already in the visit log). Every page view is also
   logged with its IP (the latest 100,000 are kept).
 

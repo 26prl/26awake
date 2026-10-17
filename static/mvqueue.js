@@ -1,5 +1,5 @@
 "use strict";
-// The music-video queue shared by the home page box (video.js) and the mini player on the game pages (music.js):
+// The music-video queue shared by the home page corridor (corridor.js) and the mini player on the game pages (music.js):
 // the clips from videos.json in a random order, each once per round, and "now playing" (which clip, how far in,
 // sound on or off) kept in localStorage, so the music carries on when you move between pages.
 //

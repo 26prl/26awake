@@ -52,7 +52,7 @@
     const boot = () => {
       player = new YT.Player(f, {
         events: {
-          onReady: (e) => { e.target.mute(); e.target.playVideo(); },
+          onReady: (e) => { e.target.setVolume(100); e.target.mute(); e.target.playVideo(); },   // full volume (the corridor turns it down)
           onStateChange: (e) => {
             if (e.data === PLAYING) { fails = 0; if (wantSound && player.isMuted()) player.unMute(); }
             if (e.data === ENDED) go();

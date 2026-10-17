@@ -17,25 +17,21 @@
     if (moved) location.replace(moved);
   </script>
 </head>
-<body class="home">
-  <div class="home-center">
-    <img class="logo" src="icons/logo-26awake-net.png" alt="26awake.net" width="920" height="326" data-avoid>
-    <div class="mv" id="mv-box" data-avoid>
-      <div id="mv-player"></div>
-      <div class="mv-ctl">
-        <button class="mv-sound" id="mv-sound" type="button" hidden>sound on</button>
-        <button class="mv-sound" id="mv-next" type="button" hidden>next</button>
-      </div>
-    </div>
+<body class="corridor">
+  <canvas id="out" aria-hidden="true"></canvas>
+  <div id="screen" class="hall-screen"></div>
+  <canvas id="hall" aria-hidden="true"></canvas>
+  <div class="hall-grain" aria-hidden="true"></div>
+  <nav class="sr-only"><a href="2048.html">2048</a> <a href="minesweeper.html">minesweeper</a> <a href="sudoku.html">sudoku</a></nav>
+  <div id="hint" class="hall-hint" aria-hidden="true">↑</div>
+  <p id="visits" class="hall-visits" hidden></p>
+  <div id="gate" class="hall-gate">
+    <img src="icons/logo-26awake-net.png" alt="26awake.net" width="920" height="326">
+    <button type="button">enter</button>
   </div>
-  <a class="scatter" href="2048.html">2048</a>
-  <a class="scatter" href="minesweeper.html">minesweeper</a>
-  <a class="scatter" href="sudoku.html">sudoku</a>
-  <p id="visits" class="visits" data-avoid hidden></p>
+  <noscript><p class="hall-nojs"><a href="2048.html">2048</a> · <a href="minesweeper.html">minesweeper</a> · <a href="sudoku.html">sudoku</a></p></noscript>
   <script src="visits.js"></script>
-  <script src="scatter.js"></script>
   <script src="mvqueue.js"></script>
-  <script src="video.js"></script>
-  <script src="glitch.js"></script>
+  <script src="corridor.js"></script>
 </body>
 </html>
