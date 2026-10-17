@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>admin · 26awake</title>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="stylesheet" href="site.css">
+  <style>
+    .adm { max-width: 460px; margin: 0 auto; padding: 64px 16px; }
+    .adm label { display: block; margin: 14px 0 4px; font-size: .85rem; color: #555; }
+    .adm input { width: 100%; box-sizing: border-box; padding: 8px 10px; font: inherit; border: 1px solid #bbb; }
+    .adm code { display: block; margin-top: 6px; padding: 10px; background: #f2f2f2; word-break: break-all; user-select: all; }
+  </style>
+</head>
+<body>
+  <main class="adm">
+    <h1>new recovery code</h1>
+    <p class="muted small">For a player who lost their code. They keep their number, nickname and rankings; their old
+      code stops working.</p>
+    <form id="f">
+      <label for="admin">admin key</label>
+      <input id="admin" type="password" autocomplete="current-password" required>
+      <label for="player">nickname or player number</label>
+      <input id="player" type="text" autocomplete="off" required>
+      <p><button class="btn" type="submit">make a new code</button></p>
+    </form>
+    <div id="out" class="small"></div>
+  </main>
+  <script>
+    "use strict";
+    const out = document.getElementById("out");
+    document.getElementById("f").onsubmit = async (e) => {
+      e.preventDefault();
+      const who = document.getElementById("player").value.trim();
+      if (!confirm(`Make a new recovery code for "${who}"? Their old code will stop working.`)) return;
+      out.textContent = "…";
+      try {
+        const r = await fetch("api/scores", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "reissue", admin: document.getElementById("admin").value, player: who }) });
+        const d = await r.json();
+        if (!r.ok) { out.textContent = d.error || "didn't work"; return; }
+        out.replaceChildren(`player #${d.id}${d.name ? " (" + d.name + ")" : ""} — new recovery code:`,
+          Object.assign(document.createElement("code"), { textContent: d.code }),
+          "Send it to them privately. They paste it under the ranking on any game page: \"use a recovery code\".");
+      } catch { out.textContent = "couldn't reach the server"; }
+    };
+  </script>
+</body>
+</html>
