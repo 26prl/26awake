@@ -151,16 +151,13 @@ browser's user agent / client hints, iPads posing as Macs (Mac + touchscreen), a
 (Linux + touchscreen only). Windows and Chromebook touchscreen laptops are let in. A computer that opens
 `/mobile.html` is sent home. It's a check in the browser, so a determined person can get around it.
 
-**Banner slot** (top of the game pages, `static/banners.js`): the parody ads in `static/banners/` (animated WebP,
-728×90) in a random order like the music clips: each once per round (3 plays in a row), reshuffled every round,
-never the same one twice in a row; the place in the order carries on between pages. Clickable-looking, goes nowhere.
-To add one, put the file in `static/banners/` and add its name and the length of one play to the list in
-`banners.js`.
+**Game pages** (`static/room.js`, look under `.room` in `static/site.css`): the rooms behind the corridor's doors —
+dark and warm, one light overhead that dips now and then, film grain, a fade in on arrival and out on "go back".
+2048 tiles light up as they grow; minesweeper and sudoku are dark boards with lit numbers. No banners any more.
 
-**Glitch effects** (`static/glitch.js`, on the games and the 404 page): faint scanlines, random bursts where the
-links and titles split into colours, slice and scramble their letters, and "screen tear" strips that invert what's
-under them — rare and quiet, never covering the board or blocking input. With "reduce motion" on in the system
-settings only the scanlines stay.
+**Glitch effects** (`static/glitch.js`, on the 404 page): faint scanlines, random bursts where the links and the
+404 split into colours, slice and scramble their letters, and "screen tear" strips that invert what's under them.
+With "reduce motion" on in the system settings only the scanlines stay.
 
 **Music videos** (`static/corridor.js` on the home page, `static/music.js` on the game pages, queue in
 `static/mvqueue.js`): the YouTube clips in `static/videos.json` play one after another, each once per round, in a
