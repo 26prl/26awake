@@ -122,20 +122,14 @@ to show it as suspected). Remove the entry to go back to the computed figure.
 
 ## Home page and games
 
-`/` is the home page (`static/index.html`, `static/corridor.js`): a little first-person walk. You open your eyes in
-an endless corridor on the 26th floor at night. Walk with W / ↑ (S / ↓ back), the mouse wheel, or by holding the
-mouse button. The right wall has doors numbered 2601, 2602, … — 2048, minesweeper, sudoku, over and over forever;
-click one to go in (coming back puts you by that door). Every 26th door just says "26", has red light under it and
-is locked. The left wall is one long window onto the city: the music video plays on a giant screen on a far tower,
-which never gets closer, but the further you walk the louder the music gets. Along the walls: radiators, chairs,
-fire cabinets, vents, notices, exit signs. Rare events: someone standing far down the hall who's gone when you get
-close (and their light with them), a tube dying as you walk under it, a door left ajar with light spilling out that
-slams as you come near, knocking behind a door you pass, steps behind you when you stop, doors far away.
-Drawn on canvas with a small hand-made perspective projection.
-
-**Sound** (`static/sfx.js`, made in the browser, no sound files): the buzz of the lights (louder under a tube),
-the building's tone, footsteps, door creaks and latches, slams, knocks, zaps, a locked handle rattling. It starts
-with the first click or key press (browsers don't allow sound sooner); **M** switches it off and on.
+`/` is the home page (`static/index.html`, `static/corridor.js`): a little first-person walk. You stand in an endless
+corridor on the 26th floor at night. Walk with W / ↑ (S / ↓ back), the mouse wheel, or by holding the mouse button.
+The right wall has doors — 2048, minesweeper, sudoku, over and over forever; click one to go in (coming back puts you
+by that door). The left wall is one long window onto the city: the music video plays on a giant screen on a far
+tower, which never gets closer, but the further you walk the louder the music gets (6% at the start, near full after
+a few hundred metres). A black "enter" screen comes first (browsers only allow sound after a click); it's skipped
+when you come back in the same session. Drawn on canvas with a small hand-made perspective projection. The game pages
+have a "go back" link fixed in the top-left corner. Everything is styled by `static/site.css`.
 
 **404 page** (`static/404.html`, served by Vercel for any address that doesn't exist): the hand-drawn 404
 (`static/icons/404.png`) glitching over moving TV static, with the scattered home-page links. If the picture can't
@@ -157,10 +151,7 @@ browser's user agent / client hints, iPads posing as Macs (Mac + touchscreen), a
 (Linux + touchscreen only). Windows and Chromebook touchscreen laptops are let in. A computer that opens
 `/mobile.html` is sent home. It's a check in the browser, so a determined person can get around it.
 
-**Game pages** (`static/room.js`, look under `.room` in `static/site.css`): the rooms behind the corridor's doors,
-furnished: an armchair, a rug and a floor lamp with 2048; a filing cabinet with an old monitor on it and a metal
-locker with minesweeper; a bookshelf, a table lamp and papers on the floor with sudoku. Now and then someone knocks
-on the door behind you or walks past outside; rarely the light cuts out for a moment.
+**Game pages** (`static/room.js`, look under `.room` in `static/site.css`): the rooms behind the corridor's doors.
 Clicking a door opens it and walks you through into the dark; the room is drawn the same way as the corridor (same
 walls, carpet, ceiling tiles, one buzzing light — warm for 2048, cold for minesweeper, greenish for sudoku), seen
 from the doorway, with the game hanging flat on the back wall so it stays sharp. The ranking is a sheet of paper

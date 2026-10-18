@@ -4,11 +4,7 @@
 //  * Right wall: doors, 2048 → minesweeper → sudoku, again and again forever. Click a door to go in.
 //  * Left wall: one long window onto the city at night. The music video plays on a giant screen on a far tower;
 //    it's so far away it never gets closer, but the further you walk the louder the music gets.
-//  * Coming back from a game puts you back where you were (sessionStorage).
-//  * It's alive: sounds (sfx.js — the buzz of the lights, footsteps, doors), props along the walls (exit signs,
-//    radiators, fire cabinets, chairs) and rare events: someone standing far down the hall who isn't there when you
-//    get close, a light dying as you pass under it, a door left ajar that slams as you come near, knocking behind a
-//    door, steps behind you when you stop. Door numbers run 2601, 2602, …; every 26th door has no game and is locked.
+//  * Coming back from a game puts you back where you were (sessionStorage), without the "enter" screen.
 // Drawn on two canvases with a hand-rolled perspective projection: #out (sky, city, under the video) and #hall
 // (the corridor, over the video, with the window cut out). The camera only ever moves straight ahead, so walls,
 // floor and ceiling are single quads; fog is one radial gradient around the vanishing point.
@@ -36,13 +32,6 @@
   let hover = -1, opening = null, doorsOnScreen = [];
   let vid = { x: 0, y: 0, w: 320, h: 180 };
   const bg = document.createElement("canvas"), bx = bg.getContext("2d");   // the still part of the outside
-  const SFX = window.SFX || new Proxy({}, { get: () => () => {} });
-  const rnd = (lo, hi) => lo + Math.random() * (hi - lo);
-  const isLocked = (k) => k % 26 === 25;                                   // door 26: no game, locked
-  // events (see the top): what's happening right now
-  let figure = null, dying = null, ajar = null, knockAt = -1, behindArmed = false, nextEv = performance.now() + rnd(8000, 14000);
-  const dead = new Set();
-  let shakeT = 0, lastStep = 0, moving = 0, walkedSinceStop = 0;
 
   const P = (X, Y, Z) => { const d = Z - camZ; return [vx + f * X / d, vy + bob + f * Y / d]; };
   const poly = (x, pts) => { x.beginPath(); pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); };
@@ -155,8 +144,7 @@
   // ---- the corridor ----
   function light(k, t) {          // how bright ceiling light k is right now (0..1); a few are broken
     const r = hash(k + 7);
-    if (r < .08 || dead.has(k)) return 0;                             // dead
-    if (dying && dying.k === k && dying.t) { const s = t - dying.t; if (s < 900) return Math.floor(s / 110) % 2 ? .1 : 1; dead.add(k); dying = null; return 0; }
+    if (r < .08) return 0;                                            // dead
     if (r < .2) { const s = Math.floor(t / 340 + k * 13); return hash(s) < .3 ? .15 : 1; }   // flickering, slowly (≤ 3 a second)
     return 1;
   }
@@ -180,58 +168,34 @@
     step(1.25, (z) => { x.beginPath(); x.moveTo(...P(HW, CEIL, z)); x.lineTo(...P(HW, FLOOR, z)); x.stroke(); });
     x.strokeStyle = "rgba(0,0,0,.35)";
     for (const [X, Y] of [[HW, FLOOR - .12], [-HW, FLOOR - .12], [HW, CEIL + .05], [-HW, CEIL + .05]]) { x.beginPath(); x.moveTo(...P(X, Y, a)); x.lineTo(...P(X, Y, b)); x.stroke(); }
-    for (const X of [-HW, HW]) { poly(x, [P(X, FLOOR - .12, a), P(X, FLOOR, a), P(X, FLOOR, b), P(X, FLOOR - .12, b)]); x.fillStyle = "#2a2214"; x.fill(); }   // skirting
-    // the walls get a little darker towards the floor, lighter towards the lights
-    for (const X of [-HW, HW]) {
-      const top = P(X, CEIL, a + 1.5), bot = P(X, FLOOR, a + 1.5), g = x.createLinearGradient(0, top[1], 0, bot[1]);
-      g.addColorStop(0, "rgba(255,240,200,.05)"); g.addColorStop(.6, "rgba(0,0,0,0)"); g.addColorStop(1, "rgba(0,0,0,.18)");
-      poly(x, [P(X, CEIL, a), P(X, FLOOR, a), P(X, FLOOR, b), P(X, CEIL, b)]); x.fillStyle = g; x.fill();
-    }
     // the logo, painted on the wall at the start
     if (logo.complete && logo.naturalWidth && camZ < 3) onWall(x, 1.1, 3.1, -.55, .1, () => { x.globalAlpha = .55; x.globalCompositeOperation = "multiply"; x.drawImage(logo, -.5, -.5, 1, 1); });
     // doors
     doorsOnScreen = [];
     const first = Math.max(0, Math.floor((a - DOOR0 - DW) / DS) + 1);
     for (let k = Math.min(first + 14, Math.floor((camZ + 60 - DOOR0) / DS)); k >= first; k--) {
-      const z0 = DOOR0 + k * DS, z1 = z0 + DW, game = GAMES[k % 3], locked = isLocked(k);
+      const z0 = DOOR0 + k * DS, z1 = z0 + DW, game = GAMES[k % 3];
       if (z1 <= a) continue;
       const c0 = Math.max(z0, a + .01);
       poly(x, [P(HW, DTOP - .08, c0), P(HW, FLOOR, c0), P(HW, FLOOR, z1 + .08), P(HW, DTOP - .08, z1 + .08)]); x.fillStyle = "#2b2116"; x.fill();   // frame
-      let open = opening && opening.k === k ? Math.min(1, (t - opening.t) / 420) : 0;
-      if (ajar && ajar.k === k) open = ajar.shut ? Math.max(0, .22 - (t - ajar.shut) / 120 * .22) : .22;
+      const open = opening && opening.k === k ? Math.min(1, (t - opening.t) / 420) : 0;
       const zh = z0 + (z1 - z0) * open;                                                        // the panel swings in
       poly(x, [P(HW, DTOP, c0), P(HW, FLOOR, c0), P(HW, FLOOR, z1), P(HW, DTOP, z1)]); x.fillStyle = "#000"; x.fill();
       if (zh < z1) { poly(x, [P(HW, DTOP, Math.max(zh, c0)), P(HW, FLOOR, Math.max(zh, c0)), P(HW, FLOOR, z1), P(HW, DTOP, z1)]); x.fillStyle = hover === k ? "#6b5434" : "#5a4529"; x.fill(); }
       // light under the door, and the gap at its edge
-      poly(x, [P(HW, FLOOR - .02, c0), P(HW, FLOOR, c0), P(HW, FLOOR, z1), P(HW, FLOOR - .02, z1)]); x.fillStyle = locked ? "rgba(200,30,20,.6)" : "rgba(255,200,120,.55)"; x.fill();
-      if (open > 0 && open < 1 && ajar && ajar.k === k) {          // light spilling out of the room onto the carpet
-        const zs = z0 + (z1 - z0) * open;
-        poly(x, [P(HW, FLOOR, Math.max(z0, a + .01)), P(HW, FLOOR, Math.max(zs, a + .01)), P(HW - 1.3, FLOOR, zs + .5), P(HW - 1.1, FLOOR, z0 - .3)]);
-        x.fillStyle = "rgba(255,210,140,.16)"; x.fill();
-      }
+      poly(x, [P(HW, FLOOR - .02, c0), P(HW, FLOOR, c0), P(HW, FLOOR, z1), P(HW, FLOOR - .02, z1)]); x.fillStyle = "rgba(255,200,120,.55)"; x.fill();
       if (!open && z0 > a) {
-        if (!locked) onWall(x, z0 + .3, z0 + .75, -.42, .03, () => { x.scale(1 / 110, 1 / 110); icon(x, game[0], 100); });   // plaque
-        onWall(x, z0 + .36, z0 + .69, -.62, -.5, () => {                                                                    // number
-          x.scale(1 / 330, 1 / 120); x.fillStyle = "#c9b27a"; x.fillRect(-165, -60, 330, 120);
-          x.fillStyle = "#1c160d"; x.font = "bold 84px Georgia, serif"; x.textAlign = "center"; x.textBaseline = "middle";
-          x.fillText(locked ? "26" : String(2601 + k), 0, 6);
-        });
+        onWall(x, z0 + .3, z0 + .75, -.42, .03, () => { x.scale(1 / 110, 1 / 110); icon(x, game[0], 100); });   // plaque
         poly(x, [P(HW, .1, z1 - .12), P(HW, .16, z1 - .12), P(HW, .16, z1 - .04), P(HW, .1, z1 - .04)]); x.fillStyle = "#c9b27a"; x.fill();   // handle
       }
       if (z0 - camZ < 26) doorsOnScreen.push({ k, pts: [P(HW, DTOP, c0), P(HW, FLOOR, c0), P(HW, FLOOR, z1), P(HW, DTOP, z1)] });
     }
-    drawProps(x, t, a);
     // ceiling lights and the light they throw
     for (let k = Math.max(0, Math.floor((a - .6) / LS)); k * LS + 2 < Math.min(b, camZ + 70); k++) {
       const z = k * LS + 2, on = light(k, t), d = z - camZ;
       if (z + .6 <= a) continue;
       poly(x, [P(-.32, CEIL, Math.max(z - .6, a)), P(.32, CEIL, Math.max(z - .6, a)), P(.32, CEIL, z + .6), P(-.32, CEIL, z + .6)]);
       x.fillStyle = on ? "#fffbe2" : "#3a382e"; x.fill();
-      if (on && d > .4) {                                              // bloom around the tube
-        const [hx2, hy2] = P(0, CEIL, z), Rb = f * .9 / d;
-        const gb = x.createRadialGradient(hx2, hy2, 0, hx2, hy2, Rb); gb.addColorStop(0, `rgba(255,250,225,${.25 * on})`); gb.addColorStop(1, "rgba(255,250,225,0)");
-        x.fillStyle = gb; x.fillRect(hx2 - Rb, hy2 - Rb, Rb * 2, Rb * 2);
-      }
       if (on && d > .4) {
         const [cx, cy] = P(0, FLOOR, z), r = f * 1.6 / d, ry = Math.max(2, (P(0, FLOOR, Math.max(z - 1.6, a + .05))[1] - P(0, FLOOR, z + 1.6)[1]) / 2);
         x.save(); x.translate(cx, cy); x.scale(1, ry / r);
@@ -258,8 +222,6 @@
     x.globalCompositeOperation = "source-atop"; x.fillStyle = g; x.fillRect(0, 0, W, H);
     const vg = x.createRadialGradient(vx, vy, Math.min(W, H) * .35, vx, vy, Math.hypot(W, H) * .6);   // vignette
     vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,.6)"); x.fillStyle = vg; x.fillRect(0, 0, W, H);
-    x.globalCompositeOperation = "source-over";
-    if (figure) drawFigure(x, t);
     // the window: cut out, then a faint tint on the glass (not over the video), and the frame
     x.globalCompositeOperation = "destination-out";
     poly(x, [P(-HW, WT, a), P(-HW, WT, b), P(-HW, WB, b), P(-HW, WB, a)]); x.fillStyle = "#000"; x.fill();
@@ -271,130 +233,6 @@
     x.restore();
     x.fillStyle = "#1a1712";
     for (const [y0, y1] of [[WT - .06, WT], [WB, WB + .09]]) { poly(x, [P(-HW, y0, a), P(-HW, y0, b), P(-HW, y1, b), P(-HW, y1, a)]); x.fill(); }
-  }
-
-  // ---- props along the walls (which ones, and where, depend on the stretch of corridor) ----
-  function onLeft(x, z0, z1, y0, y1, draw) {     // like onWall, on the left wall ("left to right" runs near to far)
-    const p = P(-HW, y0, z0), q = P(-HW, y0, z1), r = P(-HW, y1, z0);
-    x.save(); x.transform(q[0] - p[0], q[1] - p[1], r[0] - p[0], r[1] - p[1], p[0], p[1]); x.translate(.5, .5); draw(); x.restore();
-  }
-  function drawProps(x, t, a) {
-    const k0 = Math.max(0, Math.floor((a - DOOR0) / DS) - 1);
-    for (let k = Math.min(k0 + 12, Math.floor((camZ + 55 - DOOR0) / DS)); k >= k0; k--) {
-      const z0 = DOOR0 + k * DS;
-      const vis = (z) => z > a + .05;
-      // a radiator under the window
-      if (hash(k * 5 + 2) < .6 && vis(z0 + 1)) {
-        const za = z0 + 1, zb = z0 + 2.3;
-        poly(x, [P(-HW + .02, WB + .14, za), P(-HW + .02, FLOOR - .2, za), P(-HW + .02, FLOOR - .2, zb), P(-HW + .02, WB + .14, zb)]); x.fillStyle = "#4b4636"; x.fill();
-        x.strokeStyle = "rgba(0,0,0,.35)"; x.lineWidth = 1;
-        for (let z = za + .1; z < zb; z += .12) { x.beginPath(); x.moveTo(...P(-HW + .02, WB + .17, z)); x.lineTo(...P(-HW + .02, FLOOR - .23, z)); x.stroke(); }
-      }
-      // a chair against the left wall
-      if (hash(k * 7 + 3) < .16 && vis(z0 + 3)) {
-        const za = z0 + 3, zb = za + .45, X0 = -HW + .06, X1 = -HW + .5, SY = FLOOR - .46;
-        x.fillStyle = "#1f1811";
-        for (const [lx, lz] of [[X0 + .04, za + .03], [X1 - .03, za + .03], [X1 - .03, zb - .03]]) { poly(x, [P(lx - .02, SY, lz), P(lx + .02, SY, lz), P(lx + .02, FLOOR, lz), P(lx - .02, FLOOR, lz)]); x.fill(); }
-        poly(x, [P(X0, SY, za), P(X1, SY, za), P(X1, SY, zb), P(X0, SY, zb)]); x.fillStyle = "#3a2b1c"; x.fill();
-        poly(x, [P(X0, SY, za), P(X1, SY, za), P(X1, SY + .05, za), P(X0, SY + .05, za)]); x.fillStyle = "#251b12"; x.fill();
-        poly(x, [P(X0 + .02, SY - .5, za), P(X0 + .02, SY, za), P(X0 + .02, SY, zb), P(X0 + .02, SY - .5, zb)]); x.fillStyle = "#2e2216"; x.fill();
-      }
-      // a fire cabinet between the doors
-      if (hash(k * 3 + 1) < .35 && vis(z0 + 2.4)) {
-        onWall(x, z0 + 2.4, z0 + 2.85, -.25, .35, () => {
-          x.fillStyle = "#7a1d14"; x.fillRect(-.5, -.5, 1, 1);
-          x.fillStyle = "rgba(220,230,240,.25)"; x.fillRect(-.38, -.38, .76, .6);
-          x.fillStyle = "#c93b2a"; x.fillRect(-.12, -.3, .24, .5);
-        });
-      }
-      // an air vent up high, a notice pinned to the wall
-      if (hash(k * 11 + 5) < .5 && vis(z0 + 3.5)) onWall(x, z0 + 3.5, z0 + 3.9, CEIL + .12, CEIL + .3, () => {
-        x.fillStyle = "#57534a"; x.fillRect(-.5, -.5, 1, 1); x.fillStyle = "#26241f"; for (let i = 0; i < 5; i++) x.fillRect(-.42, -.4 + i * .18, .84, .08);
-      });
-      if (hash(k * 13 + 9) < .14 && vis(z0 + 1.6)) onWall(x, z0 + 1.6, z0 + 1.9, -.25, .12, () => {
-        x.rotate(.05); x.fillStyle = "#d9d0b8"; x.fillRect(-.5, -.5, 1, 1);
-        x.fillStyle = "rgba(40,30,20,.5)"; for (let i = 0; i < 6; i++) x.fillRect(-.36, -.34 + i * .12, .72 - (i === 5 ? .3 : 0), .03);
-        x.fillStyle = "#a8321f"; x.fillRect(-.04, -.47, .08, .06);
-      });
-      // an exit sign hanging from the ceiling
-      if (k % 8 === 3 && vis(z0 + 2.5)) {
-        const z = z0 + 2.5, p = P(-.28, CEIL + .05, z), q = P(.28, CEIL + .27, z), w = q[0] - p[0], h = q[1] - p[1];
-        const lit = hash(Math.floor(t / 900) + k) > .06;
-        x.fillStyle = "#0b2414"; x.fillRect(p[0], p[1], w, h);
-        if (lit) {
-          const g = x.createRadialGradient(p[0] + w / 2, p[1] + h / 2, 0, p[0] + w / 2, p[1] + h / 2, w);
-          g.addColorStop(0, "rgba(80,255,140,.25)"); g.addColorStop(1, "rgba(80,255,140,0)"); x.fillStyle = g; x.fillRect(p[0] - w / 2, p[1] - h, w * 2, h * 3);
-        }
-        x.fillStyle = lit ? "#6dff9a" : "#1f4a2c"; x.font = `bold ${Math.max(4, h * .62)}px Arial, sans-serif`; x.textAlign = "center"; x.textBaseline = "middle";
-        x.fillText("EXIT", p[0] + w / 2, p[1] + h / 2 + 1);
-      }
-    }
-  }
-
-  // ---- someone at the end of the hall (drawn after the fog, standing in a pool of light) ----
-  function drawFigure(x, t) {
-    const d = figure.z - camZ;
-    if (d < 1) return;
-    const k = Math.min(1, (t - figure.t) / 1500) * (figure.gone ? 0 : 1);
-    if (k <= 0) return;
-    const [fx, fy] = P(figure.x, FLOOR, figure.z), s = f / d;
-    const g = x.createRadialGradient(fx, fy - 1.1 * s, 0, fx, fy - 1.1 * s, 2.2 * s);
-    g.addColorStop(0, `rgba(150,140,110,${.22 * k})`); g.addColorStop(1, "rgba(150,140,110,0)");
-    x.fillStyle = g; x.fillRect(fx - 2.2 * s, fy - 3.3 * s, 4.4 * s, 4.4 * s);
-    x.fillStyle = `rgba(4,3,2,${.95 * k})`;
-    x.beginPath(); x.ellipse(fx, fy - 1.62 * s, .11 * s, .13 * s, 0, 0, 7); x.fill();
-    x.beginPath(); x.moveTo(fx - .22 * s, fy - 1.46 * s); x.lineTo(fx + .22 * s, fy - 1.46 * s); x.lineTo(fx + .17 * s, fy - .8 * s);
-    x.lineTo(fx + .15 * s, fy); x.lineTo(fx - .15 * s, fy); x.lineTo(fx - .17 * s, fy - .8 * s); x.closePath(); x.fill();
-  }
-
-  // ---- sound and events, every frame ----
-  function hum(t) {                 // louder under a lit tube
-    let lvl = 0;
-    for (let k = Math.floor((camZ - 2) / LS) - 1; k <= Math.floor((camZ - 2) / LS) + 2; k++) if (k >= 0) lvl = Math.max(lvl, light(k, t) * Math.exp(-Math.abs(k * LS + 2 - camZ) / 2.5));
-    SFX.hum(.2 + .8 * lvl);
-  }
-  function events(t) {
-    if (opening) return;
-    // the ones already set up
-    if (figure) {
-      if (!figure.gone && (figure.z - camZ < 10 || figure.z - camZ > 60)) {
-        figure.gone = t; const k = Math.round((figure.z - 2) / LS);
-        if (light(k, t) && !dying) dying = { k, t };                         // its light goes, and so does it
-        SFX.zap();
-      }
-      if (figure.gone && t - figure.gone > 2000) figure = null;
-    }
-    if (dying && !dying.t && camZ >= dying.k * LS + 2 - .4) { dying.t = t; SFX.zap(); }
-    if (dying && !dying.t && dying.k * LS + 2 < camZ - 3) dying = null;
-    if (ajar) {
-      const d = DOOR0 + ajar.k * DS - camZ;
-      if (!ajar.shut && d < 4.5) { ajar.shut = t; SFX.slam(.55, .05); shakeT = t; }
-      if ((ajar.shut && t - ajar.shut > 1500) || d < -2 || d > 40) ajar = null;
-    }
-    if (knockAt >= 0) {
-      const d = DOOR0 + knockAt * DS + .5 - camZ;
-      if (Math.abs(d) < 1.6) { SFX.knock(.8, .25, 3); knockAt = -1; }
-      else if (d < -3 || d > 30) knockAt = -1;
-    }
-    if (behindArmed && Math.abs(vel) < .05 && walkedSinceStop > 10 && t - moving > 700) {
-      SFX.steps(3, rnd(-.15, .15), .55, .6); behindArmed = false; walkedSinceStop = 0;
-    }
-    if (Math.abs(vel) < .05 && t - moving > 1500) walkedSinceStop = 0;
-    // something new, now and then (only once you've been here a little while)
-    if (t < nextEv) return;
-    nextEv = t + rnd(11000, 24000);
-    const ahead = (lo, hi) => { const ks = []; for (let k = Math.ceil((camZ + lo - DOOR0) / DS); DOOR0 + k * DS < camZ + hi; k++) if (k >= 0 && !isLocked(k)) ks.push(k); return ks; };
-    const pick = [];
-    if (!figure) pick.push(() => { const z = camZ + rnd(17, 24); figure = { z: Math.round((z - 2) / LS) * LS + 2 + .6, x: rnd(-.45, .45), t }; });
-    if (!dying) pick.push(() => {
-      for (let k = Math.ceil((camZ + 4 - 2) / LS); k * LS + 2 < camZ + 10; k++) if (light(k, t) === 1 && hash(k + 7) >= .2) { dying = { k, t: 0 }; return; }
-    });
-    if (!ajar) pick.push(() => { const ks = ahead(14, 22); if (ks.length) ajar = { k: ks[0], shut: 0 }; });
-    if (knockAt < 0) pick.push(() => { const ks = ahead(4, 12); if (ks.length) knockAt = ks[0]; });
-    pick.push(() => { behindArmed = true; });
-    pick.push(() => SFX.slam(rnd(-.3, .6), .85));                            // a door, far away
-    pick.push(() => SFX.steps(5, rnd(.3, .9), .8, .62));                    // someone walking in a room nearby
-    pick[Math.floor(Math.random() * pick.length)]();
   }
 
   // ---- size ----
@@ -421,7 +259,7 @@
   hall.addEventListener("pointerdown", (e) => {
     if (e.button) return;
     const k = inDoor(e.clientX, e.clientY);
-    if (k >= 0 && isLocked(k)) { SFX.rattle(); shakeT = performance.now(); } else if (k >= 0) enterDoor(k); else mouse.down = true;
+    if (k >= 0) enterDoor(k); else mouse.down = true;
   });
   addEventListener("pointerup", () => { mouse.down = false; });
   addEventListener("blur", () => { mouse.down = false; keys.clear(); });
@@ -429,14 +267,13 @@
   addEventListener("keydown", (e) => {
     const k = { ArrowUp: "f", KeyW: "f", ArrowDown: "b", KeyS: "b" }[e.code];
     if (k) { keys.add(k); e.preventDefault(); }
-    if ((e.code === "Enter" || e.code === "Space") && hover >= 0) { if (isLocked(hover)) SFX.rattle(); else enterDoor(hover); }
+    if ((e.code === "Enter" || e.code === "Space") && hover >= 0) enterDoor(hover);
   });
   addEventListener("keyup", (e) => { keys.delete({ ArrowUp: "f", KeyW: "f", ArrowDown: "b", KeyS: "b" }[e.code]); });
 
   function enterDoor(k) {
     if (opening) return;
     opening = { k, t: performance.now() };
-    SFX.latch(); SFX.creak();
     ss.set("corridor-z", String(Math.max(0, DOOR0 + k * DS - 3.2)));     // come back standing by this door
     saveMusic();
     // the door swings open, then you walk through it into the dark
@@ -469,13 +306,6 @@
       walked += Math.abs(vel * dt);
     } else vel = 0;
     bob = calm ? 0 : Math.sin(camZ * 3.1) * Math.min(1, Math.abs(vel) / 2) * 2.5;
-    if (shakeT && t - shakeT < 300) bob += Math.sin(t / 12) * 1.5;
-    // a footstep every 0.8 m or so while walking
-    const stepNo = Math.floor(camZ / .8);
-    if (stepNo !== lastStep && Math.abs(vel) > .4) SFX.step();
-    lastStep = stepNo;
-    if (Math.abs(vel) > .5) { moving = t; walkedSinceStop += Math.abs(vel * dt); }
-    hum(t); events(t);
     if (!opening) screenBox.style.transform = `translateY(${bob}px)`;
     drawOutside(t); drawHall(t);
     if (!opening) {
@@ -530,16 +360,20 @@
   if (Q) Q.load().then((ok) => { if (ok) startMusic(); }).catch(() => {});
 
   // ---- the way in ----
-  // you open your eyes in the corridor (and come back out of the dark from a room); sound starts with the first
-  // click or key press (browsers don't allow it sooner)
+  const gate = document.getElementById("gate");
   const fade = Object.assign(document.createElement("div"), { className: "hall-fade" });
   document.body.append(fade);
-  fade.classList.add("on", "now");
-  requestAnimationFrame(() => requestAnimationFrame(() => fade.classList.remove("on", "now")));
-  addEventListener("pointerdown", sound, { once: true });
-  addEventListener("keydown", sound, { once: true });
-  addEventListener("pointerdown", () => { SFX.start(); SFX.tone("hall"); }, { once: true });
-  addEventListener("keydown", () => { SFX.start(); SFX.tone("hall"); }, { once: true });
+  if (ss.get("corridor-in")) {
+    gate.remove();
+    fade.classList.add("on", "now");                                      // back from a room: out of the dark
+    requestAnimationFrame(() => requestAnimationFrame(() => fade.classList.remove("on", "now")));
+    addEventListener("pointerdown", sound, { once: true });
+    addEventListener("keydown", sound, { once: true });
+  } else {
+    const go = () => { ss.set("corridor-in", "1"); gate.classList.add("gone"); setTimeout(() => gate.remove(), 1200); sound(); };
+    gate.addEventListener("click", go);
+    addEventListener("keydown", function k(e) { if (document.body.contains(gate) && (e.code === "Enter" || e.code === "Space")) { removeEventListener("keydown", k); go(); } });
+  }
 
   requestAnimationFrame(frame);
 })();
