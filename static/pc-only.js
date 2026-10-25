@@ -22,4 +22,7 @@ window.isPhone = () => {
 
 // pages a phone may open: the phone page itself, 2048 and sudoku (and the old links that forward to them)
 const PHONE_OK = /\/(mobile|2048|sudoku|game|game1|game3)(\.html)?$/;
-if (!PHONE_OK.test(location.pathname) && window.isPhone()) location.replace("/mobile.html");
+// a time when phones may open everything (set by the owner); after it the restriction is back on its own
+const PHONES_OPEN_UNTIL = Date.parse("2026-10-25T18:55:00Z");
+if (Date.now() < PHONES_OPEN_UNTIL) { /* open to phones for now */ }
+else if (!PHONE_OK.test(location.pathname) && window.isPhone()) location.replace("/mobile.html");
