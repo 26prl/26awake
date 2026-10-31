@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="pc-only.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>26awake</title>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="site.css">
+  <meta name="description" content="26awake by 26prl.">
+  <script>
+    // Old links from the tracker page (./#games, ./#music) go to the pages that replaced those sections.
+    const moved = { "#games": "2048.html", "#music": "music.html" }[location.hash];
+    if (moved) location.replace(moved);
+  </script>
+</head>
+<body class="corridor">
+  <canvas id="out" aria-hidden="true"></canvas>
+  <div id="screen" class="hall-screen"></div>
+  <canvas id="hall" aria-hidden="true"></canvas>
+  <div class="hall-grain" aria-hidden="true"></div>
+  <nav class="sr-only"><a href="2048.html">2048</a> <a href="minesweeper.html">minesweeper</a> <a href="sudoku.html">sudoku</a></nav>
+  <div id="hint" class="hall-hint" aria-hidden="true">↑</div>
+  <p id="visits" class="hall-visits" hidden></p>
+  <div id="gate" class="hall-gate">
+    <img src="icons/logo-26awake-net.png" alt="26awake.net" width="920" height="326">
+    <button type="button">enter</button>
+  </div>
+  <noscript><p class="hall-nojs"><a href="2048.html">2048</a> · <a href="minesweeper.html">minesweeper</a> · <a href="sudoku.html">sudoku</a></p></noscript>
+  <script src="visits.js"></script>
+  <script src="mvqueue.js"></script>
+  <script src="corridor.js"></script>
+</body>
+</html>
