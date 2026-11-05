@@ -354,3 +354,34 @@ html:has(body.room) { background: #0a0907; }
 .room.drawn { --dim: #b0a587; }
 .room.drawn .g8-page { padding-top: 120px; padding-bottom: 110px; }
 .room.drawn:not(.wide) .g8-rank { max-width: 480px; margin-left: auto; margin-right: auto; }
+
+/* ---- home (index.html, home.js): plain foundation — buttons left and right, content in the middle, logo at the bottom ---- */
+.base { display: grid; grid-template-columns: 180px minmax(0, 1fr) 180px; grid-template-rows: 1fr auto; grid-template-areas: "left main right" "foot foot foot";
+  min-height: 100vh; background: #fff; color: #111; }
+.base-side { display: flex; flex-direction: column; gap: 10px; padding: 48px 24px; }
+.base-left { grid-area: left; align-items: flex-start; }
+.base-right { grid-area: right; align-items: flex-end; }
+.base-side a { display: inline-block; padding: 7px 14px; border: 1px solid #111; color: #111; text-decoration: none; font-size: .95rem; min-width: 92px; text-align: center; }
+.base-side a:hover { background: #111; color: #fff; }
+.base-side a.on { background: #111; color: #fff; }
+.base-main { grid-area: main; width: 100%; max-width: 680px; margin: 0 auto; padding: 48px 16px 32px; outline: none; }
+.base-main h1 { margin: 0 0 14px; font-size: 1.8rem; letter-spacing: -.01em; }
+.base-main p { margin: 0 0 14px; line-height: 1.65; }
+.base-list, .base-posts { list-style: none; margin: 0; padding: 0; }
+.base-list li, .base-posts li { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; gap: 16px; }
+.base-list a, .base-posts a { color: #111; }
+.base-date { color: #888; font-size: .85rem; white-space: nowrap; }
+.base-main > .base-date { margin-bottom: 4px; }
+.base-back { margin-top: 28px !important; }
+.base-foot { grid-area: foot; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 16px 22px; border-top: 1px solid #eee; }
+.base-logo img { display: block; width: min(220px, 60vw); height: auto; }
+.base-visits { margin: 0; font-size: .75rem; color: #999; }
+.base-visits[hidden] { display: none; }
+.base-nojs { grid-area: main; text-align: center; }
+@media (max-width: 720px) {
+  .base { grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr auto; grid-template-areas: "left right" "main main" "foot foot"; }
+  .base-side { flex-direction: row; flex-wrap: wrap; padding: 16px; gap: 8px; }
+  .base-right { justify-content: flex-end; }
+  .base-side a { min-width: 0; }
+  .base-main { padding-top: 16px; }
+}

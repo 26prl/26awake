@@ -122,14 +122,12 @@ to show it as suspected). Remove the entry to go back to the computed figure.
 
 ## Home page and games
 
-`/` is the home page (`static/index.html`, `static/corridor.js`): a little first-person walk. You stand in an endless
-corridor on the 26th floor at night. Walk with W / ↑ (S / ↓ back), the mouse wheel, or by holding the mouse button.
-The right wall has doors — 2048, minesweeper, sudoku, over and over forever; click one to go in (coming back puts you
-by that door). The left wall is one long window onto the city: the music video plays on a giant screen on a far
-tower, which never gets closer, but the further you walk the louder the music gets (6% at the start, near full after
-a few hundred metres). A black "enter" screen comes first (browsers only allow sound after a click); it's skipped
-when you come back in the same session. Drawn on canvas with a small hand-made perspective projection. The game pages
-have a "go back" link fixed in the top-left corner. Everything is styled by `static/site.css`.
+`/` is the home page (`static/index.html`, `static/home.js`): a plain white foundation to build on — buttons down
+the left (info, blog, games) and right (music, links, contact), the logo and the visit count at the bottom, and the
+middle shows one section at a time (the address says which: `#info`, `#blog`, `#blog/<post id>`, …). The middle is
+empty on the front page. Section texts are in `SECTIONS` in `home.js`. **Blog posts** are in `static/posts.json`:
+add `{"id", "title", "date": "YYYY-MM-DD", "body"}` to the top of the list (a blank line in `body` starts a new
+paragraph). The game pages have a "go back" link fixed in the top-left corner.
 
 **404 page** (`static/404.html`, served by Vercel for any address that doesn't exist): the hand-drawn 404
 (`static/icons/404.png`) glitching over moving TV static, with the scattered home-page links. If the picture can't
