@@ -355,7 +355,6 @@ html:has(body.room) { background: #0a0907; }
 .room.drawn .g8-page { padding-top: 120px; padding-bottom: 110px; }
 .room.drawn:not(.wide) .g8-rank { max-width: 480px; margin-left: auto; margin-right: auto; }
 
-/* ---- home (index.html): a black page with just the logo in the middle ---- */
-html:has(body.blank) { background: #000; }
-body.blank { display: grid; place-items: center; min-height: 100vh; min-height: 100dvh; padding: 16px; background: #000; }
-.blank-logo { display: block; width: min(459px, 80vw); height: auto; }
+/* ---- home (index.html): a white page with just the logo in the middle ---- */
+body.blank { display: grid; place-items: center; min-height: 100vh; min-height: 100dvh; padding: 16px; background: #fff; }
+.blank-logo { display: block; width: min(460px, 80vw); height: auto; }

@@ -122,7 +122,7 @@ to show it as suspected). Remove the entry to go back to the computed figure.
 
 ## Home page and games
 
-`/` is the home page (`static/index.html`): a black page with just the logo (`static/icons/logo-26awake.png`) in
+`/` is the home page (`static/index.html`): a white page with just the logo (`static/icons/logo-26awake-net.png`) in
 the middle. The game pages have a "go back" link fixed in the top-left corner.
 
 **404 page** (`static/404.html`, served by Vercel for any address that doesn't exist): the hand-drawn 404
