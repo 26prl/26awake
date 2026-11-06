@@ -1,8 +1,0 @@
-{"posts": [
-  {
-    "id": "first",
-    "title": "first post",
-    "date": "2026-11-05",
-    "body": "This is where posts go.\n\nTo write a new one, add it to the top of posts.json: an id (used in the address), a title, a date and the text. A blank line starts a new paragraph."
-  }
-]}

@@ -122,12 +122,8 @@ to show it as suspected). Remove the entry to go back to the computed figure.
 
 ## Home page and games
 
-`/` is the home page (`static/index.html`, `static/home.js`): a plain white foundation to build on — buttons down
-the left (info, blog, games) and right (music, links, contact), the logo and the visit count at the bottom, and the
-middle shows one section at a time (the address says which: `#info`, `#blog`, `#blog/<post id>`, …). The middle is
-empty on the front page. Section texts are in `SECTIONS` in `home.js`. **Blog posts** are in `static/posts.json`:
-add `{"id", "title", "date": "YYYY-MM-DD", "body"}` to the top of the list (a blank line in `body` starts a new
-paragraph). The game pages have a "go back" link fixed in the top-left corner.
+`/` is the home page (`static/index.html`): a black page with just the logo (`static/icons/logo-26awake.png`) in
+the middle. The game pages have a "go back" link fixed in the top-left corner.
 
 **404 page** (`static/404.html`, served by Vercel for any address that doesn't exist): the hand-drawn 404
 (`static/icons/404.png`) glitching over moving TV static, with the scattered home-page links. If the picture can't
@@ -193,7 +189,7 @@ home page (`deploy/vercel.json`). The tracker itself still collects news on sche
   (38/30/~24 givens, always exactly one solution), pencil notes, keyboard. Nothing is timed until Start; leaving
   the page pauses the game (board covered, clocks stopped) until Continue, also after a reload. Puzzles come
   from a server seed; the server rebuilds the puzzle, checks the finished grid and times the solve.
-* **Visit count** — the home page shows "N visits" (bottom-right corner): every page view of the site, all time (`static/api/visits.js`,
+* **Visit count** — every page view of the site, all time, is counted (no page shows the number at the moment) (`static/api/visits.js`,
   same Redis, counter `pageviews:all`; it started from the views already in the visit log). Every page view is also
   logged with its IP (the latest 100,000 are kept).
 
