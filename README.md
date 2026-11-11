@@ -147,7 +147,7 @@ browser's user agent / client hints, iPads posing as Macs (Mac + touchscreen), a
 `/mobile.html` is sent home. It's a check in the browser, so a determined person can get around it.
 
 **Banner slot** (top of the game pages, `static/banners.js`): the parody ads in `static/banners/` (animated WebP,
-728×90) in a random order like the music clips: each once per round (3 plays in a row), reshuffled every round,
+728×90) in a random order: each once per round (3 plays in a row), reshuffled every round,
 never the same one twice in a row; the place in the order carries on between pages. Clickable-looking, goes nowhere.
 To add one, put the file in `static/banners/` and add its name and the length of one play to the list in
 `banners.js`.
@@ -158,33 +158,7 @@ under them and, on the home page, a whole-screen jolt now and then. Links glitch
 hard before it opens. The games get rarer, quieter bursts that never cover the board or block input. With "reduce
 motion" on in the system settings only the scanlines stay.
 
-**Music videos** (`static/video.js`, home page only, queue in `static/mvqueue.js`): the YouTube clips in
-`static/videos.json` play one after another, each once per round, in a random order (reshuffled every round, never
-the same clip twice in a row): a box under the logo, plus a silent full-screen copy that shows through some of the
-glitch rectangles; switching clips glitches the page. The game pages have no music player. Which clip, how far in
-and whether the sound is on are remembered (3 hours), so the music carries on when you come back to the home page;
-sound that was on comes back with the first click or key press (browsers don't allow it sooner). Muted until "sound on"; no full screen (frames are built without
-`allowfullscreen`). `videos.json`: `{"videos": ["https://youtu.be/…", {"id": "…", "start": 30, "end": 75}]}`
-(links or bare ids; `start`/`end` in seconds play just that part).
-
-**Banner slot** (top of the game pages, `static/banners.js`): the parody ads in `static/banners/` (animated WebP,
-728×90) play one after another, each 3 times in a row, looping; each new page picks up with the next one.
-Clickable-looking, goes nowhere. To add one, put the file in `static/banners/` and add its name and the length of one
-play to the list in `banners.js`.
-
-**Glitch effects** (`static/glitch.js`, on the home page and the games): faint scanlines, random bursts where the
-logo, links and titles split into colours, slice and scramble their letters, "screen tear" strips that invert what's
-under them and, on the home page, a whole-screen jolt now and then. Links glitch on hover; a home page link glitches
-hard before it opens. The games get rarer, quieter bursts that never cover the board or block input. With "reduce
-motion" on in the system settings only the scanlines stay.
-
-**Music videos** (`static/video.js`, home page): a box under the logo plays the YouTube clips listed in
-`static/videos.json` one after another, each once per round, in a new random order every visit and every round (muted until
-"sound on", "next" skips, no full screen: the frames are built without `allowfullscreen`). Switching clips makes the
-page glitch hard. A second, silent copy covers the whole screen behind a clip mask and only shows through some of
-the glitch rectangles, kept on the same clip and moment as the box. Clips that can't be played are skipped.
-`videos.json`: `{"videos": ["https://youtu.be/…", "https://www.youtube.com/watch?v=…", {"id": "…", "start": 30, "end": 75}]}`
-(links or bare video ids; `start`/`end` in seconds play just that part).
+There are no music videos on the site any more (the home page box and the game pages' mini player were removed).
 
 The tracker's page and the music, GIF, anime and "nothing" pages were removed; their old addresses redirect to the
 home page (`deploy/vercel.json`). The tracker itself still collects news on schedule (below); only its page is gone.
