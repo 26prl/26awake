@@ -1,8 +1,8 @@
 "use strict";
 // The music videos on the home page.
 //  * The box (#mv-box, under the logo) plays the clips listed in videos.json one after another, each one once per
-//    round, in a random order (mvqueue.js, shared with the mini player on the game pages, so the music carries on
-//    where it was between pages). Muted at first (browsers only autoplay without sound); "sound on" turns the sound
+//    round, in a random order (mvqueue.js, so the music carries on where it was when you
+//    come back). Muted at first (browsers only autoplay without sound); "sound on" turns the sound
 //    on, and it stays on for the next clips and pages (from the first click or key press on a new page). "next"
 //    skips. Full screen is switched off. Between clips the page glitches hard (the "mv-switch" event, glitch.js).
 //  * A second, silent copy fills the whole screen behind a clip mask, so it's invisible except through "holes":

@@ -158,14 +158,12 @@ under them and, on the home page, a whole-screen jolt now and then. Links glitch
 hard before it opens. The games get rarer, quieter bursts that never cover the board or block input. With "reduce
 motion" on in the system settings only the scanlines stay.
 
-**Music videos** (`static/video.js` on the home page, `static/music.js` on the game pages, queue in
-`static/mvqueue.js`): the YouTube clips in `static/videos.json` play one after another, each once per round, in a
-random order (reshuffled every round, never the same clip twice in a row). Home: a box under the logo, plus a silent
-full-screen copy that shows through some of the glitch rectangles; switching clips glitches the page. Game pages: a
-mini player in the bottom-right corner (moves to the bottom of the page when it would cover a wide board), × closes
-it and "music" opens it again. Same look as the home page box. Which clip, how far in and whether the sound is on are remembered (3 hours), so the
-music carries on between pages; sound that was on comes back with the first click or key press on a new page
-(browsers don't allow it sooner). Muted until "sound on"; no full screen (frames are built without
+**Music videos** (`static/video.js`, home page only, queue in `static/mvqueue.js`): the YouTube clips in
+`static/videos.json` play one after another, each once per round, in a random order (reshuffled every round, never
+the same clip twice in a row): a box under the logo, plus a silent full-screen copy that shows through some of the
+glitch rectangles; switching clips glitches the page. The game pages have no music player. Which clip, how far in
+and whether the sound is on are remembered (3 hours), so the music carries on when you come back to the home page;
+sound that was on comes back with the first click or key press (browsers don't allow it sooner). Muted until "sound on"; no full screen (frames are built without
 `allowfullscreen`). `videos.json`: `{"videos": ["https://youtu.be/…", {"id": "…", "start": 30, "end": 75}]}`
 (links or bare ids; `start`/`end` in seconds play just that part).
 

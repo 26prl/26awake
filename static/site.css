@@ -196,16 +196,6 @@ a { color: inherit; }
 .nope-small { font-size: .85rem; }
 .nope-url { margin-top: 8px !important; font-size: 1.4rem; font-weight: 700; color: #111 !important; background: #b6ff00; padding: 2px 10px; }
 
-/* ---- mini music-video player on the game pages (music.js), same look as the home page box ---- */
-.mini-mv { position: fixed; right: 16px; bottom: 16px; z-index: 66; width: 356px; background: #fff; padding-bottom: 4px; }
-.mini-mv[hidden] { display: none; }
-.mini-mv-video iframe { display: block; width: 356px; height: 200px; border: 0; background: #000; }
-.mini-mv-pill { position: fixed; right: 16px; bottom: 16px; z-index: 66; padding: 0; border: 0; background: none; color: #111;
-  font: inherit; font-size: .85rem; text-decoration: underline; cursor: pointer; }
-.mini-mv-pill[hidden] { display: none; }
-.mini-mv.docked:not([hidden]), .mini-mv-pill.docked:not([hidden]) { position: static; margin: 0 auto 48px; }
-.mini-mv-pill.docked:not([hidden]) { display: block; }
-
 /* ---- 404 page ---- */
 .lost-static { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; opacity: .11; pointer-events: none;
   mix-blend-mode: multiply; transition: opacity .08s; }

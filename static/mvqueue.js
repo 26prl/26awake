@@ -1,7 +1,7 @@
 "use strict";
-// The music-video queue shared by the home page box (video.js) and the mini player on the game pages (music.js):
-// the clips from videos.json in a random order, each once per round, and "now playing" (which clip, how far in,
-// sound on or off) kept in localStorage, so the music carries on when you move between pages.
+// The music-video queue for the home page box (video.js): the clips from videos.json in a random order, each once
+// per round, and "now playing" (which clip, how far in, sound on or off) kept in localStorage, so the music carries
+// on when you come back to the home page.
 //
 // videos.json: {"videos": ["https://youtu.be/…", "https://www.youtube.com/watch?v=…", "VIDEO_ID",
 //                          {"id": "…or a link", "start": 30, "end": 75}]}   (start/end in seconds: play just that part)
