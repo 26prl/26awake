@@ -1,5 +1,5 @@
 "use strict";
-// Counts every page view (api/visits.js), which also logs the view
+// Counts every page view for the "N visits" line on the home page (api/visits.js), which also logs the view
 // (page + where the visitor came from). The browser id sent along is random and anonymous; it isn't linked to
 // the game player number.
 // A page with an element #visits shows the counts there.

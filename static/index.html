@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <script src="pc-only.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#ffffff">
   <title>26awake</title>
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
@@ -12,9 +11,31 @@
   <link rel="manifest" href="site.webmanifest">
   <link rel="stylesheet" href="site.css">
   <meta name="description" content="26awake by 26prl.">
+  <script>
+    // Old links from the tracker page (./#games, ./#music) go to the pages that replaced those sections.
+    const moved = { "#games": "2048.html", "#music": "music.html" }[location.hash];
+    if (moved) location.replace(moved);
+  </script>
 </head>
-<body class="blank">
-  <main><img class="blank-logo" src="icons/logo-26awake-net.png" alt="26awake.net" width="920" height="326"></main>
+<body class="home">
+  <div class="home-center">
+    <img class="logo" src="icons/logo-26awake-net.png" alt="26awake.net" width="920" height="326" data-avoid>
+    <div class="mv" id="mv-box" data-avoid>
+      <div id="mv-player"></div>
+      <div class="mv-ctl">
+        <button class="mv-sound" id="mv-sound" type="button" hidden>sound on</button>
+        <button class="mv-sound" id="mv-next" type="button" hidden>next</button>
+      </div>
+    </div>
+  </div>
+  <a class="scatter" href="2048.html">2048</a>
+  <a class="scatter" href="minesweeper.html">minesweeper</a>
+  <a class="scatter" href="sudoku.html">sudoku</a>
+  <p id="visits" class="visits" data-avoid hidden></p>
   <script src="visits.js"></script>
+  <script src="scatter.js"></script>
+  <script src="mvqueue.js"></script>
+  <script src="video.js"></script>
+  <script src="glitch.js"></script>
 </body>
 </html>
